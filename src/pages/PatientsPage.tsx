@@ -22,7 +22,7 @@ const GET_PATIENTS = gql`
         lastName
         dateOfBirth
         email
-        phonePrimary
+        phonePrimaryPrimary
         status
         createdAt
       }
@@ -58,7 +58,7 @@ export default function PatientsPage() {
       !searchQuery ||
       `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.phone?.includes(searchQuery);
+      patient.phonePrimary?.includes(searchQuery);
     
     const matchesStatus = !statusFilter || patient.status === statusFilter;
     
@@ -107,7 +107,7 @@ export default function PatientsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search by name, email, or phonePrimary..."
               className="input-field pl-12"
             />
           </div>
@@ -204,10 +204,10 @@ export default function PatientsPage() {
                       {/* Contact */}
                       <div className="col-span-3">
                         <div className="space-y-1">
-                          {patient.phone && (
+                          {patient.phonePrimary && (
                             <p className="flex items-center gap-2 text-sm text-slate-600">
                               <Phone className="w-4 h-4 text-slate-400" />
-                              {patient.phone}
+                              {patient.phonePrimary}
                             </p>
                           )}
                           {patient.email && (

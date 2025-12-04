@@ -28,7 +28,7 @@ const GET_TODAY_APPOINTMENTS = gql`
           firstName
           lastName
           email
-          phonePrimary
+          phonePrimaryPrimary
         }
         provider {
           providerId
@@ -215,9 +215,9 @@ export default function TodayPage() {
 
                       {/* Quick actions */}
                       <div className="flex items-center gap-2 mt-3">
-                        {appointment.patient.phone && (
+                        {appointment.patient.phonePrimary && (
                           <a
-                            href={`tel:${appointment.patient.phone}`}
+                            href={`tel:${appointment.patient.phonePrimary}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600 transition-colors"
                           >
                             <Phone className="w-4 h-4" />
