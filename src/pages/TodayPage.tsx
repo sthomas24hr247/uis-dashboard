@@ -19,8 +19,8 @@ const GET_TODAY_APPOINTMENTS = gql`
     appointments {
       data {
         appointmentId
-        dateTime
-        duration
+        startDateTime
+        durationMinutes
         status
         notes
         patient {
@@ -65,7 +65,7 @@ export default function TodayPage() {
   
   // Sort by time
   const sortedAppointments = [...appointments].sort((a: any, b: any) => 
-    new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+    new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()
   );
 
   // Stats
@@ -153,10 +153,10 @@ export default function TodayPage() {
                     {/* Time */}
                     <div className="text-center min-w-[70px]">
                       <p className="text-lg font-bold text-slate-900">
-                        {format(parseISO(appointment.dateTime), 'h:mm')}
+                        {format(parseISO(appointment.startDateTime), 'h:mm')}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {format(parseISO(appointment.dateTime), 'a')}
+                        {format(parseISO(appointment.startDateTime), 'a')}
                       </p>
                     </div>
 
@@ -178,7 +178,7 @@ export default function TodayPage() {
                           <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-slate-500">
                             <span className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              {appointment.duration} min
+                              {appointment.durationMinutes} min
                             </span>
                             {appointment.provider && (
                               <span className="flex items-center gap-1">

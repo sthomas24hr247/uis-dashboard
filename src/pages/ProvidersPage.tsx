@@ -18,7 +18,7 @@ const GET_PROVIDERS = gql`
       providerId
       firstName
       lastName
-      specialty
+      providerType
       npi
       email
       phone
@@ -27,7 +27,7 @@ const GET_PROVIDERS = gql`
   }
 `;
 
-const specialtyColors: Record<string, string> = {
+const providerTypeColors: Record<string, string> = {
   'General Dentist': 'bg-blue-100 text-blue-700',
   'Hygienist': 'bg-emerald-100 text-emerald-700',
   'Orthodontist': 'bg-violet-100 text-violet-700',
@@ -87,7 +87,7 @@ export default function ProvidersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {providers.filter((p: any) => p.specialty === 'General Dentist').length}
+                {providers.filter((p: any) => p.providerType === 'General Dentist').length}
               </p>
               <p className="text-sm text-slate-500">Dentists</p>
             </div>
@@ -100,7 +100,7 @@ export default function ProvidersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {providers.filter((p: any) => p.specialty === 'Hygienist').length}
+                {providers.filter((p: any) => p.providerType === 'Hygienist').length}
               </p>
               <p className="text-sm text-slate-500">Hygienists</p>
             </div>
@@ -156,9 +156,9 @@ export default function ProvidersPage() {
                     Dr. {provider.firstName} {provider.lastName}
                   </h3>
                   <span className={`inline-block mt-1 badge ${
-                    specialtyColors[provider.specialty] || 'bg-slate-100 text-slate-700'
+                    providerTypeColors[provider.providerType] || 'bg-slate-100 text-slate-700'
                   }`}>
-                    {provider.specialty || 'General'}
+                    {provider.providerType || 'General'}
                   </span>
                 </div>
               </div>

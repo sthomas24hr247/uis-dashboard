@@ -28,8 +28,8 @@ const GET_APPOINTMENTS = gql`
     appointments {
       data {
         appointmentId
-        dateTime
-        duration
+        startDateTime
+        durationMinutes
         status
         notes
         patient {
@@ -52,7 +52,7 @@ const GET_APPOINTMENTS = gql`
       providerId
       firstName
       lastName
-      specialty
+      providerType
     }
   }
 `;
@@ -89,8 +89,8 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => {
 
 interface Appointment {
   appointmentId: string;
-  dateTime: string;
-  duration: number;
+  startDateTime: string;
+  durationMinutes: number;
   status: string;
   notes?: string;
   patient: {
@@ -113,7 +113,7 @@ interface Provider {
   providerId: string;
   firstName: string;
   lastName: string;
-  specialty?: string;
+  providerType?: string;
 }
 
 export default function SchedulePage() {
@@ -133,7 +133,7 @@ export default function SchedulePage() {
   const appointments = useMemo(() => {
     if (!data?.appointments?.data) return [];
     return data.appointments.data.filter((apt: Appointment) => {
-      const aptDate = parseISO(apt.dateTime);
+      const aptDate = parseISO(apt.startDateTime);
       const inWeek = weekDays.some((day) => isSameDay(day, aptDate));
       const matchesProvider = !selectedProvider || apt.provider?.providerId === selectedProvider;
       return inWeek && matchesProvider;
@@ -145,7 +145,7 @@ export default function SchedulePage() {
   // Group appointments by day and time slot
   const getAppointmentsForSlot = (day: Date, timeSlot: string) => {
     return appointments.filter((apt: Appointment) => {
-      const aptDate = parseISO(apt.dateTime);
+      const aptDate = parseISO(apt.startDateTime);
       const aptTime = format(aptDate, 'HH:mm');
       return isSameDay(aptDate, day) && aptTime === timeSlot;
     });
@@ -153,12 +153,12 @@ export default function SchedulePage() {
 
   // Calculate appointment position and height
   const getAppointmentStyle = (apt: Appointment) => {
-    const startTime = parseISO(apt.dateTime);
+    const startTime = parseISO(apt.startDateTime);
     const hours = startTime.getHours();
     const minutes = startTime.getMinutes();
     const startMinutes = (hours - 7) * 60 + minutes;
     const top = (startMinutes / 30) * 60; // 60px per 30min slot
-    const height = (apt.duration / 30) * 60;
+    const height = (apt.durationMinutes / 30) * 60;
     return { top: `${top}px`, height: `${height}px` };
   };
 
@@ -332,15 +332,15 @@ export default function SchedulePage() {
                                 border overflow-hidden transition-all hover:shadow-md hover:z-10
                                 ${statusColors[apt.status] || statusColors.SCHEDULED}`}
                               style={{
-                                height: `${Math.max(apt.duration / 30 * 30, 28)}px`,
+                                height: `${Math.max(apt.durationMinutes / 30 * 30, 28)}px`,
                                 minHeight: '28px',
                               }}
-                              title={`${apt.patient.firstName} ${apt.patient.lastName} - ${apt.duration}min`}
+                              title={`${apt.patient.firstName} ${apt.patient.lastName} - ${apt.durationMinutes}min`}
                             >
                               <p className="font-medium truncate">
                                 {apt.patient.firstName} {apt.patient.lastName}
                               </p>
-                              {apt.duration >= 30 && (
+                              {apt.durationMinutes >= 30 && (
                                 <p className="text-[10px] opacity-75 truncate">
                                   {apt.provider ? `Dr. ${apt.provider.lastName}` : ''} 
                                   {apt.operatory ? ` · ${apt.operatory.name}` : ''}
