@@ -28,7 +28,7 @@ const GET_TODAY_APPOINTMENTS = gql`
           firstName
           lastName
           email
-          phone
+          phonePrimary
         }
         provider {
           providerId
