@@ -28,7 +28,7 @@ const GET_PATIENTS = gql`
       }
       pageInfo {
         total
-        hasNextPage
+        hasMore
       }
     }
   }

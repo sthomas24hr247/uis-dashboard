@@ -20,8 +20,6 @@ const GET_PROVIDERS = gql`
       lastName
       providerType
       npi
-      email
-      phone
       isActive
     }
   }
