@@ -22,7 +22,7 @@ const GET_PATIENTS = gql`
         lastName
         dateOfBirth
         email
-        phonePrimaryPrimary
+        phonePrimary
         status
         createdAt
       }
