@@ -15,29 +15,26 @@ import { format, parseISO, differenceInYears } from 'date-fns';
 
 const GET_PATIENTS = gql`
   query GetPatients {
-    patients {
-      data {
-        patientId
-        firstName
-        lastName
-        dateOfBirth
-        email
-        phonePrimary
-        status
-        createdAt
-      }
-      pageInfo {
-        total
-        hasMore
-      }
+    patients(limit: 100) {
+      id
+      firstName
+      lastName
+      dateOfBirth
+      email
+      phone
+      status
+      createdAt
     }
   }
 `;
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-emerald-100 text-emerald-700',
+  active: 'bg-emerald-100 text-emerald-700',
   INACTIVE: 'bg-slate-100 text-slate-600',
+  inactive: 'bg-slate-100 text-slate-600',
   ARCHIVED: 'bg-amber-100 text-amber-700',
+  archived: 'bg-amber-100 text-amber-700',
   DECEASED: 'bg-red-100 text-red-600',
 };
 
@@ -49,8 +46,8 @@ export default function PatientsPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const patients = data?.patients?.data || [];
-  const totalCount = data?.patients?.pageInfo?.total || 0;
+  const patients = data?.patients || [];
+  const totalCount = patients.length;
 
   // Filter patients
   const filteredPatients = patients.filter((patient: any) => {
@@ -58,9 +55,9 @@ export default function PatientsPage() {
       !searchQuery ||
       `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.phonePrimary?.includes(searchQuery);
+      patient.phone?.includes(searchQuery);
     
-    const matchesStatus = !statusFilter || patient.status === statusFilter;
+    const matchesStatus = !statusFilter || patient.status?.toUpperCase() === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -107,7 +104,7 @@ export default function PatientsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, email, or phonePrimary..."
+              placeholder="Search by name, email, or phone..."
               className="input-field pl-12"
             />
           </div>
@@ -167,8 +164,8 @@ export default function PatientsPage() {
                 
                 return (
                   <Link
-                    key={patient.patientId}
-                    to={`/patients/${patient.patientId}`}
+                    key={patient.id}
+                    to={`/patients/${patient.id}`}
                     className="block hover:bg-slate-50 transition-colors"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 px-6 py-4 items-center">
@@ -182,7 +179,7 @@ export default function PatientsPage() {
                             {patient.firstName} {patient.lastName}
                           </p>
                           <p className="text-sm text-slate-500">
-                            ID: {patient.patientId.slice(0, 8)}...
+                            ID: {patient.id?.slice(0, 8)}...
                           </p>
                         </div>
                       </div>
@@ -204,10 +201,10 @@ export default function PatientsPage() {
                       {/* Contact */}
                       <div className="col-span-3">
                         <div className="space-y-1">
-                          {patient.phonePrimary && (
+                          {patient.phone && (
                             <p className="flex items-center gap-2 text-sm text-slate-600">
                               <Phone className="w-4 h-4 text-slate-400" />
-                              {patient.phonePrimary}
+                              {patient.phone}
                             </p>
                           )}
                           {patient.email && (
