@@ -1,162 +1,151 @@
+import { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
-import {
-  UserCog,
-  RefreshCw,
-  Plus,
-  Calendar,
-  Clock,
-  Users,
-  Star,
-  Mail,
-  Phone,
-  AlertCircle,
-} from 'lucide-react';
+import { Search, Plus, Mail, Calendar, UserCheck, AlertCircle, Stethoscope } from 'lucide-react';
 
 const GET_PROVIDERS = gql`
   query GetProviders {
     providers {
-      providerId
+      id
       firstName
       lastName
-      providerType
+      abbreviation
       npi
+      deaNumber
+      stateLicense
+      isHygienist
       isActive
+      specialty
+      email
     }
   }
 `;
 
-const providerTypeColors: Record<string, string> = {
-  'General Dentist': 'bg-blue-100 text-blue-700',
-  'Hygienist': 'bg-emerald-100 text-emerald-700',
-  'Orthodontist': 'bg-violet-100 text-violet-700',
-  'Oral Surgeon': 'bg-amber-100 text-amber-700',
-  'Periodontist': 'bg-rose-100 text-rose-700',
-  'Endodontist': 'bg-cyan-100 text-cyan-700',
+interface Provider {
+  id: string;
+  firstName: string;
+  lastName: string;
+  abbreviation?: string;
+  npi?: string;
+  deaNumber?: string;
+  stateLicense?: string;
+  isHygienist?: boolean;
+  isActive?: boolean;
+  specialty?: string;
+  email?: string;
+}
+
+const specialtyColors: Record<string, string> = {
+  'General Dentistry': 'bg-blue-100 text-blue-700',
+  'Orthodontics': 'bg-purple-100 text-purple-700',
+  'Periodontics': 'bg-green-100 text-green-700',
+  'Endodontics': 'bg-orange-100 text-orange-700',
+  'Oral Surgery': 'bg-red-100 text-red-700',
+  'Pediatric Dentistry': 'bg-pink-100 text-pink-700',
+  'Prosthodontics': 'bg-teal-100 text-teal-700',
+  'Hygienist': 'bg-cyan-100 text-cyan-700',
 };
 
 export default function ProvidersPage() {
-  const { data, loading, error, refetch } = useQuery(GET_PROVIDERS, {
-    fetchPolicy: 'cache-and-network',
+  const [searchTerm, setSearchTerm] = useState('');
+  const { data, loading, error } = useQuery(GET_PROVIDERS);
+
+  const providers: Provider[] = data?.providers || [];
+
+  const filteredProviders = providers.filter((provider) => {
+    const fullName = `${provider.firstName} ${provider.lastName}`.toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return (
+      fullName.includes(search) ||
+      provider.email?.toLowerCase().includes(search) ||
+      provider.specialty?.toLowerCase().includes(search) ||
+      provider.npi?.includes(search)
+    );
   });
 
-  const providers = data?.providers || [];
+  const getProviderType = (provider: Provider): string => {
+    if (provider.isHygienist) return 'Hygienist';
+    if (provider.specialty) return provider.specialty;
+    return 'General';
+  };
+
+  const getProviderTypeColor = (provider: Provider): string => {
+    const type = getProviderType(provider);
+    return specialtyColors[type] || 'bg-slate-100 text-slate-700';
+  };
 
   return (
-    <div className="space-y-6 animate-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Providers</h1>
-          <p className="text-slate-500">Manage your practice team</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Providers</h1>
+          <p className="text-slate-500 mt-1">
+            {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''} found
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            className="btn-secondary flex items-center gap-2 !py-2.5"
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-          <button className="btn-primary flex items-center gap-2 !py-2.5">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Provider</span>
-          </button>
-        </div>
+        <button className="btn-primary">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Provider
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-soft">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-uis-100 rounded-xl flex items-center justify-center">
-              <Users className="w-5 h-5 text-uis-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{providers.length}</p>
-              <p className="text-sm text-slate-500">Total Providers</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-soft">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <UserCog className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">
-                {providers.filter((p: any) => p.providerType === 'General Dentist').length}
-              </p>
-              <p className="text-sm text-slate-500">Dentists</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-soft">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <Star className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">
-                {providers.filter((p: any) => p.providerType === 'Hygienist').length}
-              </p>
-              <p className="text-sm text-slate-500">Hygienists</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-soft">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-violet-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">
-                {providers.filter((p: any) => p.isActive !== false).length}
-              </p>
-              <p className="text-sm text-slate-500">Active</p>
-            </div>
-          </div>
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search providers by name, email, specialty, or NPI..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+        />
       </div>
 
-      {/* Provider Grid */}
-      {loading && !data ? (
-        <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-12 text-center">
-          <div className="w-10 h-10 border-4 border-uis-200 border-t-uis-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-500">Loading providers...</p>
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      ) : error ? (
-        <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">Failed to load providers</p>
-          <button onClick={() => refetch()} className="btn-secondary">
-            Try Again
-          </button>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+          <p className="text-red-700 font-medium">Error loading providers</p>
+          <p className="text-red-600 text-sm mt-1">{error.message}</p>
         </div>
-      ) : providers.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-12 text-center">
-          <UserCog className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+      )}
+
+      {!loading && !error && filteredProviders.length === 0 && (
+        <div className="text-center py-12">
+          <Stethoscope className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">No providers found</p>
         </div>
-      ) : (
+      )}
+
+      {!loading && !error && filteredProviders.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {providers.map((provider: any) => (
+          {filteredProviders.map((provider) => (
             <div
-              key={provider.providerId}
-              className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6 hover:shadow-lg transition-shadow"
+              key={provider.id}
+              className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-shadow"
             >
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-uis-400 to-uis-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl">
-                  {provider.firstName?.charAt(0)}{provider.lastName?.charAt(0)}
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white text-lg font-semibold">
+                  {provider.firstName?.[0]}
+                  {provider.lastName?.[0]}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Dr. {provider.firstName} {provider.lastName}
-                  </h3>
-                  <span className={`inline-block mt-1 badge ${
-                    providerTypeColors[provider.providerType] || 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {provider.providerType || 'General'}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-slate-900 truncate">
+                      Dr. {provider.firstName} {provider.lastName}
+                    </h3>
+                    {provider.isActive !== false && (
+                      <UserCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    )}
+                  </div>
+                  {provider.abbreviation && (
+                    <p className="text-sm text-slate-500">{provider.abbreviation}</p>
+                  )}
+                  <span className={`inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-medium ${getProviderTypeColor(provider)}`}>
+                    {getProviderType(provider)}
                   </span>
                 </div>
               </div>
@@ -168,16 +157,24 @@ export default function ProvidersPage() {
                     {provider.email}
                   </p>
                 )}
-                {provider.phone && (
-                  <p className="flex items-center gap-2 text-sm text-slate-600">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    {provider.phone}
-                  </p>
-                )}
                 {provider.npi && (
                   <p className="flex items-center gap-2 text-sm text-slate-500">
                     <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
                       NPI: {provider.npi}
+                    </span>
+                  </p>
+                )}
+                {provider.stateLicense && (
+                  <p className="flex items-center gap-2 text-sm text-slate-500">
+                    <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
+                      License: {provider.stateLicense}
+                    </span>
+                  </p>
+                )}
+                {provider.deaNumber && (
+                  <p className="flex items-center gap-2 text-sm text-slate-500">
+                    <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
+                      DEA: {provider.deaNumber}
                     </span>
                   </p>
                 )}
