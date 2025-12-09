@@ -296,3 +296,101 @@ export default function SchedulePage() {
                           }`}
                         >
                           {slotAppointments.map((apt: Appointment) => (
+                            <div
+                              key={apt.id}
+                              className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-xs cursor-pointer 
+                                border overflow-hidden transition-all hover:shadow-md hover:z-10
+                                ${statusColors[apt.status] || statusColors.SCHEDULED}`}
+                              style={{
+                                height: `${Math.max(apt.durationMinutes / 30 * 30, 28)}px`,
+                                minHeight: '28px',
+                              }}
+                              title={`${apt.patient.firstName} ${apt.patient.lastName} - ${apt.durationMinutes}min`}
+                            >
+                              <p className="font-medium truncate">
+                                {apt.patient.firstName} {apt.patient.lastName}
+                              </p>
+                              {apt.durationMinutes >= 30 && (
+                                <p className="text-[10px] opacity-75 truncate">
+                                  {apt.provider ? `Dr. ${apt.provider.lastName}` : ''} 
+                                  {apt.operatoryId ? ` · Op ${apt.operatoryId}` : ''}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        <span className="text-slate-500 font-medium">Status:</span>
+        {Object.entries(statusLabels).slice(0, 5).map(([status, label]) => (
+          <div key={status} className="flex items-center gap-2">
+            <span
+              className={`w-3 h-3 rounded-full ${
+                statusColors[status]?.replace('text-', 'bg-').split(' ')[0] || 'bg-slate-200'
+              }`}
+            />
+            <span className="text-slate-600">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{appointments.length}</p>
+              <p className="text-sm text-slate-500">This Week</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+              <Clock className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">
+                {appointments.filter((a: Appointment) => a.status === 'CONFIRMED' || a.status === 'confirmed').length}
+              </p>
+              <p className="text-sm text-slate-500">Confirmed</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+              <User className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{providers.length}</p>
+              <p className="text-sm text-slate-500">Providers</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">4</p>
+              <p className="text-sm text-slate-500">Operatories</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
