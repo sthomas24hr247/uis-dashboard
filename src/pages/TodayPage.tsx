@@ -1,4 +1,4 @@
-cat > src/pages/TodayPage.tsx << 'ENDOFFILE'
+
 import { useQuery, gql } from '@apollo/client';
 import {
   Clock,
@@ -235,4 +235,3 @@ export default function TodayPage() {
     </div>
   );
 }
-ENDOFFILE
