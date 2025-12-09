@@ -1,5 +1,3 @@
-# Create the full corrected file
-cat > src/pages/SchedulePage.tsx << 'EOF'
 import { useState, useMemo } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
@@ -24,7 +22,6 @@ import {
   isToday,
 } from 'date-fns';
 
-// GraphQL query for appointments
 const GET_APPOINTMENTS = gql`
   query GetAppointments {
     appointments(limit: 50) {
@@ -55,7 +52,6 @@ const GET_APPOINTMENTS = gql`
   }
 `;
 
-// Status colors
 const statusColors: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 border-blue-300 text-blue-800',
   scheduled: 'bg-blue-100 border-blue-300 text-blue-800',
@@ -84,12 +80,11 @@ const statusLabels: Record<string, string> = {
   NO_SHOW: 'No Show',
 };
 
-// Time slots (7 AM to 7 PM)
 const timeSlots = Array.from({ length: 24 }, (_, i) => {
   const hour = Math.floor(i / 2) + 7;
   const minutes = i % 2 === 0 ? '00' : '30';
   return `${hour.toString().padStart(2, '0')}:${minutes}`;
-}).filter((_, i) => i < 24); // 7 AM to 7 PM
+}).filter((_, i) => i < 24);
 
 interface Appointment {
   id: string;
@@ -129,9 +124,8 @@ export default function SchedulePage() {
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const workDays = weekDays.slice(1, 6); // Mon-Fri
+  const workDays = weekDays.slice(1, 6);
 
-  // Filter appointments for current week
   const appointments = useMemo(() => {
     if (!data?.appointments) return [];
     return data.appointments.filter((apt: Appointment) => {
@@ -144,24 +138,12 @@ export default function SchedulePage() {
 
   const providers: Provider[] = data?.providers || [];
 
-  // Group appointments by day and time slot
   const getAppointmentsForSlot = (day: Date, timeSlot: string) => {
     return appointments.filter((apt: Appointment) => {
       const aptDate = parseISO(apt.startDateTime);
       const aptTime = format(aptDate, 'HH:mm');
       return isSameDay(aptDate, day) && aptTime === timeSlot;
     });
-  };
-
-  // Calculate appointment position and height
-  const getAppointmentStyle = (apt: Appointment) => {
-    const startTime = parseISO(apt.startDateTime);
-    const hours = startTime.getHours();
-    const minutes = startTime.getMinutes();
-    const startMinutes = (hours - 7) * 60 + minutes;
-    const top = (startMinutes / 30) * 60; // 60px per 30min slot
-    const height = (apt.durationMinutes / 30) * 60;
-    return { top: `${top}px`, height: `${height}px` };
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -174,7 +156,6 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-6 animate-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Schedule</h1>
@@ -196,10 +177,8 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Date navigation */}
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-slate-100 rounded-xl p-1">
               <button
@@ -226,9 +205,7 @@ export default function SchedulePage() {
             </h2>
           </div>
 
-          {/* Filters and view toggle */}
           <div className="flex items-center gap-3">
-            {/* Provider filter */}
             <select
               value={selectedProvider || ''}
               onChange={(e) => setSelectedProvider(e.target.value || null)}
@@ -242,7 +219,6 @@ export default function SchedulePage() {
               ))}
             </select>
 
-            {/* View toggle */}
             <div className="flex items-center bg-slate-100 rounded-xl p-1">
               <button
                 onClick={() => setView('week')}
@@ -265,7 +241,6 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Calendar Grid */}
       <div className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
         {error ? (
           <div className="p-8 text-center">
@@ -277,7 +252,6 @@ export default function SchedulePage() {
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[800px]">
-              {/* Day headers */}
               <div className="grid grid-cols-6 border-b border-slate-100">
                 <div className="p-4 text-xs font-medium text-slate-400 uppercase">Time</div>
                 {workDays.map((day) => (
@@ -301,23 +275,17 @@ export default function SchedulePage() {
                 ))}
               </div>
 
-              {/* Time slots */}
               <div className="relative">
                 {timeSlots.map((timeSlot, idx) => (
                   <div key={timeSlot} className="grid grid-cols-6 border-b border-slate-50">
-                    {/* Time label */}
                     <div className="p-2 pr-4 text-right">
                       {idx % 2 === 0 && (
                         <span className="text-xs font-medium text-slate-400">
-                          {format(
-                            new Date(`2000-01-01T${timeSlot}:00`),
-                            'h:mm a'
-                          )}
+                          {format(new Date(`2000-01-01T${timeSlot}:00`), 'h:mm a')}
                         </span>
                       )}
                     </div>
 
-                    {/* Day columns */}
                     {workDays.map((day) => {
                       const slotAppointments = getAppointmentsForSlot(day, timeSlot);
                       return (
@@ -328,104 +296,3 @@ export default function SchedulePage() {
                           }`}
                         >
                           {slotAppointments.map((apt: Appointment) => (
-                            <div
-                              key={apt.id}
-                              className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-xs cursor-pointer 
-                                border overflow-hidden transition-all hover:shadow-md hover:z-10
-                                ${statusColors[apt.status] || statusColors.SCHEDULED}`}
-                              style={{
-                                height: `${Math.max(apt.durationMinutes / 30 * 30, 28)}px`,
-                                minHeight: '28px',
-                              }}
-                              title={`${apt.patient.firstName} ${apt.patient.lastName} - ${apt.durationMinutes}min`}
-                            >
-                              <p className="font-medium truncate">
-                                {apt.patient.firstName} {apt.patient.lastName}
-                              </p>
-                              {apt.durationMinutes >= 30 && (
-                                <p className="text-[10px] opacity-75 truncate">
-                                  {apt.provider ? `Dr. ${apt.provider.lastName}` : ''} 
-                                  {apt.operatoryId ? ` · Op ${apt.operatoryId}` : ''}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Status Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-slate-500 font-medium">Status:</span>
-        {Object.entries(statusLabels).slice(0, 5).map(([status, label]) => (
-          <div key={status} className="flex items-center gap-2">
-            <span
-              className={`w-3 h-3 rounded-full ${
-                statusColors[status]?.replace('text-', 'bg-').split(' ')[0] || 'bg-slate-200'
-              }`}
-            />
-            <span className="text-slate-600">{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{appointments.length}</p>
-              <p className="text-sm text-slate-500">This Week</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">
-                {appointments.filter((a: Appointment) => a.status === 'CONFIRMED' || a.status === 'confirmed').length}
-              </p>
-              <p className="text-sm text-slate-500">Confirmed</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-              <User className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{providers.length}</p>
-              <p className="text-sm text-slate-500">Providers</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-violet-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">4</p>
-              <p className="text-sm text-slate-500">Operatories</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-EOF
