@@ -1,3 +1,4 @@
+cat > src/pages/TodayPage.tsx << 'ENDOFFILE'
 import { useQuery, gql } from '@apollo/client';
 import {
   Clock,
@@ -16,29 +17,26 @@ import { Link } from 'react-router-dom';
 
 const GET_TODAY_APPOINTMENTS = gql`
   query GetAppointments {
-    appointments {
-      data {
-        appointmentId
-        startDateTime
-        durationMinutes
-        status
-        notes
-        patient {
-          patientId
-          firstName
-          lastName
-          email
-          phonePrimary
-        }
-        provider {
-          providerId
-          firstName
-          lastName
-        }
-        operatory {
-          operatoryId
-          name
-        }
+    appointments(limit: 50) {
+      id
+      startDateTime
+      durationMinutes
+      status
+      notes
+      patientId
+      providerId
+      operatoryId
+      patient {
+        id
+        firstName
+        lastName
+        email
+        phone
+      }
+      provider {
+        id
+        firstName
+        lastName
       }
     }
   }
@@ -46,11 +44,14 @@ const GET_TODAY_APPOINTMENTS = gql`
 
 const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
   SCHEDULED: { color: 'bg-blue-100 text-blue-700', icon: Clock, label: 'Scheduled' },
+  scheduled: { color: 'bg-blue-100 text-blue-700', icon: Clock, label: 'Scheduled' },
   CONFIRMED: { color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2, label: 'Confirmed' },
+  confirmed: { color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2, label: 'Confirmed' },
   ARRIVED: { color: 'bg-violet-100 text-violet-700', icon: User, label: 'Arrived' },
   SEATED: { color: 'bg-amber-100 text-amber-700', icon: MapPin, label: 'Seated' },
   IN_PROGRESS: { color: 'bg-amber-100 text-amber-700', icon: Clock, label: 'In Progress' },
   COMPLETED: { color: 'bg-slate-100 text-slate-600', icon: CheckCircle2, label: 'Completed' },
+  completed: { color: 'bg-slate-100 text-slate-600', icon: CheckCircle2, label: 'Completed' },
   CANCELLED: { color: 'bg-red-100 text-red-600', icon: XCircle, label: 'Cancelled' },
   NO_SHOW: { color: 'bg-red-100 text-red-600', icon: AlertCircle, label: 'No Show' },
 };
@@ -60,25 +61,21 @@ export default function TodayPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Filter for today's appointments (for demo, show all since mock data might not have today's date)
-  const appointments = data?.appointments?.data || [];
+  const appointments = data?.appointments || [];
   
-  // Sort by time
   const sortedAppointments = [...appointments].sort((a: any, b: any) => 
     new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()
   );
 
-  // Stats
   const stats = {
     total: appointments.length,
-    confirmed: appointments.filter((a: any) => a.status === 'CONFIRMED').length,
+    confirmed: appointments.filter((a: any) => a.status === 'CONFIRMED' || a.status === 'confirmed').length,
     arrived: appointments.filter((a: any) => a.status === 'ARRIVED' || a.status === 'SEATED').length,
-    completed: appointments.filter((a: any) => a.status === 'COMPLETED').length,
+    completed: appointments.filter((a: any) => a.status === 'COMPLETED' || a.status === 'completed').length,
   };
 
   return (
     <div className="space-y-6 animate-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Today's Appointments</h1>
@@ -94,7 +91,6 @@ export default function TodayPage() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-soft">
           <p className="text-sm font-medium text-slate-500 mb-1">Total Today</p>
@@ -114,7 +110,6 @@ export default function TodayPage() {
         </div>
       </div>
 
-      {/* Appointments List */}
       <div className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
           <h2 className="text-lg font-semibold text-slate-900">Appointment Timeline</h2>
@@ -145,12 +140,8 @@ export default function TodayPage() {
               const StatusIcon = status.icon;
               
               return (
-                <div
-                  key={appointment.appointmentId}
-                  className="p-6 hover:bg-slate-50 transition-colors"
-                >
+                <div key={appointment.id} className="p-6 hover:bg-slate-50 transition-colors">
                   <div className="flex items-start gap-4">
-                    {/* Time */}
                     <div className="text-center min-w-[70px]">
                       <p className="text-lg font-bold text-slate-900">
                         {format(parseISO(appointment.startDateTime), 'h:mm')}
@@ -160,20 +151,18 @@ export default function TodayPage() {
                       </p>
                     </div>
 
-                    {/* Status indicator */}
                     <div className={`p-2 rounded-xl ${status.color}`}>
                       <StatusIcon className="w-5 h-5" />
                     </div>
 
-                    {/* Details */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <Link
-                            to={`/patients/${appointment.patient.patientId}`}
+                            to={`/patients/${appointment.patient?.id || appointment.patientId}`}
                             className="text-lg font-semibold text-slate-900 hover:text-uis-600 transition-colors"
                           >
-                            {appointment.patient.firstName} {appointment.patient.lastName}
+                            {appointment.patient?.firstName} {appointment.patient?.lastName}
                           </Link>
                           <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-slate-500">
                             <span className="flex items-center gap-1">
@@ -186,10 +175,10 @@ export default function TodayPage() {
                                 Dr. {appointment.provider.lastName}
                               </span>
                             )}
-                            {appointment.operatory && (
+                            {appointment.operatoryId && (
                               <span className="flex items-center gap-1">
                                 <MapPin className="w-4 h-4" />
-                                {appointment.operatory.name}
+                                Op {appointment.operatoryId}
                               </span>
                             )}
                           </div>
@@ -201,11 +190,9 @@ export default function TodayPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className={`badge ${status.color}`}>
-                            {status.label}
-                          </span>
+                          <span className={`badge ${status.color}`}>{status.label}</span>
                           <Link
-                            to={`/patients/${appointment.patient.patientId}`}
+                            to={`/patients/${appointment.patient?.id || appointment.patientId}`}
                             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                           >
                             <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -213,19 +200,18 @@ export default function TodayPage() {
                         </div>
                       </div>
 
-                      {/* Quick actions */}
                       <div className="flex items-center gap-2 mt-3">
-                        {appointment.patient.phonePrimary && (
-                          <a
-                            href={`tel:${appointment.patient.phonePrimary}`}
+                        {appointment.patient?.phone && (
+                          
+                            href={`tel:${appointment.patient.phone}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600 transition-colors"
                           >
                             <Phone className="w-4 h-4" />
                             Call
                           </a>
                         )}
-                        {appointment.patient.email && (
-                          <a
+                        {appointment.patient?.email && (
+                          
                             href={`mailto:${appointment.patient.email}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600 transition-colors"
                           >
@@ -249,3 +235,4 @@ export default function TodayPage() {
     </div>
   );
 }
+ENDOFFILE
