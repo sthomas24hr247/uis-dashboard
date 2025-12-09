@@ -11,7 +11,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
-import { format, parseISO, isToday } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 const GET_TODAY_APPOINTMENTS = gql`
