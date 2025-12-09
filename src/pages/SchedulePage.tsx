@@ -1,3 +1,5 @@
+# Create the full corrected file
+cat > src/pages/SchedulePage.tsx << 'EOF'
 import { useState, useMemo } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
@@ -25,34 +27,30 @@ import {
 // GraphQL query for appointments
 const GET_APPOINTMENTS = gql`
   query GetAppointments {
-    appointments {
-      data {
-        appointmentId
-        startDateTime
-        durationMinutes
-        status
-        notes
-        patient {
-          patientId
-          firstName
-          lastName
-        }
-        provider {
-          providerId
-          firstName
-          lastName
-        }
-        operatory {
-          operatoryId
-          name
-        }
+    appointments(limit: 50) {
+      id
+      startDateTime
+      durationMinutes
+      status
+      notes
+      patientId
+      providerId
+      operatoryId
+      patient {
+        id
+        firstName
+        lastName
+      }
+      provider {
+        id
+        firstName
+        lastName
       }
     }
     providers {
-      providerId
+      id
       firstName
       lastName
-      providerType
     }
   }
 `;
@@ -60,22 +58,28 @@ const GET_APPOINTMENTS = gql`
 // Status colors
 const statusColors: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 border-blue-300 text-blue-800',
+  scheduled: 'bg-blue-100 border-blue-300 text-blue-800',
   CONFIRMED: 'bg-emerald-100 border-emerald-300 text-emerald-800',
+  confirmed: 'bg-emerald-100 border-emerald-300 text-emerald-800',
   ARRIVED: 'bg-violet-100 border-violet-300 text-violet-800',
   SEATED: 'bg-amber-100 border-amber-300 text-amber-800',
   IN_PROGRESS: 'bg-amber-100 border-amber-300 text-amber-800',
   COMPLETED: 'bg-slate-100 border-slate-300 text-slate-600',
+  completed: 'bg-slate-100 border-slate-300 text-slate-600',
   CANCELLED: 'bg-red-100 border-red-300 text-red-600',
   NO_SHOW: 'bg-red-100 border-red-300 text-red-600',
 };
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: 'Scheduled',
+  scheduled: 'Scheduled',
   CONFIRMED: 'Confirmed',
+  confirmed: 'Confirmed',
   ARRIVED: 'Arrived',
   SEATED: 'Seated',
   IN_PROGRESS: 'In Progress',
   COMPLETED: 'Completed',
+  completed: 'Completed',
   CANCELLED: 'Cancelled',
   NO_SHOW: 'No Show',
 };
@@ -88,32 +92,30 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => {
 }).filter((_, i) => i < 24); // 7 AM to 7 PM
 
 interface Appointment {
-  appointmentId: string;
+  id: string;
   startDateTime: string;
   durationMinutes: number;
   status: string;
   notes?: string;
+  patientId: string;
+  providerId: string;
+  operatoryId?: string;
   patient: {
-    patientId: string;
+    id: string;
     firstName: string;
     lastName: string;
   };
   provider?: {
-    providerId: string;
+    id: string;
     firstName: string;
     lastName: string;
-  };
-  operatory?: {
-    operatoryId: string;
-    name: string;
   };
 }
 
 interface Provider {
-  providerId: string;
+  id: string;
   firstName: string;
   lastName: string;
-  providerType?: string;
 }
 
 export default function SchedulePage() {
@@ -131,11 +133,11 @@ export default function SchedulePage() {
 
   // Filter appointments for current week
   const appointments = useMemo(() => {
-    if (!data?.appointments?.data) return [];
-    return data.appointments.data.filter((apt: Appointment) => {
+    if (!data?.appointments) return [];
+    return data.appointments.filter((apt: Appointment) => {
       const aptDate = parseISO(apt.startDateTime);
       const inWeek = weekDays.some((day) => isSameDay(day, aptDate));
-      const matchesProvider = !selectedProvider || apt.provider?.providerId === selectedProvider;
+      const matchesProvider = !selectedProvider || apt.provider?.id === selectedProvider;
       return inWeek && matchesProvider;
     });
   }, [data, weekDays, selectedProvider]);
@@ -234,7 +236,7 @@ export default function SchedulePage() {
             >
               <option value="">All Providers</option>
               {providers.map((provider) => (
-                <option key={provider.providerId} value={provider.providerId}>
+                <option key={provider.id} value={provider.id}>
                   Dr. {provider.lastName}
                 </option>
               ))}
@@ -327,7 +329,7 @@ export default function SchedulePage() {
                         >
                           {slotAppointments.map((apt: Appointment) => (
                             <div
-                              key={apt.appointmentId}
+                              key={apt.id}
                               className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-xs cursor-pointer 
                                 border overflow-hidden transition-all hover:shadow-md hover:z-10
                                 ${statusColors[apt.status] || statusColors.SCHEDULED}`}
@@ -343,7 +345,7 @@ export default function SchedulePage() {
                               {apt.durationMinutes >= 30 && (
                                 <p className="text-[10px] opacity-75 truncate">
                                   {apt.provider ? `Dr. ${apt.provider.lastName}` : ''} 
-                                  {apt.operatory ? ` · ${apt.operatory.name}` : ''}
+                                  {apt.operatoryId ? ` · Op ${apt.operatoryId}` : ''}
                                 </p>
                               )}
                             </div>
@@ -394,7 +396,7 @@ export default function SchedulePage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {appointments.filter((a: Appointment) => a.status === 'CONFIRMED').length}
+                {appointments.filter((a: Appointment) => a.status === 'CONFIRMED' || a.status === 'confirmed').length}
               </p>
               <p className="text-sm text-slate-500">Confirmed</p>
             </div>
@@ -426,3 +428,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+EOF
