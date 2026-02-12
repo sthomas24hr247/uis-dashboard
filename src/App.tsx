@@ -8,6 +8,7 @@ import PatientDetailPage from './pages/PatientDetailPage';
 import TodayPage from './pages/TodayPage';
 import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import AIPredictionsPage from './pages/AIPredictionsPage';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -53,6 +54,8 @@ function App() {
         <Route path="patients/:patientId" element={<PatientDetailPage />} />
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="ai-predictions" element={<AIPredictionsPage />} />
+        <Route path="ai-predictions" element={<AIPredictionsPage />} />
       </Route>
       
       {/* Catch all */}

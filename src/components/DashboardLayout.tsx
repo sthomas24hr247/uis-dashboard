@@ -12,6 +12,7 @@ import {
   Search,
   Menu,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/patients', icon: Users, label: 'Patients' },
   { to: '/providers', icon: UserCog, label: 'Providers' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/ai-predictions', icon: Sparkles, label: 'AI Predictions' },
 ];
 
 export default function DashboardLayout() {
