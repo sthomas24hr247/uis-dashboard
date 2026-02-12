@@ -1,7 +1,7 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.uis.dental/graphql';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.uishealth.com/graphql';
 
 const httpLink = createHttpLink({
   uri: API_URL,
