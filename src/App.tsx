@@ -56,7 +56,9 @@ function App() {
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="ai-predictions" element={<AIPredictionsPage />} />
+            <Route path="outcome-gap" element={<OutcomeGapPage />} />
         <Route path="ai-predictions" element={<AIPredictionsPage />} />
+            <Route path="outcome-gap" element={<OutcomeGapPage />} />
       </Route>
       
       {/* Catch all */}
