@@ -140,3 +140,56 @@
   @apply absolute left-1 right-1 rounded-lg p-2 text-xs font-medium overflow-hidden
          cursor-pointer transition-all duration-200 hover:shadow-md hover:z-10;
 }
+/* Add this to your existing index.css or globals.css */
+
+/* Dark mode base styles */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0f172a; /* slate-900 */
+  color: #e2e8f0; /* slate-200 */
+}
+
+/* Override dashboard layout for dark mode */
+.dark .bg-slate-50 { background-color: #0f172a; }
+.dark .bg-white { background-color: #1e293b; }
+.dark .border-slate-100 { border-color: #334155; }
+.dark .border-slate-200 { border-color: #334155; }
+.dark .text-slate-900 { color: #f1f5f9; }
+.dark .text-slate-700 { color: #cbd5e1; }
+.dark .text-slate-600 { color: #94a3b8; }
+.dark .text-slate-500 { color: #64748b; }
+
+/* Shadow adjustments for dark */
+.dark .shadow-soft {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar dark mode */
+.dark .sidebar-dark {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border-right-color: #334155;
+}
+
+/* Smooth theme transition */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+/* Animate-in for page transitions */
+.animate-in {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
