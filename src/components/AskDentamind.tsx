@@ -51,7 +51,7 @@ export default function AskDentamind() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://api.uishealth.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -160,7 +160,7 @@ export default function AskDentamind() {
                         setInput('');
                         setMessages([{ role: 'user', content: q }]);
                         setIsLoading(true);
-                        fetch('https://api.anthropic.com/v1/messages', {
+                        fetch('https://api.uishealth.com/api/chat', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
