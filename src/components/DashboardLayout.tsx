@@ -14,6 +14,7 @@ import {
   Menu,
   ChevronDown,
   Sparkles,
+  Activity,
   Moon,
   Sun,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/providers', icon: UserCog, label: 'Providers' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind' },
+  { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
 ];
 
 export default function DashboardLayout() {

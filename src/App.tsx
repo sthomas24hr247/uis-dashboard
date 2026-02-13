@@ -9,6 +9,7 @@ import TodayPage from './pages/TodayPage';
 import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
+import OutcomeGapPage from './pages/OutcomeGapPage';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
