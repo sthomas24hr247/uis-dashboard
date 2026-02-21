@@ -6,12 +6,58 @@ interface Message {
   content: string;
 }
 
+interface PracticeData {
+  summary?: {
+    highRiskAppointments: number;
+    mediumRiskAppointments: number;
+    lowRiskAppointments: number;
+    highRiskPatients: number;
+    nextMonthForecast: number;
+    confidenceLevel: number;
+  };
+  noshowRisks?: Array<{
+    patientName: string;
+    dateTime: string;
+    type: string;
+    provider: string;
+    noshowRiskScore: number;
+    riskCategory: string;
+    dayOfWeek: string;
+    hourOfDay: number;
+  }>;
+  churnRisks?: Array<{
+    firstName: string;
+    lastName: string;
+    churnRiskScore: number;
+    churnRiskCategory: string;
+    recommendedAction: string;
+    daysSinceVisit: number;
+    totalVisits: number;
+  }>;
+  forecast?: Array<{
+    forecastMonth: string;
+    forecastProduction: number;
+    forecastCollections: number;
+    confidenceLevel: number;
+    growthRatePct: number;
+  }>;
+  stats?: {
+    totalRevenue: number;
+    activePatients: number;
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    noShowRate: number;
+  };
+}
+
 interface AskDentamindProps {
   initialQuestion?: string | null;
   onQuestionHandled?: () => void;
+  practiceData?: PracticeData | null;
 }
 
-const SYSTEM_PROMPT = `You are Dentamind AI, the intelligent decision brain for dental practices. You are embedded in the UIS Health platform — a unified intelligence system that aggregates data from practice management systems.
+const BASE_SYSTEM_PROMPT = `You are Dentamind AI, the intelligent decision brain for dental practices. You are embedded in the UIS Health platform — a unified intelligence system that aggregates data from practice management systems.
 
 You help dental practice owners, office managers, and DSO executives understand their practice performance, identify risks, and make data-driven decisions.
 
@@ -24,11 +70,61 @@ Your capabilities include:
 - Treatment plan acceptance analysis
 - Provider productivity insights
 
-Keep responses concise, actionable, and specific to dental practice operations. Use dental industry terminology naturally. When you don't have specific data, provide frameworks and best practices.
+Keep responses concise, actionable, and specific to dental practice operations. Use dental industry terminology naturally.
+
+IMPORTANT: You have access to LIVE practice data provided below. Always reference specific numbers, patient names, and risk scores from this data when answering. Be precise and data-driven — cite the actual figures. Never say you don't have access to data — you DO have the practice's real data.
 
 Always be confident but precise. You are the decision brain — not a search engine.`;
 
-export default function AskDentamind({ initialQuestion, onQuestionHandled }: AskDentamindProps) {
+function buildDataContext(data: PracticeData): string {
+  const sections: string[] = [];
+
+  if (data.stats) {
+    sections.push(`## Practice Overview (Live Data)
+- Active Patients: ${data.stats.activePatients}
+- Total Appointments: ${data.stats.totalAppointments}
+- Completed Appointments: ${data.stats.completedAppointments}
+- Cancelled Appointments: ${data.stats.cancelledAppointments}
+- No-Show Rate: ${(data.stats.noShowRate * 100).toFixed(1)}%
+- Total Revenue (Period): $${data.stats.totalRevenue.toLocaleString()}`);
+  }
+
+  if (data.summary) {
+    sections.push(`## AI Risk Summary
+- High Risk Appointments: ${data.summary.highRiskAppointments}
+- Medium Risk Appointments: ${data.summary.mediumRiskAppointments}
+- Low Risk Appointments: ${data.summary.lowRiskAppointments}
+- High Risk Patients (Churn): ${data.summary.highRiskPatients}
+- Next Month Revenue Forecast: $${data.summary.nextMonthForecast.toLocaleString()}
+- Forecast Confidence: ${(data.summary.confidenceLevel * 100).toFixed(0)}%`);
+  }
+
+  if (data.noshowRisks && data.noshowRisks.length > 0) {
+    const lines = data.noshowRisks.map(r =>
+      `  - ${r.patientName}: Score ${r.noshowRiskScore}/100 (${r.riskCategory}) | ${r.dayOfWeek} ${r.hourOfDay}:00 | Type: ${r.type} | Provider: ${r.provider || 'Unassigned'}`
+    ).join('\n');
+    sections.push(`## No-Show Risk Appointments (${data.noshowRisks.length} tracked)\n${lines}`);
+  }
+
+  if (data.churnRisks && data.churnRisks.length > 0) {
+    const lines = data.churnRisks.map(c =>
+      `  - ${c.firstName} ${c.lastName}: Churn Score ${c.churnRiskScore}/100 (${c.churnRiskCategory}) | ${c.daysSinceVisit} days since last visit | ${c.totalVisits} total visits | Action: ${c.recommendedAction}`
+    ).join('\n');
+    sections.push(`## Patient Churn Risk (${data.churnRisks.length} patients)\n${lines}`);
+  }
+
+  if (data.forecast && data.forecast.length > 0) {
+    const lines = data.forecast.map(f => {
+      const month = new Date(f.forecastMonth).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      return `  - ${month}: Production $${f.forecastProduction.toLocaleString()} | Collections $${f.forecastCollections.toLocaleString()} | Growth ${f.growthRatePct >= 0 ? '+' : ''}${f.growthRatePct.toFixed(1)}% | Confidence ${(f.confidenceLevel * 100).toFixed(0)}%`;
+    }).join('\n');
+    sections.push(`## Revenue Forecast (6-Month)\n${lines}`);
+  }
+
+  return sections.join('\n\n');
+}
+
+export default function AskDentamind({ initialQuestion, onQuestionHandled, practiceData }: AskDentamindProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -36,6 +132,10 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const processedQuestionRef = useRef<string | null>(null);
+
+  const systemPrompt = practiceData
+    ? `${BASE_SYSTEM_PROMPT}\n\n--- LIVE PRACTICE DATA ---\n\n${buildDataContext(practiceData)}\n\n--- END LIVE DATA ---`
+    : BASE_SYSTEM_PROMPT;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -47,23 +147,21 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
     }
   }, [isOpen]);
 
-  // Handle initialQuestion from Quick Ask cards
   useEffect(() => {
     if (initialQuestion && initialQuestion !== processedQuestionRef.current) {
       processedQuestionRef.current = initialQuestion;
       setIsOpen(true);
-      // Clear previous conversation and send the new question
       const userMsg: Message = { role: 'user', content: initialQuestion };
       setMessages([userMsg]);
       setIsLoading(true);
-      
+
       fetch('https://api.uishealth.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: [{ role: 'user', content: initialQuestion }],
         }),
       })
@@ -86,7 +184,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
           onQuestionHandled?.();
         });
     }
-  }, [initialQuestion, onQuestionHandled]);
+  }, [initialQuestion, onQuestionHandled, systemPrompt]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
@@ -104,7 +202,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: updatedMessages.map(m => ({
             role: m.role,
             content: m.content,
@@ -127,7 +225,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, systemPrompt]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -151,7 +249,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: q }],
       }),
     })
@@ -201,7 +299,9 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
               </div>
               <div>
                 <h3 className="text-white font-bold text-sm">Ask Dentamind</h3>
-                <p className="text-slate-400 text-xs">AI-powered dental intelligence</p>
+                <p className="text-slate-400 text-xs">
+                  {practiceData ? '● Connected to live practice data' : 'AI-powered dental intelligence'}
+                </p>
               </div>
             </div>
             <button
@@ -222,7 +322,9 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
                 </div>
                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">Dentamind AI</h4>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                  The decision brain for your practice
+                  {practiceData
+                    ? 'Connected to your live practice data. Ask me anything.'
+                    : 'The decision brain for your practice'}
                 </p>
                 <div className="space-y-2">
                   {quickQuestions.map((q) => (
@@ -259,7 +361,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled }: Ask
                 <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-bl-md px-4 py-3">
                   <div className="flex items-center gap-2 text-slate-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Analyzing...</span>
+                    <span className="text-sm">Analyzing practice data...</span>
                   </div>
                 </div>
               </div>

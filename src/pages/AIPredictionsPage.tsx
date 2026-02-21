@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
   DollarSign, CalendarClock, TrendingUp, Users, ShieldAlert, Activity,
@@ -150,6 +150,18 @@ export default function AIPredictionsPage() {
   const forecast = data?.revenueForecast || [];
   const stats = data?.analyticsStats;
 
+  // Build practiceData object to pass to AskDentamind
+  const practiceData = useMemo(() => {
+    if (!data) return null;
+    return {
+      summary: summary || undefined,
+      noshowRisks: noshowRisks.length > 0 ? noshowRisks : undefined,
+      churnRisks: churnRisks.length > 0 ? churnRisks : undefined,
+      forecast: forecast.length > 0 ? forecast : undefined,
+      stats: stats || undefined,
+    };
+  }, [data, summary, noshowRisks, churnRisks, forecast, stats]);
+
   // Compute signal metrics
   const totalRiskAppts = (summary?.highRiskAppointments || 0) + (summary?.mediumRiskAppointments || 0);
   const totalAppts = (summary?.highRiskAppointments || 0) + (summary?.mediumRiskAppointments || 0) + (summary?.lowRiskAppointments || 0);
@@ -185,16 +197,12 @@ export default function AIPredictionsPage() {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 
-  const handleQuestionHandled = useCallback(() => {
-    // Don't clear immediately — let the chat keep the context
-  }, []);
+  const handleQuestionHandled = useCallback(() => {}, []);
 
   const handleCardClick = (question: string) => {
-    // Use a unique key by appending timestamp to force re-trigger even if same card clicked twice
     setActiveQuestion(question + '::' + Date.now());
   };
 
-  // Strip the timestamp suffix before passing to AskDentamind
   const cleanQuestion = activeQuestion ? activeQuestion.split('::')[0] : null;
 
   return (
@@ -467,10 +475,11 @@ export default function AIPredictionsPage() {
         </>
       )}
 
-      {/* Ask Dentamind Chat */}
-      <AskDentamind 
-        initialQuestion={cleanQuestion} 
-        onQuestionHandled={handleQuestionHandled} 
+      {/* Ask Dentamind Chat — now with live practice data */}
+      <AskDentamind
+        initialQuestion={cleanQuestion}
+        onQuestionHandled={handleQuestionHandled}
+        practiceData={practiceData}
       />
     </div>
   );
