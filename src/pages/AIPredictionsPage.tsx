@@ -1,27 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
-  AlertTriangle,
-  TrendingUp,
-  Users,
-  BarChart3,
-  Shield,
-  RefreshCw,
-  ChevronRight,
-  Activity,
-  DollarSign,
-  Calendar,
-  UserX,
-  Phone,
-  Mail,
+  DollarSign, CalendarClock, TrendingUp, Users, ShieldAlert, Activity,
+  RefreshCw, AlertTriangle, CheckCircle2, Clock, Brain, Sparkles,
+  ChevronRight, Building2,
 } from 'lucide-react';
+import AskDentamind from '../components/AskDentamind';
 
-// =============================================================================
-// GRAPHQL QUERIES
-// =============================================================================
-
-const GET_AI_SUMMARY = gql`
-  query GetAISummary {
+const GET_COMMAND_CENTER = gql`
+  query GetCommandCenter {
     aiPredictionsSummary {
       highRiskAppointments
       mediumRiskAppointments
@@ -30,12 +17,7 @@ const GET_AI_SUMMARY = gql`
       nextMonthForecast
       confidenceLevel
     }
-  }
-`;
-
-const GET_NOSHOW_RISKS = gql`
-  query GetNoshowRisks {
-    noshowRisks {
+    noshowRisks(limit: 20) {
       appointmentId
       patientName
       dateTime
@@ -43,509 +25,453 @@ const GET_NOSHOW_RISKS = gql`
       provider
       noshowRiskScore
       riskCategory
-      historicalNoShowRate
       dayOfWeek
-      daysSinceLastVisit
+      hourOfDay
     }
-  }
-`;
-
-const GET_REVENUE_FORECAST = gql`
-  query GetRevenueForecast {
+    churnRisks(limit: 20) {
+      patientId
+      firstName
+      lastName
+      churnRiskScore
+      churnRiskCategory
+      recommendedAction
+      daysSinceVisit
+      totalVisits
+    }
     revenueForecast {
       forecastMonth
       monthOffset
       forecastProduction
       forecastCollections
-      forecastLow
-      forecastHigh
-      monthsOfData
-      growthRatePct
       confidenceLevel
+      growthRatePct
+    }
+    analyticsStats {
+      totalRevenue
+      activePatients
+      totalAppointments
+      completedAppointments
+      cancelledAppointments
+      noShowRate
     }
   }
 `;
 
-const GET_CHURN_RISKS = gql`
-  query GetChurnRisks {
-    churnRisks {
-      patientId
-      firstName
-      lastName
-      email
-      phone
-      balance
-      lastVisit
-      totalVisits
-      noShows
-      daysSinceVisit
-      churnRiskScore
-      churnRiskCategory
-      recommendedAction
-    }
-  }
-`;
-
-// =============================================================================
-// HELPER COMPONENTS
-// =============================================================================
-
-function RiskBadge({ category }: { category: string }) {
-  const styles: Record<string, string> = {
-    HIGH: 'bg-red-100 text-red-700 border-red-200',
-    MEDIUM: 'bg-amber-100 text-amber-700 border-amber-200',
-    LOW: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  };
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[category] || styles.LOW}`}>
-      {category}
-    </span>
-  );
-}
-
-function RiskScoreBar({ score, max = 100 }: { score: number; max?: number }) {
-  const pct = Math.min((score / max) * 100, 100);
-  const color = score >= 70 ? 'bg-red-500' : score >= 40 ? 'bg-amber-500' : 'bg-emerald-500';
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-sm font-mono font-semibold text-slate-700 w-8 text-right">{score}</span>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, sublabel, color = 'blue' }: any) {
-  const colors: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
-    red: 'bg-red-50 text-red-600',
-    amber: 'bg-amber-50 text-amber-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
-    violet: 'bg-violet-50 text-violet-600',
-  };
-  return (
-    <div className="bg-white rounded-xl border p-5 shadow-sm">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[color]}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <span className="text-sm text-slate-500">{label}</span>
-      </div>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
-      {sublabel && <p className="text-xs text-slate-400 mt-1">{sublabel}</p>}
-    </div>
-  );
-}
-
-function formatCurrency(val: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return 'N/A';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatTime(dateStr: string): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-}
-
-// =============================================================================
-// TAB CONTENT: OVERVIEW
-// =============================================================================
-
-function OverviewTab() {
-  const { data, loading } = useQuery(GET_AI_SUMMARY);
-  const { data: forecastData } = useQuery(GET_REVENUE_FORECAST);
-  const { data: churnData } = useQuery(GET_CHURN_RISKS);
-
-  const summary = data?.aiPredictionsSummary;
-  const forecasts = forecastData?.revenueForecast || [];
-  const churnPatients = churnData?.churnRisks?.filter((p: any) => p.churnRiskCategory === 'HIGH') || [];
-
-  if (loading) return <LoadingSpinner />;
-
-  return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={AlertTriangle}
-          label="High Risk Appointments"
-          value={summary?.highRiskAppointments || 0}
-          sublabel="May no-show"
-          color="red"
-        />
-        <StatCard
-          icon={UserX}
-          label="At-Risk Patients"
-          value={summary?.highRiskPatients || 0}
-          sublabel="Churn risk HIGH"
-          color="amber"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Next Month Forecast"
-          value={summary?.nextMonthForecast ? formatCurrency(summary.nextMonthForecast) : '—'}
-          sublabel={`Confidence: ${summary?.confidenceLevel || 'N/A'}`}
-          color="emerald"
-        />
-        <StatCard
-          icon={Shield}
-          label="Low Risk Appointments"
-          value={summary?.lowRiskAppointments || 0}
-          sublabel="On track"
-          color="blue"
-        />
-      </div>
-
-      {/* Revenue Forecast Chart (simplified bar display) */}
-      {forecasts.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-emerald-600" />
-            3-Month Revenue Forecast
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            {forecasts.map((f: any) => {
-              const maxProd = Math.max(...forecasts.map((x: any) => x.forecastHigh));
-              const barHeight = (f.forecastProduction / maxProd) * 100;
-              return (
-                <div key={f.monthOffset} className="text-center">
-                  <div className="h-40 flex flex-col justify-end items-center mb-2">
-                    <div className="relative w-full max-w-[80px]">
-                      {/* Confidence range */}
-                      <div
-                        className="absolute left-1/2 -translate-x-1/2 w-8 bg-emerald-100 rounded"
-                        style={{
-                          height: `${((f.forecastHigh - f.forecastLow) / maxProd) * 100}%`,
-                          bottom: `${(f.forecastLow / maxProd) * 100}%`,
-                        }}
-                      />
-                      {/* Main bar */}
-                      <div
-                        className="relative w-full bg-emerald-500 rounded-t"
-                        style={{ height: `${barHeight}%` }}
-                      />
-                    </div>
-                  </div>
-                  <p className="font-bold text-slate-900">{formatCurrency(f.forecastProduction)}</p>
-                  <p className="text-xs text-slate-500">{formatDate(f.forecastMonth)}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatCurrency(f.forecastLow)} – {formatCurrency(f.forecastHigh)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 flex items-center gap-4 text-xs text-slate-400">
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 bg-emerald-500 rounded" /> Production
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 bg-emerald-100 rounded" /> Confidence Range
-            </span>
-            <span>Based on {forecasts[0]?.monthsOfData || 0} months of data</span>
-          </div>
-        </div>
-      )}
-
-      {/* At-Risk Patients Quick View */}
-      {churnPatients.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <UserX className="w-5 h-5 text-red-600" />
-            Patients Needing Attention
-          </h3>
-          <div className="space-y-3">
-            {churnPatients.slice(0, 5).map((p: any) => (
-              <div key={p.patientId} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center">
-                    <Users className="w-4 h-4 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">{p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-slate-500">{p.recommendedAction}</p>
-                  </div>
-                </div>
-                <RiskBadge category={p.churnRiskCategory} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
-// TAB CONTENT: NO-SHOW RISK
-// =============================================================================
-
-function NoShowTab() {
-  const { data, loading, refetch } = useQuery(GET_NOSHOW_RISKS);
-  const risks = data?.noshowRisks || [];
-
-  if (loading) return <LoadingSpinner />;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{risks.length} appointments scored</p>
-        <button onClick={() => refetch()} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700">
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-slate-50 border-b">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Patient</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Appointment</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Day</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Risk Score</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Category</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {risks.map((r: any) => (
-              <tr key={r.appointmentId} className="hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-slate-900">{r.patientName}</p>
-                  <p className="text-xs text-slate-400">{r.provider}</p>
-                </td>
-                <td className="px-4 py-3">
-                  <p className="text-sm text-slate-700">{r.type}</p>
-                  <p className="text-xs text-slate-400">{formatTime(r.dateTime)}</p>
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-600">{r.dayOfWeek}</td>
-                <td className="px-4 py-3 w-40">
-                  <RiskScoreBar score={r.noshowRiskScore} />
-                </td>
-                <td className="px-4 py-3">
-                  <RiskBadge category={r.riskCategory} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// TAB CONTENT: REVENUE FORECAST
-// =============================================================================
-
-function RevenueTab() {
-  const { data, loading } = useQuery(GET_REVENUE_FORECAST);
-  const forecasts = data?.revenueForecast || [];
-
-  if (loading) return <LoadingSpinner />;
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {forecasts.map((f: any) => (
-          <div key={f.monthOffset} className="bg-white rounded-xl border p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-slate-500">Month {f.monthOffset}</span>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                f.confidenceLevel === 'HIGH' ? 'bg-emerald-100 text-emerald-700' :
-                f.confidenceLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
-                'bg-slate-100 text-slate-600'
-              }`}>
-                {f.confidenceLevel} confidence
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mb-1">{formatDate(f.forecastMonth)}</p>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-slate-500">Production</p>
-                <p className="text-xl font-bold text-slate-900">{formatCurrency(f.forecastProduction)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Collections</p>
-                <p className="text-lg font-semibold text-emerald-600">{formatCurrency(f.forecastCollections)}</p>
-              </div>
-              <div className="pt-2 border-t">
-                <p className="text-xs text-slate-400">Range</p>
-                <p className="text-sm text-slate-600">
-                  {formatCurrency(f.forecastLow)} – {formatCurrency(f.forecastHigh)}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-slate-400">
-                <TrendingUp className="w-3 h-3" />
-                {f.growthRatePct}% growth • {f.monthsOfData} months data
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// TAB CONTENT: CHURN RISK
-// =============================================================================
-
-function ChurnTab() {
-  const { data, loading, refetch } = useQuery(GET_CHURN_RISKS);
-  const patients = data?.churnRisks || [];
-
-  if (loading) return <LoadingSpinner />;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{patients.length} patients analyzed</p>
-        <button onClick={() => refetch()} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700">
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-slate-50 border-b">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Patient</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Last Visit</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Visits / No-Shows</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Risk Score</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {patients.map((p: any) => (
-              <tr key={p.patientId} className="hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      p.churnRiskCategory === 'HIGH' ? 'bg-red-100' :
-                      p.churnRiskCategory === 'MEDIUM' ? 'bg-amber-100' : 'bg-emerald-100'
-                    }`}>
-                      <Users className={`w-4 h-4 ${
-                        p.churnRiskCategory === 'HIGH' ? 'text-red-600' :
-                        p.churnRiskCategory === 'MEDIUM' ? 'text-amber-600' : 'text-emerald-600'
-                      }`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">{p.firstName} {p.lastName}</p>
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        {p.phone && <span className="flex items-center gap-0.5"><Phone className="w-3 h-3" />{p.phone}</span>}
-                        {p.email && <span className="flex items-center gap-0.5"><Mail className="w-3 h-3" />{p.email}</span>}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <p className="text-sm text-slate-600">
-                    {p.lastVisit ? formatDate(p.lastVisit) : 'Never'}
-                  </p>
-                  {p.daysSinceVisit != null && (
-                    <p className="text-xs text-slate-400">{p.daysSinceVisit} days ago</p>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-600">
-                  {p.totalVisits || 0} / {p.noShows || 0}
-                </td>
-                <td className="px-4 py-3 w-40">
-                  <RiskScoreBar score={p.churnRiskScore} />
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                    {p.recommendedAction}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// LOADING SPINNER
-// =============================================================================
-
-function LoadingSpinner() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-    </div>
-  );
-}
-
-// =============================================================================
-// MAIN PAGE
-// =============================================================================
-
-const tabs = [
-  { id: 'overview', label: 'Overview', icon: BarChart3 },
-  { id: 'noshow', label: 'No-Show Risk', icon: AlertTriangle },
-  { id: 'revenue', label: 'Revenue Forecast', icon: TrendingUp },
-  { id: 'churn', label: 'Patient Churn', icon: UserX },
+const quickAskCards = [
+  {
+    title: 'Revenue Risk This Week',
+    description: 'Where are we most likely to lose revenue in the next 7...',
+    question: 'Where are we most likely to lose revenue in the next 7 days? Analyze our current schedule, no-show risks, and pending treatment plans to identify the biggest revenue threats this week.',
+    icon: DollarSign,
+    color: 'from-teal-500 to-teal-600',
+    bg: 'bg-teal-500/10 dark:bg-teal-500/20',
+    iconColor: '#14b8a6',
+  },
+  {
+    title: 'Fragile Schedules Tomorrow',
+    description: 'Which locations have the highest risk of schedule...',
+    question: 'Which schedules are most fragile for tomorrow? Identify appointments with high no-show risk, gaps in the schedule, and any patients who may need confirmation calls to protect chair time.',
+    icon: CalendarClock,
+    color: 'from-emerald-500 to-emerald-600',
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+    iconColor: '#10b981',
+  },
+  {
+    title: 'Biggest Bottleneck Today',
+    description: 'Where are we losing chair time or throughput today?',
+    question: 'What is the biggest operational bottleneck today? Analyze where we are losing chair time, throughput, or efficiency. Are there scheduling gaps, overbookings, or provider imbalances?',
+    icon: Activity,
+    color: 'from-amber-500 to-amber-600',
+    bg: 'bg-amber-500/10 dark:bg-amber-500/20',
+    iconColor: '#f59e0b',
+  },
+  {
+    title: 'Patients Falling Through Cracks',
+    description: 'Which patients or treatment plans are at risk of leakage?',
+    question: 'Which patients are falling through the cracks? Identify patients with incomplete treatment plans, overdue recalls, high churn risk scores, or who haven\'t been seen in an extended period. What actions should we take for each?',
+    icon: Users,
+    color: 'from-rose-500 to-rose-600',
+    bg: 'bg-rose-500/10 dark:bg-rose-500/20',
+    iconColor: '#f43f5e',
+  },
+  {
+    title: 'Best Offices: What They Do Differently',
+    description: 'What decision patterns separate our best-run offices...',
+    question: 'What patterns separate high-performing dental practices from underperformers? Based on our data, what operational habits, scheduling strategies, and patient management approaches drive the best outcomes?',
+    icon: Building2,
+    color: 'from-violet-500 to-violet-600',
+    bg: 'bg-violet-500/10 dark:bg-violet-500/20',
+    iconColor: '#8b5cf6',
+  },
+  {
+    title: 'One Fix for Tomorrow Morning',
+    description: 'If we could fix one thing tomorrow to improve...',
+    question: 'If we could fix one thing tomorrow morning to have the biggest impact on practice performance this week, what should it be? Give me one specific, actionable recommendation based on our current data.',
+    icon: CheckCircle2,
+    color: 'from-cyan-500 to-cyan-600',
+    bg: 'bg-cyan-500/10 dark:bg-cyan-500/20',
+    iconColor: '#06b6d4',
+  },
 ];
 
+function getRiskBadge(category: string) {
+  switch (category.toUpperCase()) {
+    case 'HIGH':
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold
+          bg-red-500/20 text-red-400 border border-red-500/30">
+          HIGH RISK
+        </span>
+      );
+    case 'MEDIUM':
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold
+          bg-amber-500/20 text-amber-400 border border-amber-500/30">
+          MEDIUM RISK
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold
+          bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          LOW RISK
+        </span>
+      );
+  }
+}
+
 export default function AIPredictionsPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const { data, loading, refetch } = useQuery(GET_COMMAND_CENTER);
+  const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
+
+  const summary = data?.aiPredictionsSummary;
+  const noshowRisks = data?.noshowRisks || [];
+  const churnRisks = data?.churnRisks || [];
+  const forecast = data?.revenueForecast || [];
+  const stats = data?.analyticsStats;
+
+  // Compute signal metrics
+  const totalRiskAppts = (summary?.highRiskAppointments || 0) + (summary?.mediumRiskAppointments || 0);
+  const totalAppts = (summary?.highRiskAppointments || 0) + (summary?.mediumRiskAppointments || 0) + (summary?.lowRiskAppointments || 0);
+  const scheduleHealth = totalAppts > 0 ? Math.round(((totalAppts - totalRiskAppts) / totalAppts) * 100) : 100;
+  const growthRate = forecast.length > 0 ? forecast[0]?.growthRatePct : 0;
+  const highChurn = churnRisks.filter((c: any) => c.churnRiskCategory === 'HIGH').length;
+
+  // Build priorities from combined risks
+  const priorities = [
+    ...noshowRisks
+      .filter((r: any) => r.riskCategory === 'HIGH' || r.riskCategory === 'MEDIUM')
+      .slice(0, 3)
+      .map((r: any) => ({
+        text: `${r.patientName} — ${r.riskCategory.toLowerCase()} cancellation risk on ${r.dayOfWeek}`,
+        risk: r.riskCategory,
+        detail: `${r.provider || 'Unassigned'} • ${r.dayOfWeek} ${r.hourOfDay}:00`,
+        action: 'View Recommendation',
+      })),
+    ...churnRisks
+      .filter((c: any) => c.churnRiskCategory === 'HIGH')
+      .slice(0, 3)
+      .map((c: any) => ({
+        text: `${c.firstName} ${c.lastName} — ${c.daysSinceVisit}+ days since last visit`,
+        risk: c.churnRiskCategory,
+        detail: c.recommendedAction,
+        action: 'View Recommendation',
+      })),
+  ].sort((a, b) => {
+    const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    return (order[a.risk] || 2) - (order[b.risk] || 2);
+  }).slice(0, 6);
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+
+  const handleQuestionHandled = useCallback(() => {
+    // Don't clear immediately — let the chat keep the context
+  }, []);
+
+  const handleCardClick = (question: string) => {
+    // Use a unique key by appending timestamp to force re-trigger even if same card clicked twice
+    setActiveQuestion(question + '::' + Date.now());
+  };
+
+  // Strip the timestamp suffix before passing to AskDentamind
+  const cleanQuestion = activeQuestion ? activeQuestion.split('::')[0] : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Activity className="w-6 h-6 text-blue-600" />
-          <h1 className="text-2xl font-bold text-slate-900">AI Predictions</h1>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 
+            flex items-center justify-center shadow-lg shadow-teal-500/20 dark:shadow-teal-500/10">
+            <Brain className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              Executive Command Center
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+              Dentamind highlights what matters most today — across schedules, operations, and outcomes.
+            </p>
+          </div>
         </div>
-        <p className="text-slate-500">
-          Risk scoring, revenue forecasting, and patient retention insights powered by UIS AI
-        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-400 dark:text-slate-500">
+            Last updated: {timeStr}
+          </span>
+          <button
+            onClick={() => refetch()}
+            className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+              hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors text-slate-600 dark:text-slate-400"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Loading */}
+      {loading && !data && (
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-teal-200 dark:border-teal-800 border-t-teal-500 rounded-full animate-spin" />
+            <p className="text-slate-500 dark:text-slate-400">Loading intelligence...</p>
+          </div>
+        </div>
+      )}
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && <OverviewTab />}
-      {activeTab === 'noshow' && <NoShowTab />}
-      {activeTab === 'revenue' && <RevenueTab />}
-      {activeTab === 'churn' && <ChurnTab />}
+      {data && (
+        <>
+          {/* Quick Ask Dentamind */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-teal-500" />
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Quick Ask Dentamind</h2>
+              <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">Click any card to ask</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {quickAskCards.map((card) => (
+                <button
+                  key={card.title}
+                  onClick={() => handleCardClick(card.question)}
+                  className="group relative flex items-start gap-3 p-4 rounded-2xl text-left
+                    bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60
+                    hover:border-teal-400/50 dark:hover:border-teal-500/40
+                    hover:shadow-lg hover:shadow-teal-500/5 dark:hover:shadow-teal-500/5
+                    active:scale-[0.98] cursor-pointer
+                    transition-all duration-200"
+                >
+                  <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center flex-shrink-0`}>
+                    <card.icon className="w-5 h-5" style={{ color: card.iconColor }} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                      {card.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                      {card.description}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-teal-500 
+                    transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 mt-1
+                    group-hover:translate-x-0.5" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Today's Signal Snapshot */}
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+              Today's Signal Snapshot
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Operational Stability */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60
+                hover:border-teal-400/30 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center">
+                    <ShieldAlert className="w-5 h-5 text-teal-500" />
+                  </div>
+                  <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">Operational Stability</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {stats?.activePatients || 0} patients active
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  {summary?.highRiskPatients || 0} trending at risk
+                </p>
+                <div className="flex items-center gap-1.5 mt-3">
+                  <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Monitoring in progress</span>
+                </div>
+              </div>
+
+              {/* Outcome Confidence */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60
+                hover:border-teal-400/30 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">Outcome Confidence</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {growthRate >= 0 ? 'Predictability improving' : 'Predictability declining'}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  {growthRate >= 0 ? '+' : ''}{growthRate.toFixed(1)}% this month
+                </p>
+                <div className="flex items-center gap-1.5 mt-3">
+                  <span className={`w-2 h-2 rounded-full ${growthRate >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  <span className={`text-xs ${growthRate >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {growthRate >= 0 ? 'Positive trajectory' : 'Needs attention'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Schedule Integrity */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60
+                hover:border-teal-400/30 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center">
+                    <CalendarClock className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">Schedule Integrity</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {totalRiskAppts > 0
+                    ? `${totalRiskAppts} fragile schedule${totalRiskAppts !== 1 ? 's' : ''} detected`
+                    : 'Schedules stable'}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  {scheduleHealth}% schedule health
+                </p>
+                <div className="flex items-center gap-1.5 mt-3">
+                  <span className={`w-2 h-2 rounded-full ${totalRiskAppts > 0 ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                  <span className={`text-xs ${totalRiskAppts > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {totalRiskAppts > 0 ? 'Action recommended' : 'All clear'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Revenue Forecast Mini */}
+          {forecast.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-500" />
+                  Revenue Forecast (6-Month)
+                </h3>
+                <div className="space-y-3">
+                  {forecast.slice(0, 6).map((f: any) => {
+                    const label = new Date(f.forecastMonth).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    const maxVal = Math.max(...forecast.map((x: any) => x.forecastProduction)) * 1.1;
+                    const pct = (f.forecastProduction / maxVal) * 100;
+                    return (
+                      <div key={f.forecastMonth} className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 w-16 flex-shrink-0">{label}</span>
+                        <div className="flex-1 h-6 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 w-16 text-right">
+                          ${f.forecastProduction.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* At-Risk Summary */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-rose-500" />
+                  Patient Risk Summary
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30">
+                    <p className="text-3xl font-bold text-red-600 dark:text-red-400">{highChurn}</p>
+                    <p className="text-sm text-red-600/70 dark:text-red-400/70 mt-1">High churn risk</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30">
+                    <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{totalRiskAppts}</p>
+                    <p className="text-sm text-amber-600/70 dark:text-amber-400/70 mt-1">At-risk appointments</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30">
+                    <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                      ${(summary?.nextMonthForecast || 0).toLocaleString()}
+                    </p>
+                    <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70 mt-1">Next month forecast</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30">
+                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      {stats?.completedAppointments || 0}
+                    </p>
+                    <p className="text-sm text-blue-600/70 dark:text-blue-400/70 mt-1">Completed appointments</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Top Priorities Right Now */}
+          {priorities.length > 0 && (
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+              <div className="flex items-center gap-2 mb-5">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Top Priorities Right Now</h2>
+              </div>
+              <div className="space-y-3">
+                {priorities.map((priority, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-4 p-4 rounded-xl 
+                      bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/40
+                      hover:border-teal-400/30 transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-teal-500/10 dark:bg-teal-500/20 
+                      flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-teal-600 dark:text-teal-400">{idx + 1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                        {priority.text}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {getRiskBadge(priority.risk)}
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{priority.detail}</span>
+                      </div>
+                    </div>
+                    <button className="hidden group-hover:flex items-center gap-1 text-xs font-semibold 
+                      text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors flex-shrink-0">
+                      {priority.action}
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="text-center pb-4">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Dentamind AI — The Decision Brain for Dentistry
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* Ask Dentamind Chat */}
+      <AskDentamind 
+        initialQuestion={cleanQuestion} 
+        onQuestionHandled={handleQuestionHandled} 
+      />
     </div>
   );
 }

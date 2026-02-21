@@ -1,9 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface AskDentamindProps {
+  initialQuestion?: string | null;
+  onQuestionHandled?: () => void;
 }
 
 const SYSTEM_PROMPT = `You are Dentamind AI, the intelligent decision brain for dental practices. You are embedded in the UIS Health platform — a unified intelligence system that aggregates data from practice management systems.
@@ -23,13 +28,14 @@ Keep responses concise, actionable, and specific to dental practice operations. 
 
 Always be confident but precise. You are the decision brain — not a search engine.`;
 
-export default function AskDentamind() {
+export default function AskDentamind({ initialQuestion, onQuestionHandled }: AskDentamindProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const processedQuestionRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,7 +47,48 @@ export default function AskDentamind() {
     }
   }, [isOpen]);
 
-  const sendMessage = async () => {
+  // Handle initialQuestion from Quick Ask cards
+  useEffect(() => {
+    if (initialQuestion && initialQuestion !== processedQuestionRef.current) {
+      processedQuestionRef.current = initialQuestion;
+      setIsOpen(true);
+      // Clear previous conversation and send the new question
+      const userMsg: Message = { role: 'user', content: initialQuestion };
+      setMessages([userMsg]);
+      setIsLoading(true);
+      
+      fetch('https://api.uishealth.com/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1024,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: initialQuestion }],
+        }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          const text = data.content
+            ?.map((i: any) => (i.type === 'text' ? i.text : ''))
+            .filter(Boolean)
+            .join('\n') || 'I apologize, I was unable to process that request.';
+          setMessages(prev => [...prev, { role: 'assistant', content: text }]);
+        })
+        .catch(() => {
+          setMessages(prev => [
+            ...prev,
+            { role: 'assistant', content: 'Connection error. Please check your network and try again.' },
+          ]);
+        })
+        .finally(() => {
+          setIsLoading(false);
+          onQuestionHandled?.();
+        });
+    }
+  }, [initialQuestion, onQuestionHandled]);
+
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: input.trim() };
@@ -51,12 +98,12 @@ export default function AskDentamind() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://api.uishealth.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
+          max_tokens: 1024,
           system: SYSTEM_PROMPT,
           messages: updatedMessages.map(m => ({
             role: m.role,
@@ -80,7 +127,7 @@ export default function AskDentamind() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [input, isLoading, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -94,6 +141,33 @@ export default function AskDentamind() {
     'How can I reduce no-shows?',
     'Which patients need outreach?',
   ];
+
+  const handleQuickQuestion = (q: string) => {
+    setMessages([{ role: 'user', content: q }]);
+    setIsLoading(true);
+    fetch('https://api.uishealth.com/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: q }],
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const text = data.content
+          ?.map((i: any) => (i.type === 'text' ? i.text : ''))
+          .filter(Boolean)
+          .join('\n') || 'Error';
+        setMessages(prev => [...prev, { role: 'assistant', content: text }]);
+      })
+      .catch(() => {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error.' }]);
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   return (
     <>
@@ -154,32 +228,7 @@ export default function AskDentamind() {
                   {quickQuestions.map((q) => (
                     <button
                       key={q}
-                      onClick={() => {
-                        setInput(q);
-                        setTimeout(() => sendMessage(), 0);
-                        setInput('');
-                        setMessages([{ role: 'user', content: q }]);
-                        setIsLoading(true);
-                        fetch('https://api.anthropic.com/v1/messages', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            model: 'claude-sonnet-4-20250514',
-                            max_tokens: 1000,
-                            system: SYSTEM_PROMPT,
-                            messages: [{ role: 'user', content: q }],
-                          }),
-                        })
-                          .then(r => r.json())
-                          .then(data => {
-                            const text = data.content?.map((i: any) => i.type === 'text' ? i.text : '').filter(Boolean).join('\n') || 'Error';
-                            setMessages(prev => [...prev, { role: 'assistant', content: text }]);
-                          })
-                          .catch(() => {
-                            setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error.' }]);
-                          })
-                          .finally(() => setIsLoading(false));
-                      }}
+                      onClick={() => handleQuickQuestion(q)}
                       className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300
                         bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20
                         hover:text-teal-700 dark:hover:text-teal-400 transition-colors border border-slate-200 dark:border-slate-700"
