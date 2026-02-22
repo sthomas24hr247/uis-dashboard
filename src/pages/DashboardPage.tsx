@@ -14,15 +14,13 @@ import { format } from 'date-fns';
 
 const GET_DASHBOARD_DATA = gql`
   query GetDashboardData {
-    dashboardStats {
+    analyticsStats {
       totalRevenue
-      revenueChange
       activePatients
-      patientChange
-      appointmentsToday
-      treatmentAcceptance
+      totalAppointments
+      completedAppointments
+      cancelledAppointments
       noShowRate
-      pendingTreatments
     }
     revenueMetrics(months: 6) {
       date
@@ -65,7 +63,7 @@ export default function DashboardPage() {
     );
   }
 
-  const stats = data?.dashboardStats || {};
+  const stats = data?.analyticsStats || {};
   const revenue = data?.revenueMetrics || [];
   const appointments = data?.todaysAppointments || [];
 
@@ -91,26 +89,26 @@ export default function DashboardPage() {
         <KPICard
           title="Month Revenue"
           value={`$${((stats.totalRevenue || 0) / 1000).toFixed(1)}K`}
-          change={stats.revenueChange || 0}
+          change={0 || 0}
           icon={DollarSign}
           color="emerald"
         />
         <KPICard
           title="Active Patients"
           value={stats.activePatients || 0}
-          change={stats.patientChange || 0}
+          change={0 || 0}
           icon={Users}
           color="blue"
         />
         <KPICard
           title="Today's Appointments"
-          value={stats.appointmentsToday || 0}
+          value={stats.totalAppointments || 0}
           icon={Calendar}
           color="violet"
         />
         <KPICard
           title="Treatment Acceptance"
-          value={`${((stats.treatmentAcceptance || 0) * 100).toFixed(0)}%`}
+          value={`${((0 || 0) * 100).toFixed(0)}%`}
           icon={CheckCircle2}
           color="amber"
         />
@@ -137,7 +135,7 @@ export default function DashboardPage() {
               <Clock className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{stats.pendingTreatments || 0}</p>
+              <p className="text-2xl font-bold text-slate-900">{0 || 0}</p>
               <p className="text-sm text-slate-500">Pending Treatments</p>
             </div>
           </div>

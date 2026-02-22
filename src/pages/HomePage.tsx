@@ -16,9 +16,9 @@ import {
 
 const GET_DASHBOARD_STATS = gql`
   query DashboardStats {
-    dashboardStats {
+    analyticsStats {
       activePatients
-      appointmentsToday
+      totalAppointments
       totalRevenue
     }
   }
@@ -45,10 +45,10 @@ export default function HomePage() {
     });
 
   const userName = user?.email?.split("@")[0] || "Doctor";
-  const stats = data?.dashboardStats;
+  const stats = data?.analyticsStats;
 
   const quickStats = [
-    { label: "Today's Appointments", value: stats?.appointmentsToday ?? "—", change: "View schedule", up: true },
+    { label: "Today's Appointments", value: stats?.totalAppointments ?? "—", change: "View schedule", up: true },
     { label: "Active Patients", value: stats?.activePatients ?? "—", change: "Total in system", up: true },
     { label: "Production (MTD)", value: stats?.totalRevenue ? `$${(stats.totalRevenue / 1000).toFixed(1)}K` : "—", change: "Month to date", up: true },
     { label: "No-Show Risk Today", value: "2", change: "Patients flagged", up: false },
@@ -58,7 +58,7 @@ export default function HomePage() {
     {
       id: "schedule", title: "Today's Schedule",
       description: "View today's appointments, check-ins, and provider assignments",
-      icon: Calendar, stats: `${stats?.appointmentsToday ?? 0} appointments`,
+      icon: Calendar, stats: `${stats?.totalAppointments ?? 0} appointments`,
       accent: "text-teal-400", bg: "bg-teal-500/10", border: "hover:border-teal-500/30",
       link: "/today",
     },
