@@ -20,7 +20,7 @@ export default function LoginPage() {
     
     try {
       await login(email, password);
-      navigate('/schedule');
+      navigate('/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -193,12 +193,6 @@ export default function LoginPage() {
             </div>
           </div>
           
-          {/* Demo hint */}
-          <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
-            <p className="text-amber-800">
-              <strong>Demo Mode:</strong> Enter any email and password to explore the dashboard.
-            </p>
-          </div>
         </div>
       </div>
     </div>

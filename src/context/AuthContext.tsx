@@ -1,10 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
+
 interface User {
   userId: string;
   email: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
   practiceId: string;
   practiceName: string;
+  role: string;
   roles: string[];
 }
 
@@ -14,29 +20,20 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   error: string | null;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  displayName?: string;
+}
 
-// For demo purposes - in production this would call your auth API
-const generateDemoToken = (email: string): string => {
-  // This is a demo JWT structure - in production, tokens come from your auth server
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = btoa(JSON.stringify({
-    sub: 'demo-user',
-    email: email,
-    practiceId: 'demo-practice',
-    practiceName: 'Demo Dental Practice',
-    roles: ['admin'],
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600,
-  }));
-  // Note: This is NOT a valid signature - for demo purposes only
-  const signature = btoa('demo-signature');
-  return `${header}.${payload}.${signature}`;
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -54,8 +51,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const parsedUser = JSON.parse(storedUser);
         setToken(storedToken);
         setUser(parsedUser);
+        
+        // Verify token is still valid by calling /me
+        fetch(`${API_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        })
+          .then(res => {
+            if (!res.ok) {
+              // Token expired or invalid
+              localStorage.removeItem('uis_token');
+              localStorage.removeItem('uis_user');
+              setToken(null);
+              setUser(null);
+            }
+          })
+          .catch(() => {
+            // Network error - keep local session
+          });
       } catch (e) {
-        // Invalid stored data, clear it
         localStorage.removeItem('uis_token');
         localStorage.removeItem('uis_user');
       }
@@ -69,33 +82,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // For demo - accept any email/password
-      // In production, this would call your authentication API
       if (!email || !password) {
         throw new Error('Email and password are required');
       }
-      
-      // Generate demo token and user
-      const demoToken = generateDemoToken(email);
-      const demoUser: User = {
-        userId: 'demo-user',
-        email: email,
-        practiceId: 'demo-practice',
-        practiceName: 'Demo Dental Practice',
-        roles: ['admin'],
-      };
-      
+
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
       // Store in localStorage
-      localStorage.setItem('uis_token', demoToken);
-      localStorage.setItem('uis_user', JSON.stringify(demoUser));
+      localStorage.setItem('uis_token', data.token);
+      localStorage.setItem('uis_user', JSON.stringify(data.user));
       
-      setToken(demoToken);
-      setUser(demoUser);
+      setToken(data.token);
+      setUser(data.user);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (regData: RegisterData): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(regData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      // Store in localStorage
+      localStorage.setItem('uis_token', data.token);
+      localStorage.setItem('uis_user', JSON.stringify(data.user));
+      
+      setToken(data.token);
+      setUser(data.user);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed';
       setError(message);
       throw err;
     } finally {
@@ -118,6 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user && !!token,
         isLoading,
         login,
+        register,
         logout,
         error,
       }}

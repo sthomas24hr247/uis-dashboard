@@ -44,7 +44,7 @@ export default function HomePage() {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-  const userName = user?.email?.split("@")[0] || "Doctor";
+  const userName = user?.displayName || user?.firstName || user?.email?.split("@")[0] || "Doctor";
   const stats = data?.analyticsStats;
 
   const quickStats = [
