@@ -17,10 +17,9 @@ import {
 const GET_DASHBOARD_STATS = gql`
   query DashboardStats {
     dashboardStats {
-      totalPatients
       activePatients
-      todayAppointments
-      monthRevenue
+      appointmentsToday
+      totalRevenue
     }
   }
 `;
@@ -49,9 +48,9 @@ export default function HomePage() {
   const stats = data?.dashboardStats;
 
   const quickStats = [
-    { label: "Today's Appointments", value: stats?.todayAppointments ?? "—", change: "View schedule", up: true },
+    { label: "Today's Appointments", value: stats?.appointmentsToday ?? "—", change: "View schedule", up: true },
     { label: "Active Patients", value: stats?.activePatients ?? "—", change: "Total in system", up: true },
-    { label: "Production (MTD)", value: stats?.monthRevenue ? `$${(stats.monthRevenue / 1000).toFixed(1)}K` : "—", change: "Month to date", up: true },
+    { label: "Production (MTD)", value: stats?.totalRevenue ? `$${(stats.totalRevenue / 1000).toFixed(1)}K` : "—", change: "Month to date", up: true },
     { label: "No-Show Risk Today", value: "2", change: "Patients flagged", up: false },
   ];
 
@@ -59,7 +58,7 @@ export default function HomePage() {
     {
       id: "schedule", title: "Today's Schedule",
       description: "View today's appointments, check-ins, and provider assignments",
-      icon: Calendar, stats: `${stats?.todayAppointments ?? 0} appointments`,
+      icon: Calendar, stats: `${stats?.appointmentsToday ?? 0} appointments`,
       accent: "text-teal-400", bg: "bg-teal-500/10", border: "hover:border-teal-500/30",
       link: "/today",
     },
@@ -73,7 +72,7 @@ export default function HomePage() {
     {
       id: "analytics", title: "Analytics Dashboard",
       description: "Revenue trends, provider productivity, and practice KPIs",
-      icon: BarChart3, stats: stats?.monthRevenue ? `$${(stats.monthRevenue / 1000).toFixed(1)}K production` : "View analytics",
+      icon: BarChart3, stats: stats?.totalRevenue ? `$${(stats.totalRevenue / 1000).toFixed(1)}K production` : "View analytics",
       accent: "text-purple-400", bg: "bg-purple-500/10", border: "hover:border-purple-500/30",
       link: "/analytics",
     },
