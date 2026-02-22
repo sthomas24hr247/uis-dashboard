@@ -1,7 +1,11 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import {
+  NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import {
+  useAuth } from '../context/AuthContext';
+import {
+  useTheme } from '../context/ThemeContext';
+import {
+  Home,
   Calendar,
   Users,
   UserCog,
@@ -18,9 +22,11 @@ import {
   Moon,
   Sun,
 } from 'lucide-react';
-import { useState } from 'react';
+import {
+  useState } from 'react';
 
 const navItems = [
+  { to: '/home', icon: Home, label: 'Home' },
   { to: '/schedule', icon: Calendar, label: 'Schedule' },
   { to: '/today', icon: CalendarCheck, label: "Today's Appointments" },
   { to: '/patients', icon: Users, label: 'Patients' },
@@ -34,6 +40,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -197,6 +204,15 @@ export default function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8 overflow-auto">
+          {location.pathname !== "/home" && (
+            <button
+              onClick={() => navigate("/home")}
+              className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back to Dashboard
+            </button>
+          )}
           <Outlet />
         </main>
       </div>

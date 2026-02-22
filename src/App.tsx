@@ -8,6 +8,7 @@ import PatientDetailPage from './pages/PatientDetailPage';
 import TodayPage from './pages/TodayPage';
 import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import HomePage from './pages/HomePage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
 
@@ -48,7 +49,8 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/schedule" replace />} />
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="home" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="today" element={<TodayPage />} />
         <Route path="patients" element={<PatientsPage />} />
