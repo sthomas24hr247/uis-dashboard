@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Settings, Database, Shield, Users, Bell, Plug, CheckCircle2,
   AlertTriangle, RefreshCw, Globe, Lock, Cpu,
-  ChevronRight, Building2,
+  Building2, Trash2, Plus, X,
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
@@ -13,16 +13,47 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('practice');
   const [healthStatus, setHealthStatus] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
+  const [liveUsers, setLiveUsers] = useState<any[]>([]);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', firstName: '', lastName: '', password: '', role: 'viewer', displayName: '' });
+  const [addingUser, setAddingUser] = useState(false);
+
+  const token = localStorage.getItem('uis_token');
+
+  const fetchUsers = () => {
+    if (!token) return;
+    fetch(API_URL + '/api/auth/users', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json()).then(d => setLiveUsers(d.users || [])).catch(() => {});
+  };
 
   useEffect(() => {
-    fetch(`${API_URL}/graphql`, {
+    fetch(API_URL + '/graphql', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer demo-token' },
       body: JSON.stringify({ query: '{ health { isHealthy latencyMs pmsConnected databaseConnected } }' }),
     }).then(r => r.json()).then(d => setHealthStatus(d.data?.health)).catch(() => {});
+    fetchUsers();
   }, []);
 
   const handleSync = () => { setSyncing(true); setTimeout(() => setSyncing(false), 2000); };
+
+  const handleAddUser = async () => {
+    setAddingUser(true);
+    try {
+      const res = await fetch(API_URL + '/api/auth/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newUser, displayName: newUser.displayName || (newUser.firstName + ' ' + newUser.lastName) }),
+      });
+      if (res.ok) { setShowAddUser(false); setNewUser({ email: '', firstName: '', lastName: '', password: '', role: 'viewer', displayName: '' }); fetchUsers(); }
+    } catch (e) { console.error(e); }
+    setAddingUser(false);
+  };
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm('Remove ' + name + ' from this practice?')) return;
+    await fetch(API_URL + '/api/auth/users/' + id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+    fetchUsers();
+  };
 
   const tabs = [
     { id: 'practice', label: 'Practice', icon: Building2 },
@@ -43,20 +74,21 @@ export default function SettingsPage() {
     { name: 'Stripe', description: 'Patient payment processing and billing', status: 'available', icon: '💳', category: 'Payments', details: 'Patient-facing payment portal' },
   ];
 
-  const team = [
-    { name: 'Samuel Thomas', email: 'sthomas@myitcopilot.com', role: 'Administrator', lastLogin: '2 min ago' },
-    { name: 'Dr. Sarah Chen', email: 'schen@demodental.com', role: 'Dentist', lastLogin: '1 hour ago' },
-    { name: 'Maria Rodriguez', email: 'mrodriguez@demodental.com', role: 'Office Manager', lastLogin: '3 hours ago' },
-    { name: 'James Wilson', email: 'jwilson@demodental.com', role: 'Hygienist', lastLogin: 'Yesterday' },
-    { name: 'Lisa Park', email: 'lpark@demodental.com', role: 'Front Desk', lastLogin: 'Pending' },
-  ];
+  const roleColor: Record<string, string> = {
+    admin: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    dentist: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    manager: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+    hygienist: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    viewer: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  };
 
-  const roleColor: Record<string,string> = {
-    Administrator: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    Dentist: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    'Office Manager': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-    Hygienist: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    'Front Desk': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  const formatLogin = (d: string | null) => {
+    if (!d) return 'Never';
+    const diff = Date.now() - new Date(d).getTime();
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return new Date(d).toLocaleDateString();
   };
 
   return (
@@ -68,7 +100,6 @@ export default function SettingsPage() {
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage configuration, integrations, and team</p>
       </div>
 
-      {/* Health Banner */}
       <div className={`rounded-xl border p-4 flex items-center justify-between ${healthStatus?.isHealthy ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-700/30' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-700/30'}`}>
         <div className="flex items-center gap-3">
           {healthStatus?.isHealthy ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <AlertTriangle className="w-5 h-5 text-amber-600" />}
@@ -76,9 +107,7 @@ export default function SettingsPage() {
             <p className={`text-sm font-semibold ${healthStatus?.isHealthy ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
               {healthStatus?.isHealthy ? 'All Systems Operational' : 'Checking systems...'}
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              PMS: {healthStatus?.pmsConnected ? '✓' : '○'} · DB: {healthStatus?.databaseConnected ? '✓' : '○'} · {healthStatus?.latencyMs || '—'}ms
-            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">PMS: {healthStatus?.pmsConnected ? '✓' : '○'} · DB: {healthStatus?.databaseConnected ? '✓' : '○'} · {healthStatus?.latencyMs || '—'}ms</p>
           </div>
         </div>
         <button onClick={handleSync} disabled={syncing} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition-colors">
@@ -86,7 +115,6 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl p-1 overflow-x-auto">
         {tabs.map(tab => { const I = tab.icon; return (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -174,23 +202,56 @@ export default function SettingsPage() {
       {activeTab === 'users' && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Team Members</h3>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-uis-600 rounded-lg hover:bg-uis-700 transition-colors"><Users className="w-4 h-4" />Invite</button>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Team Members ({liveUsers.length})</h3>
+            <button onClick={() => setShowAddUser(!showAddUser)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-uis-600 rounded-lg hover:bg-uis-700 transition-colors">
+              {showAddUser ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showAddUser ? 'Cancel' : 'Add User'}
+            </button>
           </div>
+          {showAddUser && (
+            <div className="mb-6 p-4 bg-uis-50 dark:bg-uis-900/20 rounded-xl border border-uis-200 dark:border-uis-700/30">
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <input value={newUser.firstName} onChange={e => setNewUser({...newUser, firstName: e.target.value})} placeholder="First Name" className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <input value={newUser.lastName} onChange={e => setNewUser({...newUser, lastName: e.target.value})} placeholder="Last Name" className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <input value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} placeholder="Email" type="email" className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <input value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} placeholder="Password" type="password" className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <input value={newUser.displayName} onChange={e => setNewUser({...newUser, displayName: e.target.value})} placeholder="Display Name (optional)" className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                  <option value="admin">Administrator</option>
+                  <option value="dentist">Dentist</option>
+                  <option value="manager">Office Manager</option>
+                  <option value="hygienist">Hygienist</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </div>
+              <button onClick={handleAddUser} disabled={addingUser || !newUser.email || !newUser.password || !newUser.firstName}
+                className="px-4 py-2 text-sm font-medium text-white bg-uis-600 rounded-lg hover:bg-uis-700 disabled:opacity-50 transition-colors">
+                {addingUser ? 'Creating...' : 'Create User'}
+              </button>
+            </div>
+          )}
           <div className="space-y-3">
-            {team.map((m, i) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl">
+            {liveUsers.map((u: any) => (
+              <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-uis-500 to-uis-700 rounded-xl flex items-center justify-center text-white font-bold text-sm">{m.name.split(' ').map(n=>n[0]).join('')}</div>
-                  <div><p className="font-medium text-slate-900 dark:text-white text-sm">{m.name}</p><p className="text-xs text-slate-500 dark:text-slate-400">{m.email}</p></div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-uis-500 to-uis-700 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                    {u.displayName ? u.displayName.split(' ').map((n: string) => n[0]).join('') : '?'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm">{u.displayName}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${roleColor[m.role] || 'bg-slate-100 text-slate-600'}`}>{m.role}</span>
-                  <span className="text-xs text-slate-400">{m.lastLogin === 'Pending' ? <span className="text-amber-600 font-medium">Pending</span> : m.lastLogin}</span>
-                  <ChevronRight className="w-4 h-4 text-slate-300" />
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${roleColor[u.role] || 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>{u.role}</span>
+                  <span className="text-xs text-slate-400">{formatLogin(u.lastLogin)}</span>
+                  <button onClick={() => handleDeleteUser(u.id, u.displayName)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
+            {liveUsers.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Loading users...</p>}
           </div>
         </div>
       )}
