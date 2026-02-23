@@ -120,7 +120,7 @@ export default function DashboardLayout() {
 
           {/* Settings + Theme */}
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 flex-1">
+            <button onClick={() => navigate("/settings")} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 flex-1">
               <Settings className="w-5 h-5" />
               Settings
             </button>

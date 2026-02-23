@@ -12,6 +12,7 @@ import HomePage from './pages/HomePage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
+import SettingsPage from "./pages/SettingsPage";
 import BILDashboardPage from './pages/BILDashboardPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
 
@@ -65,6 +66,7 @@ function App() {
             <Route path="patient-intel" element={<PatientIntelPage />} />
             <Route path="bil" element={<BILDashboardPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
+            <Route path="settings" element={<SettingsPage />} />
       </Route>
       
       {/* Catch all */}
