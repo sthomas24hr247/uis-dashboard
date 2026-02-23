@@ -10,7 +10,7 @@ const PRACTICE_ID = '00000000-0000-0000-0000-000000000001';
 interface FunnelStage { stage: string; count: number; value?: number; }
 interface FunnelData { funnel: FunnelStage[]; total_episodes: number; total_plan_value: number; total_collected: number; total_leaked: number; overall_gap_pct: string; }
 interface LeakageItem { leak_stage: string; leak_reason: string; episodes: number; total_leaked_value: number; avg_leaked_value: number; }
-interface StalledEpisode { id: string; patient_id: string; ai_finding_type: string; plan_value: number; current_stage: string; stalled_at_stage: string; days_stalled: number; diagnosis_code: string; }
+interface StalledEpisode { id: string; patient_id: string; ai_finding_type: string; plan_value: number; current_stage: string; stalled_at_stage: string; days_stalled: number; diagnosis_code: string; first_name?: string; last_name?: string; }
 
 function useOutcomeGapData() {
   const [funnelData, setFunnelData] = useState<FunnelData | null>(null);
@@ -198,7 +198,7 @@ function StalledEpisodesTable({ stalled }: { stalled: StalledEpisode[] }) {
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-700">
               <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">PRIORITY</th>
-              <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">FINDING</th>
+              <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">PATIENT</th>
               <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">GAP TYPE</th>
               <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">STALLED AT</th>
               <th className="text-right text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">DAYS</th>
@@ -214,7 +214,7 @@ function StalledEpisodesTable({ stalled }: { stalled: StalledEpisode[] }) {
                   <td className="py-4 pr-4">
                     <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider border ${getPriorityStyle(priority)}`}>{priority}</span>
                   </td>
-                  <td className="py-4 pr-4"><span className="font-semibold text-sm text-slate-900 dark:text-white">{row.ai_finding_type || 'Unknown'}</span></td>
+                  <td className="py-4 pr-4"><span className="font-semibold text-sm text-slate-900 dark:text-white">{row.first_name && row.last_name ? `${row.first_name} ${row.last_name}` : row.ai_finding_type || 'Unknown'}</span></td>
                   <td className="py-4 pr-4"><span className="text-sm text-slate-600 dark:text-slate-300">{getGapType(row.stalled_at_stage)}</span></td>
                   <td className="py-4 pr-4"><span className="text-sm text-slate-500 dark:text-slate-400 capitalize">{row.stalled_at_stage}</span></td>
                   <td className="py-4 pr-4 text-right">

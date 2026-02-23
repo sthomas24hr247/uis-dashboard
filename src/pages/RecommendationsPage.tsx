@@ -125,6 +125,13 @@ function useDecisionState() {
           rejection_reason_code: rejectionCode || null,
         }),
       });
+      // Update recommendation status in DB
+      const newStatus = decision === "approved" ? "approved" : decision === "rejected" ? "dismissed" : "snoozed";
+      await fetch(`${API_URL}/api/recommendations/${rec.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
       setDecisions(prev => ({ ...prev, [rec.id]: decision }));
     } catch (err) {
       console.error('[BIL] Decision error:', err);
