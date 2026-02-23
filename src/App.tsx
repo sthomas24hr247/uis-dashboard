@@ -10,6 +10,7 @@ import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import HomePage from './pages/HomePage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
+import RecommendationsPage from './pages/RecommendationsPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
 
 // Protected Route wrapper
@@ -58,8 +59,10 @@ function App() {
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="ai-predictions" element={<AIPredictionsPage />} />
+            <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
         <Route path="ai-predictions" element={<AIPredictionsPage />} />
+            <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
       </Route>
       

@@ -1,92 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertTriangle, Target, Percent,
-  Phone, CalendarPlus, Mail, ChevronRight, Activity,
+  Phone, CalendarPlus, Mail, ChevronRight, Activity, Loader2, RefreshCw,
 } from 'lucide-react';
 
-// ── Mock Data (matches Dentamind Outcome Gap Engine) ──────────────────────
+const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
+const PRACTICE_ID = '00000000-0000-0000-0000-000000000001';
 
-const kpiMetrics = {
-  outcomeGap: { label: 'OUTCOME GAP', value: 67, subtitle: '$203K leaked this month', trend: '+3%', up: true, variant: 'danger' },
-  atRiskRevenue: { label: 'AT-RISK REVENUE', value: 312000, subtitle: '48 stalled episodes', trend: '-$18K', up: false, variant: 'danger' },
-  activeGaps: { label: 'ACTIVE GAPS', value: 127, subtitle: '23 critical, 41 high', trend: '+12', up: true, variant: 'danger' },
-  collectionRate: { label: 'COLLECTION RATE', value: 33, subtitle: 'Last 30 days', trend: '-2%', up: false, variant: 'success' },
-};
+interface FunnelStage { stage: string; count: number; value?: number; }
+interface FunnelData { funnel: FunnelStage[]; total_episodes: number; total_plan_value: number; total_collected: number; total_leaked: number; overall_gap_pct: string; }
+interface LeakageItem { leak_stage: string; leak_reason: string; episodes: number; total_leaked_value: number; avg_leaked_value: number; }
+interface StalledEpisode { id: string; patient_id: string; ai_finding_type: string; plan_value: number; current_stage: string; stalled_at_stage: string; days_stalled: number; diagnosis_code: string; }
 
-const funnelSteps = [
-  { stage: 'Detected', count: 847, revenue: 624000, drop: null, color: 'bg-blue-500' },
-  { stage: 'Diagnosed', count: 712, revenue: 524000, drop: -16, color: 'bg-blue-400' },
-  { stage: 'Planned', count: 634, revenue: 468000, drop: -11, color: 'bg-teal-500' },
-  { stage: 'Presented', count: 580, revenue: 428000, drop: -9, color: 'bg-teal-400' },
-  { stage: 'Accepted', count: 392, revenue: 289000, drop: -32, color: 'bg-emerald-500' },
-  { stage: 'Scheduled', count: 351, revenue: 259000, drop: -10, color: 'bg-yellow-500' },
-  { stage: 'Attended', count: 298, revenue: 220000, drop: -15, color: 'bg-orange-400' },
-  { stage: 'Completed', count: 284, revenue: 209000, drop: -5, color: 'bg-orange-500' },
-  { stage: 'Billed', count: 271, revenue: 200000, drop: -5, color: 'bg-red-400' },
-  { stage: 'Collected', count: 243, revenue: 179000, drop: -10, color: 'bg-red-500' },
-];
+function useOutcomeGapData() {
+  const [funnelData, setFunnelData] = useState<FunnelData | null>(null);
+  const [leakageData, setLeakageData] = useState<LeakageItem[]>([]);
+  const [stalledData, setStalledData] = useState<StalledEpisode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const gapBreakdown = [
-  { type: 'Acceptance Gap', amount: 76000, color: 'bg-red-500' },
-  { type: 'Attendance Gap', amount: 24000, color: 'bg-orange-400' },
-  { type: 'Scheduling Gap', amount: 18000, color: 'bg-amber-400' },
-  { type: 'Diagnosis Gap', amount: 32000, color: 'bg-rose-400' },
-  { type: 'Collection Gap', amount: 16000, color: 'bg-blue-400' },
-  { type: 'Billing Gap', amount: 12000, color: 'bg-teal-500' },
-  { type: 'Other Gaps', amount: 25000, color: 'bg-slate-400' },
-];
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [funnelRes, leakageRes, stalledRes] = await Promise.all([
+        fetch(`${API_URL}/api/outcome-gap/funnel?practice_id=${PRACTICE_ID}`),
+        fetch(`${API_URL}/api/outcome-gap/leakage?practice_id=${PRACTICE_ID}`),
+        fetch(`${API_URL}/api/outcome-gap/stalled?practice_id=${PRACTICE_ID}&min_days=1`),
+      ]);
+      setFunnelData(await funnelRes.json());
+      setLeakageData((await leakageRes.json()).leakage || []);
+      setStalledData((await stalledRes.json()).stalled || []);
+    } catch (err) {
+      setError('Failed to load outcome gap data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const revenueTrend = [
-  { month: 'Mar', ucr: 280, expected: 200, collected: 155 },
-  { month: 'Apr', ucr: 290, expected: 215, collected: 160 },
-  { month: 'May', ucr: 295, expected: 205, collected: 150 },
-  { month: 'Jun', ucr: 310, expected: 210, collected: 165 },
-  { month: 'Jul', ucr: 350, expected: 230, collected: 175 },
-  { month: 'Aug', ucr: 330, expected: 220, collected: 170 },
-  { month: 'Sep', ucr: 355, expected: 240, collected: 180 },
-  { month: 'Oct', ucr: 375, expected: 250, collected: 185 },
-  { month: 'Nov', ucr: 340, expected: 225, collected: 180 },
-  { month: 'Dec', ucr: 310, expected: 215, collected: 175 },
-  { month: 'Jan', ucr: 370, expected: 260, collected: 190 },
-  { month: 'Feb', ucr: 400, expected: 270, collected: 185 },
-];
-
-const priorityActions = [
-  { priority: 'CRITICAL', patient: 'Maria Santos', gapType: 'Acceptance Gap', days: 14, atRisk: 4200, cdt: 'D2750' },
-  { priority: 'CRITICAL', patient: 'James Chen', gapType: 'Scheduling Gap', days: 8, atRisk: 3800, cdt: 'D2740' },
-  { priority: 'HIGH', patient: 'Sarah Johnson', gapType: 'Attendance Gap', days: 3, atRisk: 2450, cdt: 'D2391' },
-  { priority: 'HIGH', patient: 'Robert Kim', gapType: 'Diagnosis Gap', days: 12, atRisk: 1890, cdt: 'D0274' },
-  { priority: 'HIGH', patient: 'Lisa Patel', gapType: 'Collection Gap', days: 52, atRisk: 1650, cdt: 'D1110' },
-  { priority: 'MEDIUM', patient: 'David Martinez', gapType: 'Billing Gap', days: 3, atRisk: 980, cdt: 'D2391' },
-  { priority: 'MEDIUM', patient: 'Emily Nguyen', gapType: 'Acceptance Gap', days: 6, atRisk: 870, cdt: 'D2330' },
-  { priority: 'LOW', patient: 'Tom Wilson', gapType: 'Scheduling Gap', days: 2, atRisk: 320, cdt: 'D0120' },
-];
-
-// ── Components ────────────────────────────────────────────────────────────
+  useEffect(() => { fetchData(); }, []);
+  return { funnelData, leakageData, stalledData, loading, error, refresh: fetchData };
+}
 
 function StatCard({ label, value, subtitle, trend, up, variant }: {
-  label: string; value: string; subtitle: string; trend: string; up: boolean; variant: string;
+  label: string; value: string; subtitle: string; trend?: string; up?: boolean; variant: string;
 }) {
   const isSuccess = variant === 'success';
   return (
     <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
       <p className="text-xs font-semibold tracking-widest text-slate-500 dark:text-slate-400 mb-3">{label}</p>
       <div className="flex items-baseline gap-3">
-        <span className={`text-3xl font-bold ${isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-          {value}
-        </span>
-        <span className={`flex items-center gap-1 text-sm font-medium ${up ? 'text-red-500' : isSuccess ? 'text-red-500' : 'text-emerald-500'}`}>
-          {up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-          {trend}
-        </span>
+        <span className={`text-3xl font-bold ${isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{value}</span>
+        {trend && (
+          <span className={`flex items-center gap-1 text-sm font-medium ${up ? 'text-red-500' : 'text-emerald-500'}`}>
+            {up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}{trend}
+          </span>
+        )}
       </div>
       <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">{subtitle}</p>
     </div>
   );
 }
 
-function RevenueFunnel() {
-  const maxCount = funnelSteps[0].count;
+function RevenueFunnel({ funnel }: { funnel: FunnelStage[] }) {
+  const maxCount = Math.max(...funnel.map(s => s.count || 0), 1);
+  const colors = ['bg-blue-500','bg-blue-400','bg-teal-500','bg-teal-400','bg-emerald-500','bg-yellow-500','bg-orange-400','bg-orange-500','bg-red-500'];
   return (
     <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
       <div className="flex items-center justify-between mb-5">
@@ -94,226 +72,167 @@ function RevenueFunnel() {
           <h3 className="font-bold text-slate-900 dark:text-white">Revenue Funnel</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400">Episode flow from detection to collection</p>
         </div>
-        <span className="text-sm text-slate-400 dark:text-slate-500">Last 30 days</span>
+        <span className="text-sm text-slate-400 dark:text-slate-500">Live Data</span>
       </div>
       <div className="space-y-2.5">
-        {funnelSteps.map((step) => (
-          <div key={step.stage} className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 dark:text-slate-400 w-20 text-right flex-shrink-0">{step.stage}</span>
-            <div className="flex-1 h-8 bg-slate-100 dark:bg-slate-700/50 rounded-lg overflow-hidden relative">
-              <div
-                className={`h-full ${step.color} rounded-lg transition-all duration-500 flex items-center px-3`}
-                style={{ width: `${(step.count / maxCount) * 100}%` }}
-              >
-                <span className="text-xs font-bold text-white drop-shadow-sm">{step.count}</span>
+        {funnel.map((step, i) => {
+          const prevCount = i > 0 ? (funnel[i - 1].count || 0) : 0;
+          const drop = i > 0 && prevCount > 0 ? Math.round(((step.count - prevCount) / prevCount) * 100) : null;
+          return (
+            <div key={step.stage} className="flex items-center gap-3">
+              <span className="text-xs text-slate-500 dark:text-slate-400 w-20 text-right flex-shrink-0">{step.stage}</span>
+              <div className="flex-1 h-8 bg-slate-100 dark:bg-slate-700/50 rounded-lg overflow-hidden relative">
+                <div className={`h-full ${colors[i] || 'bg-slate-500'} rounded-lg transition-all duration-500 flex items-center px-3`}
+                  style={{ width: `${Math.max(((step.count || 0) / maxCount) * 100, 4)}%` }}>
+                  <span className="text-xs font-bold text-white drop-shadow-sm">{step.count || 0}</span>
+                </div>
               </div>
+              {step.value !== undefined ? (
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-300 w-16 text-right flex-shrink-0">
+                  ${step.value >= 1000 ? `${(step.value / 1000).toFixed(1)}K` : step.value}
+                </span>
+              ) : <span className="w-16 flex-shrink-0" />}
+              <span className={`text-xs font-bold w-10 text-right flex-shrink-0 ${
+                drop === null ? 'text-transparent' : Math.abs(drop) >= 20 ? 'text-red-500' : 'text-orange-500'
+              }`}>{drop !== null ? `${drop}%` : '—'}</span>
             </div>
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-300 w-14 text-right flex-shrink-0">
-              ${(step.revenue / 1000).toFixed(0)}K
-            </span>
-            <span className={`text-xs font-bold w-10 text-right flex-shrink-0 ${
-              step.drop === null ? 'text-transparent' :
-              Math.abs(step.drop) >= 20 ? 'text-red-500' : 'text-orange-500'
-            }`}>
-              {step.drop !== null ? `${step.drop}%` : '—'}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function GapBreakdownPanel() {
-  const total = gapBreakdown.reduce((s, g) => s + g.amount, 0);
+function GapBreakdownPanel({ leakage }: { leakage: LeakageItem[] }) {
+  const colors = ['bg-red-500','bg-orange-400','bg-amber-400','bg-rose-400','bg-blue-400','bg-teal-500','bg-slate-400'];
+  const byStage: Record<string, number> = {};
+  leakage.forEach(l => {
+    const label = l.leak_stage ? `${l.leak_stage.charAt(0).toUpperCase() + l.leak_stage.slice(1)} Gap` : 'Unknown';
+    byStage[label] = (byStage[label] || 0) + (l.total_leaked_value || 0);
+  });
+  const gaps = Object.entries(byStage).map(([type, amount], i) => ({ type, amount, color: colors[i % colors.length] })).sort((a, b) => b.amount - a.amount);
+  const total = gaps.reduce((s, g) => s + g.amount, 0);
+
   return (
     <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
       <h3 className="font-bold text-slate-900 dark:text-white mb-1">Gap Breakdown</h3>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
-        Revenue lost by gap type — ${(total / 1000).toFixed(0)}K total
+        Revenue lost by gap type {total > 0 ? `— $${total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total} total` : ''}
       </p>
-      {/* Stacked bar */}
-      <div className="flex h-5 rounded-full overflow-hidden mb-5">
-        {gapBreakdown.map((g) => (
-          <div
-            key={g.type}
-            className={`${g.color} transition-all`}
-            style={{ width: `${(g.amount / total) * 100}%` }}
-          />
-        ))}
-      </div>
-      {/* Legend */}
-      <div className="grid grid-cols-2 gap-3">
-        {gapBreakdown.map((g) => (
-          <div key={g.type} className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${g.color} flex-shrink-0`} />
-            <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{g.type}</span>
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 ml-auto">
-              ${(g.amount / 1000).toFixed(0)}K
-            </span>
+      {gaps.length === 0 ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <Target className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">No leakage data yet</p>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex h-5 rounded-full overflow-hidden mb-5">
+            {gaps.map((g) => (
+              <div key={g.type} className={`${g.color} transition-all`} style={{ width: `${total > 0 ? (g.amount / total) * 100 : 0}%` }} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {gaps.map((g) => (
+              <div key={g.type} className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${g.color} flex-shrink-0`} />
+                <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{g.type}</span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 ml-auto">
+                  ${g.amount >= 1000 ? `${(g.amount / 1000).toFixed(1)}K` : g.amount}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function RevenueTrendChart() {
-  const maxVal = 420;
-  const chartHeight = 240;
-  const chartWidth = 800;
-  const padding = { top: 20, right: 20, bottom: 30, left: 50 };
-  const innerW = chartWidth - padding.left - padding.right;
-  const innerH = chartHeight - padding.top - padding.bottom;
-
-  const toX = (i: number) => padding.left + (i / (revenueTrend.length - 1)) * innerW;
-  const toY = (v: number) => padding.top + innerH - (v / maxVal) * innerH;
-
-  const makePath = (key: 'ucr' | 'expected' | 'collected') =>
-    revenueTrend.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(d[key])}`).join(' ');
-
-  // Area between expected and collected (the outcome gap)
-  const areaPath =
-    revenueTrend.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(d.expected)}`).join(' ') +
-    revenueTrend.slice().reverse().map((d, i) => `L${toX(revenueTrend.length - 1 - i)},${toY(d.collected)}`).join(' ') + 'Z';
-
-  // Area between UCR and expected
-  const gapAreaPath =
-    revenueTrend.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(d.ucr)}`).join(' ') +
-    revenueTrend.slice().reverse().map((d, i) => `L${toX(revenueTrend.length - 1 - i)},${toY(d.expected)}`).join(' ') + 'Z';
-
-  const yTicks = [0, 100, 200, 300, 400];
-
-  return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-      <h3 className="font-bold text-slate-900 dark:text-white mb-1">Revenue Trend</h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">UCR → Expected → Collected (12 months)</p>
-      <div className="overflow-x-auto">
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full" style={{ minWidth: 600 }}>
-          {/* Grid */}
-          {yTicks.map(v => (
-            <g key={v}>
-              <line x1={padding.left} y1={toY(v)} x2={chartWidth - padding.right} y2={toY(v)}
-                stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeDasharray="4 4" />
-              <text x={padding.left - 8} y={toY(v) + 4} textAnchor="end"
-                className="text-[10px] fill-slate-400 dark:fill-slate-500">${v}K</text>
-            </g>
-          ))}
-          {/* Month labels */}
-          {revenueTrend.map((d, i) => (
-            <text key={d.month} x={toX(i)} y={chartHeight - 5} textAnchor="middle"
-              className="text-[10px] fill-slate-400 dark:fill-slate-500">{d.month}</text>
-          ))}
-          {/* Gap areas */}
-          <path d={gapAreaPath} fill="currentColor" className="text-slate-200 dark:text-slate-700" opacity={0.7} />
-          <path d={areaPath} fill="currentColor" className="text-slate-300 dark:text-slate-600" opacity={0.5} />
-          {/* Lines */}
-          <path d={makePath('ucr')} fill="none" stroke="currentColor" className="text-slate-400 dark:text-slate-500"
-            strokeWidth={1.5} strokeDasharray="6 4" />
-          <path d={makePath('expected')} fill="none" stroke="#06b6d4" strokeWidth={2.5} />
-          <path d={makePath('collected')} fill="none" stroke="#10b981" strokeWidth={2.5} />
-        </svg>
-      </div>
-      {/* Legend */}
-      <div className="flex items-center gap-6 mt-4">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 border-t-2 border-dashed border-slate-400" />
-          <span className="text-xs text-slate-500">UCR</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-cyan-500 rounded" />
-          <span className="text-xs text-slate-500">Expected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-emerald-500 rounded" />
-          <span className="text-xs text-slate-500">Collected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-3 bg-slate-200 dark:bg-slate-600 rounded-sm opacity-60" />
-          <span className="text-xs text-slate-500">Outcome Gap</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PriorityActionsTable() {
+function StalledEpisodesTable({ stalled }: { stalled: StalledEpisode[] }) {
+  const getPriorityFromDays = (days: number) => {
+    if (days >= 14) return 'CRITICAL';
+    if (days >= 7) return 'HIGH';
+    if (days >= 3) return 'MEDIUM';
+    return 'LOW';
+  };
   const getPriorityStyle = (p: string) => {
     switch (p) {
       case 'CRITICAL': return 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50';
       case 'HIGH': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800/50';
       case 'MEDIUM': return 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50';
-      case 'LOW': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
-      default: return 'bg-slate-100 text-slate-500';
+      default: return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
     }
   };
+  const getGapType = (stage: string) => {
+    const map: Record<string, string> = { detected: 'Diagnosis Gap', diagnosed: 'Planning Gap', planned: 'Presentation Gap', presented: 'Acceptance Gap', accepted: 'Scheduling Gap', scheduled: 'Attendance Gap', attended: 'Completion Gap', completed: 'Collection Gap' };
+    return map[stage] || 'Unknown Gap';
+  };
+  const sorted = [...stalled].sort((a, b) => (b.days_stalled || 0) - (a.days_stalled || 0));
+
+  if (sorted.length === 0) {
+    return (
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+        <h3 className="font-bold text-slate-900 dark:text-white mb-1">Priority Actions</h3>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Target className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No stalled episodes</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="font-bold text-slate-900 dark:text-white">Priority Actions</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Gaps requiring immediate attention</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{sorted.length} stalled episodes requiring attention</p>
         </div>
-        <button className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 flex items-center gap-1">
-          View All <ChevronRight className="w-4 h-4" />
-        </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-700">
               <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">PRIORITY</th>
-              <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">PATIENT</th>
+              <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">FINDING</th>
               <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">GAP TYPE</th>
+              <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">STALLED AT</th>
               <th className="text-right text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">DAYS</th>
               <th className="text-right text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">$ AT RISK</th>
-              <th className="text-left text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3 pr-4">CDT</th>
               <th className="text-right text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 pb-3">ACTION</th>
             </tr>
           </thead>
           <tbody>
-            {priorityActions.map((row, idx) => (
-              <tr key={idx} className="border-b border-slate-50 dark:border-slate-700/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                <td className="py-4 pr-4">
-                  <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider border ${getPriorityStyle(row.priority)}`}>
-                    {row.priority}
-                  </span>
-                </td>
-                <td className="py-4 pr-4">
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{row.patient}</span>
-                </td>
-                <td className="py-4 pr-4">
-                  <span className="text-sm text-slate-600 dark:text-slate-300">{row.gapType}</span>
-                </td>
-                <td className="py-4 pr-4 text-right">
-                  <span className={`text-sm font-medium ${row.days >= 10 ? 'text-red-500' : 'text-slate-600 dark:text-slate-300'}`}>
-                    {row.days}d
-                  </span>
-                </td>
-                <td className="py-4 pr-4 text-right">
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                    ${row.atRisk.toLocaleString()}
-                  </span>
-                </td>
-                <td className="py-4 pr-4">
-                  <span className="text-sm font-mono text-slate-500 dark:text-slate-400">{row.cdt}</span>
-                </td>
-                <td className="py-4">
-                  <div className="flex items-center justify-end gap-2">
-                    <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                      <Phone className="w-4 h-4" />
-                    </button>
-                    <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                      <CalendarPlus className="w-4 h-4" />
-                    </button>
-                    <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                      <Mail className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {sorted.map((row) => {
+              const priority = getPriorityFromDays(row.days_stalled || 0);
+              return (
+                <tr key={row.id} className="border-b border-slate-50 dark:border-slate-700/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                  <td className="py-4 pr-4">
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider border ${getPriorityStyle(priority)}`}>{priority}</span>
+                  </td>
+                  <td className="py-4 pr-4"><span className="font-semibold text-sm text-slate-900 dark:text-white">{row.ai_finding_type || 'Unknown'}</span></td>
+                  <td className="py-4 pr-4"><span className="text-sm text-slate-600 dark:text-slate-300">{getGapType(row.stalled_at_stage)}</span></td>
+                  <td className="py-4 pr-4"><span className="text-sm text-slate-500 dark:text-slate-400 capitalize">{row.stalled_at_stage}</span></td>
+                  <td className="py-4 pr-4 text-right">
+                    <span className={`text-sm font-medium ${(row.days_stalled || 0) >= 10 ? 'text-red-500' : 'text-slate-600 dark:text-slate-300'}`}>{row.days_stalled || 0}d</span>
+                  </td>
+                  <td className="py-4 pr-4 text-right">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">{row.plan_value ? `$${row.plan_value.toLocaleString()}` : '—'}</span>
+                  </td>
+                  <td className="py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><Phone className="w-4 h-4" /></button>
+                      <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><CalendarPlus className="w-4 h-4" /></button>
+                      <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><Mail className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -321,80 +240,74 @@ function PriorityActionsTable() {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────
-
 export default function OutcomeGapPage() {
+  const { funnelData, leakageData, stalledData, loading, error, refresh } = useOutcomeGapData();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-teal-500 mx-auto mb-3" />
+          <p className="text-slate-500 dark:text-slate-400">Loading Outcome Gap data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+          <p className="text-slate-700 dark:text-slate-300 font-medium">{error}</p>
+          <button onClick={refresh} className="mt-3 text-sm text-teal-600 hover:text-teal-700 font-medium">Try Again</button>
+        </div>
+      </div>
+    );
+  }
+
+  const funnel = funnelData?.funnel || [];
+  const totalPlan = funnelData?.total_plan_value || 0;
+  const totalCollected = funnelData?.total_collected || 0;
+  const totalLeaked = funnelData?.total_leaked || 0;
+  const gapPct = funnelData?.overall_gap_pct || '0';
+  const totalEpisodes = funnelData?.total_episodes || 0;
+  const stalledCount = stalledData.length;
+  const collectionRate = totalPlan > 0 ? ((totalCollected / totalPlan) * 100).toFixed(0) : '0';
+
   return (
     <div className="space-y-6 animate-in">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 
-          flex items-center justify-center shadow-lg shadow-rose-500/20 dark:shadow-rose-500/10">
-          <Activity className="w-6 h-6 text-white" />
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center shadow-lg shadow-rose-500/20 dark:shadow-rose-500/10">
+            <Activity className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Outcome Gap Dashboard</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Track every dollar from AI detection to collection</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Outcome Gap Dashboard</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-            Track every dollar from AI detection to collection
-          </p>
-        </div>
+        <button onClick={refresh} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+          <RefreshCw className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+        </button>
       </div>
 
-      {/* KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={kpiMetrics.outcomeGap.label}
-          value={`${kpiMetrics.outcomeGap.value}%`}
-          subtitle={kpiMetrics.outcomeGap.subtitle}
-          trend={kpiMetrics.outcomeGap.trend}
-          up={kpiMetrics.outcomeGap.up}
-          variant={kpiMetrics.outcomeGap.variant}
-        />
-        <StatCard
-          label={kpiMetrics.atRiskRevenue.label}
-          value={`$${(kpiMetrics.atRiskRevenue.value / 1000).toFixed(0)}K`}
-          subtitle={kpiMetrics.atRiskRevenue.subtitle}
-          trend={kpiMetrics.atRiskRevenue.trend}
-          up={kpiMetrics.atRiskRevenue.up}
-          variant={kpiMetrics.atRiskRevenue.variant}
-        />
-        <StatCard
-          label={kpiMetrics.activeGaps.label}
-          value={kpiMetrics.activeGaps.value.toString()}
-          subtitle={kpiMetrics.activeGaps.subtitle}
-          trend={kpiMetrics.activeGaps.trend}
-          up={kpiMetrics.activeGaps.up}
-          variant={kpiMetrics.activeGaps.variant}
-        />
-        <StatCard
-          label={kpiMetrics.collectionRate.label}
-          value={`${kpiMetrics.collectionRate.value}%`}
-          subtitle={kpiMetrics.collectionRate.subtitle}
-          trend={kpiMetrics.collectionRate.trend}
-          up={kpiMetrics.collectionRate.up}
-          variant={kpiMetrics.collectionRate.variant}
-        />
+        <StatCard label="OUTCOME GAP" value={`${gapPct}%`} subtitle={`$${totalLeaked >= 1000 ? `${(totalLeaked / 1000).toFixed(1)}K` : totalLeaked} leaked`} variant="danger" />
+        <StatCard label="TOTAL PLAN VALUE" value={`$${totalPlan >= 1000 ? `${(totalPlan / 1000).toFixed(1)}K` : totalPlan}`} subtitle={`${totalEpisodes} treatment episodes`} variant="danger" />
+        <StatCard label="STALLED EPISODES" value={stalledCount.toString()} subtitle="Requiring intervention" variant={stalledCount > 0 ? 'danger' : 'success'} />
+        <StatCard label="COLLECTION RATE" value={`${collectionRate}%`} subtitle={`$${totalCollected >= 1000 ? `${(totalCollected / 1000).toFixed(1)}K` : totalCollected} collected`} variant="success" />
       </div>
 
-      {/* Funnel + Gap Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <RevenueFunnel />
-        </div>
-        <GapBreakdownPanel />
+        <div className="lg:col-span-2"><RevenueFunnel funnel={funnel} /></div>
+        <GapBreakdownPanel leakage={leakageData} />
       </div>
 
-      {/* Revenue Trend */}
-      <RevenueTrendChart />
+      <StalledEpisodesTable stalled={stalledData} />
 
-      {/* Priority Actions */}
-      <PriorityActionsTable />
-
-      {/* Footer */}
       <div className="text-center pb-4">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          Dentamind AI — Outcome Gap Intelligence Engine
-        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Dentamind AI — Outcome Gap Intelligence Engine · Live Data</p>
       </div>
     </div>
   );

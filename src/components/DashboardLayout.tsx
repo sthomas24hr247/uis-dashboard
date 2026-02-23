@@ -5,6 +5,7 @@ import {
 import {
   useTheme } from '../context/ThemeContext';
 import {
+  Lightbulb,
   Home,
   Calendar,
   Users,
@@ -33,6 +34,7 @@ const navItems = [
   { to: '/providers', icon: UserCog, label: 'Providers' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind' },
+  { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
   { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
 ];
 
