@@ -16,8 +16,8 @@ import SettingsPage from "./pages/SettingsPage";
 import ROICalculatorPage from "./pages/ROICalculatorPage";
 import BILDashboardPage from './pages/BILDashboardPage';
 import QualityOfCarePage from './pages/QualityOfCarePage';
-import OutcomeGapPage from './pages/OutcomeGapPage';
-
+import WorkforceIntelPage from "./pages/WorkforceIntelPage";
+import OutcomeGapPage from "./pages/OutcomeGapPage";
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();

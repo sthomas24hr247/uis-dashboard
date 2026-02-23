@@ -41,6 +41,7 @@ const navItems = [
   { to: '/bil', icon: Activity, label: 'BIL Dashboard' },
   { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
   { to: '/quality-of-care', icon: Shield, label: 'Quality of Care' },
+  { to: '/workforce', icon: Users, label: 'Workforce Intel' },
   { to: '/roi', icon: Calculator, label: 'ROI Calculator' },
 ];
 
