@@ -1,365 +1,253 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Phone,
   Mail,
   Calendar,
   MapPin,
-  Shield,
   CreditCard,
-  FileText,
   Edit,
   AlertCircle,
   DollarSign,
+  Brain,
+  Activity,
 } from 'lucide-react';
 import { format, parseISO, differenceInYears } from 'date-fns';
 
 const GET_PATIENT = gql`
   query GetPatient($patientId: ID!) {
-    patient(id: $patientId) {
-      patientId
+    dentamindPatient(id: $patientId) {
+      id
       firstName
       lastName
       dateOfBirth
       gender
       email
       phone
-      address {
-        street
-        city
-        state
-        zip
-      }
+      address
       status
-      preferredProvider {
-        providerId
-        firstName
-        lastName
-      }
-      appointments {
-        appointmentId
-        dateTime
-        duration
-        status
-        provider {
-          firstName
-          lastName
-        }
-      }
-      procedures {
-        procedureId
-        procedureCode
-        description
-        status
-        completedDate
-        fee
-      }
-      insurancePlans {
-        planId
-        payerName
-        memberId
-        groupNumber
-        subscriberName
-        annualMax
-        annualUsed
-      }
       balance
-      createdAt
+      lastVisit
+      nextAppointment
     }
   }
 `;
 
 export default function PatientDetailPage() {
   const { patientId } = useParams<{ patientId: string }>();
-  
   const { data, loading, error } = useQuery(GET_PATIENT, {
     variables: { patientId },
     skip: !patientId,
   });
+  const patient = data?.dentamindPatient;
 
-  const patient = data?.patient;
+  const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
+  const [prediction, setPrediction] = useState<any>(null);
+  const [episodes, setEpisodes] = useState<any[]>([]);
 
-  const calculateAge = (dateOfBirth: string) => {
-    try {
-      return differenceInYears(new Date(), parseISO(dateOfBirth));
-    } catch {
-      return null;
-    }
-  };
+  useEffect(() => {
+    if (!patient) return;
+    fetch(`${API_URL}/api/predictions/patients`)
+      .then(r => r.json())
+      .then(d => {
+        const match = d.predictions?.find((p: any) =>
+          p.first_name?.toLowerCase() === patient.firstName?.toLowerCase() &&
+          p.last_name?.toLowerCase() === patient.lastName?.toLowerCase()
+        );
+        if (match) setPrediction(match);
+      }).catch(() => {});
+    fetch(`${API_URL}/api/outcome-gap/stalled?min_days=0`)
+      .then(r => r.json())
+      .then(d => {
+        const patientEps = d.stalled_episodes?.filter((e: any) =>
+          e.first_name?.toLowerCase() === patient.firstName?.toLowerCase() &&
+          e.last_name?.toLowerCase() === patient.lastName?.toLowerCase()
+        ) || [];
+        setEpisodes(patientEps);
+      }).catch(() => {});
+  }, [patient]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-uis-200 border-t-uis-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-500">Loading patient...</p>
-        </div>
+  const calculateAge = (dob: string) => { try { return differenceInYears(new Date(), parseISO(dob)); } catch { return null; } };
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center">
+        <div className="w-10 h-10 border-4 border-uis-200 border-t-uis-600 rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-slate-500">Loading patient...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error || !patient) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">Failed to load patient</p>
-          <Link to="/patients" className="btn-secondary">
-            Back to Patients
-          </Link>
-        </div>
+  if (error || !patient) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center">
+        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+        <p className="text-red-600 mb-4">Failed to load patient</p>
+        <Link to="/patients" className="btn-secondary">Back to Patients</Link>
       </div>
-    );
-  }
+    </div>
+  );
 
   const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
 
   return (
-    <div className="space-y-6 animate-in">
-      {/* Back button */}
-      <Link
-        to="/patients"
-        className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Patients
-      </Link>
-
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-uis-400 to-uis-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-glow">
-              {patient.firstName?.charAt(0)}{patient.lastName?.charAt(0)}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                {patient.firstName} {patient.lastName}
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-slate-500">
-                {age !== null && <span>{age} years old</span>}
-                {patient.gender && <span>· {patient.gender === 'M' ? 'Male' : patient.gender === 'F' ? 'Female' : 'Other'}</span>}
-                <span className={`badge ${patient.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                  {patient.status || 'Active'}
-                </span>
-              </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/patients" className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="w-14 h-14 bg-gradient-to-br from-uis-500 to-uis-700 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+            {patient.firstName?.[0]}{patient.lastName?.[0]}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{patient.firstName} {patient.lastName}</h1>
+            <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+              {age && <span>{age} years old</span>}
+              {patient.gender && <span>· {patient.gender}</span>}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${patient.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-600'}`}>
+                {patient.status}
+              </span>
             </div>
           </div>
-          <button className="btn-secondary flex items-center gap-2">
-            <Edit className="w-4 h-4" />
-            Edit Patient
-          </button>
         </div>
+        <button className="btn-secondary flex items-center gap-2"><Edit className="w-4 h-4" />Edit Patient</button>
       </div>
 
-      {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column - Info */}
+        {/* Left column */}
         <div className="space-y-6">
-          {/* Contact info */}
-          <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Contact Information</h2>
+          {/* Contact */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Contact Information</h2>
             <div className="space-y-4">
               {patient.phone && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Phone</p>
-                    <p className="font-medium text-slate-900">{patient.phone}</p>
-                  </div>
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><Phone className="w-5 h-5 text-slate-600 dark:text-slate-300" /></div>
+                  <div><p className="text-sm text-slate-500 dark:text-slate-400">Phone</p><p className="font-medium text-slate-900 dark:text-white">{patient.phone}</p></div>
                 </div>
               )}
               {patient.email && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Email</p>
-                    <p className="font-medium text-slate-900">{patient.email}</p>
-                  </div>
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><Mail className="w-5 h-5 text-slate-600 dark:text-slate-300" /></div>
+                  <div><p className="text-sm text-slate-500 dark:text-slate-400">Email</p><p className="font-medium text-slate-900 dark:text-white">{patient.email}</p></div>
                 </div>
               )}
               {patient.dateOfBirth && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Date of Birth</p>
-                    <p className="font-medium text-slate-900">
-                      {format(parseISO(patient.dateOfBirth), 'MMMM d, yyyy')}
-                    </p>
-                  </div>
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><Calendar className="w-5 h-5 text-slate-600 dark:text-slate-300" /></div>
+                  <div><p className="text-sm text-slate-500 dark:text-slate-400">Date of Birth</p><p className="font-medium text-slate-900 dark:text-white">{format(parseISO(patient.dateOfBirth), 'MMMM d, yyyy')}</p></div>
                 </div>
               )}
               {patient.address && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Address</p>
-                    <p className="font-medium text-slate-900">
-                      {patient.address.street}<br />
-                      {patient.address.city}, {patient.address.state} {patient.address.zip}
-                    </p>
-                  </div>
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><MapPin className="w-5 h-5 text-slate-600 dark:text-slate-300" /></div>
+                  <div><p className="text-sm text-slate-500 dark:text-slate-400">Address</p><p className="font-medium text-slate-900 dark:text-white">{patient.address}</p></div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Insurance */}
-          <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-uis-600" />
-              Insurance
-            </h2>
-            {patient.insurancePlans?.length > 0 ? (
-              <div className="space-y-4">
-                {patient.insurancePlans.map((plan: any) => (
-                  <div key={plan.planId} className="p-4 bg-slate-50 rounded-xl">
-                    <p className="font-semibold text-slate-900">{plan.payerName}</p>
-                    <p className="text-sm text-slate-500 mt-1">Member ID: {plan.memberId}</p>
-                    {plan.groupNumber && <p className="text-sm text-slate-500">Group: {plan.groupNumber}</p>}
-                    {plan.annualMax && (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-slate-500">Annual Benefits</span>
-                          <span className="font-medium">${plan.annualUsed || 0} / ${plan.annualMax}</span>
-                        </div>
-                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-uis-500 rounded-full"
-                            style={{ width: `${((plan.annualUsed || 0) / plan.annualMax) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No insurance on file</p>
-            )}
+          {/* Balance */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5 text-uis-600" />Account Balance</h2>
+            <p className="text-3xl font-bold text-slate-900 dark:text-white">${(patient.balance || 0).toFixed(2)}</p>
+            {patient.balance > 0 && (<button className="btn-primary w-full mt-4"><CreditCard className="w-4 h-4 mr-2" />Collect Payment</button>)}
           </div>
 
-          {/* Balance */}
-          <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-uis-600" />
-              Account Balance
-            </h2>
-            <p className="text-3xl font-bold text-slate-900">
-              ${(patient.balance || 0).toFixed(2)}
-            </p>
-            {patient.balance > 0 && (
-              <button className="btn-primary w-full mt-4">
-                <CreditCard className="w-4 h-4 mr-2" />
-                Collect Payment
-              </button>
-            )}
-          </div>
+          {/* AI Predictions */}
+          {prediction && (
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-indigo-200 dark:border-indigo-700/30 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Brain className="w-5 h-5 text-indigo-600" />Dentamind Predictions</h2>
+              <div className="space-y-3">
+                {[
+                  { label: 'Cancel Risk', tier: prediction.cancel_risk_tier, extra: `(${(prediction.cancel_risk_score * 100).toFixed(0)}%)` },
+                  { label: 'Acceptance', tier: prediction.acceptance_tier, extra: '' },
+                  { label: 'OOP Willing', tier: prediction.oop_willingness_tier, extra: `(max $${prediction.oop_threshold_estimate?.toLocaleString()})` },
+                  { label: 'Attrition', tier: prediction.attrition_risk_tier, extra: '' },
+                ].map((item, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600 dark:text-slate-300">{item.label}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      ['high','critical','unlikely'].includes(item.tier) ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      ['moderate','possible'].includes(item.tier) ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    }`}>{item.tier?.toUpperCase()} {item.extra}</span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-indigo-200 dark:border-indigo-700/30 flex justify-between items-center">
+                  <span className="text-sm text-slate-600 dark:text-slate-300">Channel</span>
+                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 capitalize">{prediction.preferred_channel}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-600 dark:text-slate-300">Days Since Visit</span>
+                  <span className={`text-sm font-bold ${(prediction.days_since_last_visit || 0) > 90 ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>{prediction.days_since_last_visit}d</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right column - Activity */}
+        {/* Right column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Upcoming appointments */}
-          <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-uis-600" />
-                Appointments
-              </h2>
-              <button className="text-sm text-uis-600 hover:text-uis-700 font-medium">
-                + Schedule New
-              </button>
+          {/* Visit Summary */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Calendar className="w-5 h-5 text-uis-600" />Visit Summary</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Last Visit</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">{patient.lastVisit ? format(parseISO(patient.lastVisit), 'MMM d, yyyy') : 'No visits'}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Next Appointment</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">{patient.nextAppointment ? format(parseISO(patient.nextAppointment), 'MMM d, yyyy') : 'None scheduled'}</p>
+              </div>
             </div>
-            {patient.appointments?.length > 0 ? (
+          </div>
+
+          {/* Stalled Episodes */}
+          {episodes.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-amber-600" />Treatment Episodes at Risk
+                <span className="ml-auto text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full">{episodes.length} stalled</span>
+              </h2>
               <div className="space-y-3">
-                {patient.appointments.slice(0, 5).map((apt: any) => (
-                  <div key={apt.appointmentId} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                    <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[60px]">
-                        <p className="text-sm font-bold text-slate-900">
-                          {format(parseISO(apt.dateTime), 'MMM d')}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {format(parseISO(apt.dateTime), 'h:mm a')}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {apt.provider ? `Dr. ${apt.provider.lastName}` : 'Unassigned'}
-                        </p>
-                        <p className="text-sm text-slate-500">{apt.duration} minutes</p>
-                      </div>
+                {episodes.map((ep: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                    <div>
+                      <p className="font-medium text-slate-900 dark:text-white text-sm">{ep.stalled_at_stage?.replace(/_/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} Gap</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Stalled {ep.days_stalled}d at {ep.stalled_at_stage}</p>
                     </div>
-                    <span className={`badge ${
-                      apt.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' :
-                      apt.status === 'COMPLETED' ? 'bg-slate-100 text-slate-600' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {apt.status}
-                    </span>
+                    <div className="text-right">
+                      <p className="font-bold text-red-600 text-sm">${(ep.plan_value || 0).toLocaleString()}</p>
+                      <p className="text-xs text-slate-500">at risk</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No appointments scheduled</p>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Treatment history */}
-          <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-uis-600" />
-              Treatment History
-            </h2>
-            {patient.procedures?.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-sm text-slate-500 border-b border-slate-100">
-                      <th className="pb-3 font-medium">Date</th>
-                      <th className="pb-3 font-medium">Code</th>
-                      <th className="pb-3 font-medium">Description</th>
-                      <th className="pb-3 font-medium">Status</th>
-                      <th className="pb-3 font-medium text-right">Fee</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {patient.procedures.slice(0, 10).map((proc: any) => (
-                      <tr key={proc.procedureId} className="border-b border-slate-50">
-                        <td className="py-3 text-slate-600">
-                          {proc.completedDate ? format(parseISO(proc.completedDate), 'MMM d, yyyy') : '—'}
-                        </td>
-                        <td className="py-3 font-mono text-slate-900">{proc.procedureCode}</td>
-                        <td className="py-3 text-slate-900">{proc.description}</td>
-                        <td className="py-3">
-                          <span className={`badge ${
-                            proc.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
-                            proc.status === 'PLANNED' ? 'bg-blue-100 text-blue-700' :
-                            'bg-slate-100 text-slate-600'
-                          }`}>
-                            {proc.status}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right font-medium text-slate-900">
-                          ${(proc.fee || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No treatment history</p>
-            )}
+          {/* Quick Actions */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { icon: Calendar, label: 'Schedule' },
+                { icon: Phone, label: 'Call' },
+                { icon: Mail, label: 'Email' },
+                { icon: CreditCard, label: 'Payment' },
+              ].map((a, i) => (
+                <button key={i} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-uis-50 dark:hover:bg-uis-900/20 transition-colors group">
+                  <a.icon className="w-6 h-6 text-slate-400 group-hover:text-uis-600" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{a.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

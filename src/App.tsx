@@ -65,11 +65,6 @@ function App() {
             <Route path="patient-intel" element={<PatientIntelPage />} />
             <Route path="bil" element={<BILDashboardPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
-        <Route path="ai-predictions" element={<AIPredictionsPage />} />
-            <Route path="recommendations" element={<RecommendationsPage />} />
-            <Route path="patient-intel" element={<PatientIntelPage />} />
-            <Route path="bil" element={<BILDashboardPage />} />
-            <Route path="outcome-gap" element={<OutcomeGapPage />} />
       </Route>
       
       {/* Catch all */}
