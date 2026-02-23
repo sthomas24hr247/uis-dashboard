@@ -36,6 +36,7 @@ const navItems = [
   { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind' },
   { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
   { to: '/patient-intel', icon: Users, label: 'Patient Intel' },
+  { to: '/bil', icon: Activity, label: 'BIL Dashboard' },
   { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
 ];
 
