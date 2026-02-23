@@ -69,6 +69,7 @@ function App() {
             <Route path="bil" element={<BILDashboardPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
             <Route path="quality-of-care" element={<QualityOfCarePage />} />
+            <Route path="workforce" element={<WorkforceIntelPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="roi" element={<ROICalculatorPage />} />
       </Route>
