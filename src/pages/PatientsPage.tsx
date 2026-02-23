@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
   Search,
@@ -10,6 +10,8 @@ import {
   Calendar,
   ChevronRight,
   Filter,
+  Brain,
+  AlertTriangle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -48,6 +50,14 @@ export default function PatientsPage() {
   });
 
   const patients = data?.dentamindPatients || [];
+
+  const [predictions, setPredictions] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("https://api.uishealth.com/api/predictions/patients")
+      .then(r => r.json())
+      .then(d => setPredictions(d.predictions || []))
+      .catch(() => {});
+  }, []);
 
   if (error) {
     return (
@@ -128,13 +138,14 @@ export default function PatientsPage() {
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Insurance</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Last Visit</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Balance</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">AI Risk</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Status</th>
                 <th className="w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {patients.map((patient: any) => (
-                <PatientRow key={patient.id} patient={patient} />
+                <PatientRow key={patient.id} patient={patient} prediction={predictions.find((p: any) => p.first_name?.toLowerCase() === patient.firstName?.toLowerCase() && p.last_name?.toLowerCase() === patient.lastName?.toLowerCase())} />
               ))}
             </tbody>
           </table>
@@ -144,7 +155,7 @@ export default function PatientsPage() {
   );
 }
 
-function PatientRow({ patient }: { patient: any }) {
+function PatientRow({ patient, prediction }: { patient: any; prediction?: any }) {
   const statusColor = patient.status === 'ACTIVE' 
     ? 'bg-emerald-100 text-emerald-700'
     : 'bg-slate-100 text-slate-600';
@@ -192,6 +203,17 @@ function PatientRow({ patient }: { patient: any }) {
         <span className={`font-medium ${(patient.balance || 0) > 0 ? 'text-amber-600' : 'text-slate-600'}`}>
           ${(patient.balance || 0).toFixed(2)}
         </span>
+      </td>
+      <td className="px-4 py-3">
+        {prediction ? (
+          <div className="flex flex-col gap-1">
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${prediction.cancel_risk_tier === "high" || prediction.cancel_risk_tier === "critical" ? "bg-red-100 text-red-700" : prediction.cancel_risk_tier === "moderate" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>CANCEL {(prediction.cancel_risk_score * 100).toFixed(0)}%</span>
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${prediction.acceptance_tier === "likely" ? "bg-emerald-100 text-emerald-700" : prediction.acceptance_tier === "possible" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{prediction.acceptance_tier?.toUpperCase()}</span>
+            {(prediction.days_since_last_visit || 0) > 90 && <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">{prediction.days_since_last_visit}d AWAY</span>}
+          </div>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
       </td>
       <td className="px-4 py-3">
         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
