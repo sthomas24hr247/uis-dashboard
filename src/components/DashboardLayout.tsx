@@ -14,6 +14,7 @@ import {
   CalendarCheck,
   LogOut,
   Settings,
+  Calculator,
   Bell,
   Search,
   Menu,
@@ -38,6 +39,7 @@ const navItems = [
   { to: '/patient-intel', icon: Users, label: 'Patient Intel' },
   { to: '/bil', icon: Activity, label: 'BIL Dashboard' },
   { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
+  { to: '/roi', icon: Calculator, label: 'ROI Calculator' },
 ];
 
 export default function DashboardLayout() {
