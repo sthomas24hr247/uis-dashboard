@@ -15,6 +15,7 @@ import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from "./pages/SettingsPage";
 import ROICalculatorPage from "./pages/ROICalculatorPage";
 import BILDashboardPage from './pages/BILDashboardPage';
+import InsuranceVerificationPage from "./pages/InsuranceVerificationPage";
 import QualityOfCarePage from './pages/QualityOfCarePage';
 import WorkforceIntelPage from "./pages/WorkforceIntelPage";
 import CDTGapAnalysisPage from "./pages/CDTGapAnalysisPage";import OutcomeGapPage from "./pages/OutcomeGapPage";
@@ -67,6 +68,7 @@ function App() {
             <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="patient-intel" element={<PatientIntelPage />} />
             <Route path="bil" element={<BILDashboardPage />} />
+            <Route path="insurance" element={<InsuranceVerificationPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
             <Route path="quality-of-care" element={<QualityOfCarePage />} />
             <Route path="workforce" element={<WorkforceIntelPage />} />

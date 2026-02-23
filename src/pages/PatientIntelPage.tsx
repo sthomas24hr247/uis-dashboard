@@ -340,11 +340,11 @@ export default function PatientIntelPage() {
   if (loading) return <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" /></div>;
 
   if (selectedPatient) {
-    return <div className="p-6 lg:p-8 max-w-[1200px] mx-auto"><PatientDetail patient={selectedPatient} onBack={() => setSelectedPatient(null)} /></div>;
+    return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><PatientDetail patient={selectedPatient} onBack={() => setSelectedPatient(null)} /></div>;
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1200px] mx-auto space-y-6">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div>
         <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1 mb-2">
           <ArrowLeft className="w-3 h-3" /> Back to Dashboard
