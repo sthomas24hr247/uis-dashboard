@@ -132,10 +132,42 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const processedQuestionRef = useRef<string | null>(null);
+  const [patientIntel, setPatientIntel] = useState<string>("");
+
+  useEffect(() => {
+    const API = "https://api.uishealth.com";
+    Promise.all([
+      fetch(`${API}/api/predictions/patients`).then(r => r.json()),
+      fetch(`${API}/api/outcome-gap/stalled?min_days=0`).then(r => r.json()),
+      fetch(`${API}/api/recommendations/active?limit=20`).then(r => r.json()),
+    ]).then(([predData, gapData, recData]) => {
+      const sections: string[] = [];
+      if (predData.predictions?.length) {
+        const lines = predData.predictions.map((p: any) =>
+          `  - ${p.first_name} ${p.last_name}: Cancel Risk ${(p.cancel_risk_score*100).toFixed(0)}% (${p.cancel_risk_tier}) | Acceptance: ${p.acceptance_tier} | OOP: ${p.oop_willingness_tier} (max $${p.oop_threshold_estimate}) | Attrition: ${p.attrition_risk_tier} | Channel: ${p.preferred_channel} | ${p.days_since_last_visit}d since visit`
+        ).join("\n");
+        sections.push(`## Patient Predictions (${predData.predictions.length} patients scored)\n${lines}`);
+      }
+      if (gapData.stalled_episodes?.length) {
+        const lines = gapData.stalled_episodes.map((e: any) =>
+          `  - ${e.first_name || "Unknown"} ${e.last_name || ""}: Stalled at ${e.stalled_at_stage} for ${e.days_stalled}d | Plan Value: $${e.plan_value} | ${e.leaked ? "LEAKED" : "At Risk"}`
+        ).join("\n");
+        sections.push(`## Stalled Treatment Episodes (${gapData.stalled_episodes.length} episodes)\n${lines}`);
+      }
+      if (recData.recommendations?.length) {
+        const lines = recData.recommendations.slice(0, 10).map((r: any) =>
+          `  - [${r.priority?.toUpperCase()}] ${r.title} | Type: ${r.type} | Est Revenue: $${r.estimated_revenue} | Status: ${r.status}`
+        ).join("\n");
+        sections.push(`## Active AI Recommendations (${recData.count || recData.recommendations.length})\n${lines}`);
+      }
+      setPatientIntel(sections.join("\n\n"));
+    }).catch(() => {});
+  }, []);
 
   const systemPrompt = practiceData
     ? `${BASE_SYSTEM_PROMPT}\n\n--- LIVE PRACTICE DATA ---\n\n${buildDataContext(practiceData)}\n\n--- END LIVE DATA ---`
     : BASE_SYSTEM_PROMPT;
+  const fullPrompt = systemPrompt + (patientIntel ? `\n\n--- PATIENT INTELLIGENCE DATA ---\n\n${patientIntel}\n\n--- END PATIENT INTEL ---` : '');
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -161,7 +193,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
-          system: systemPrompt,
+          system: fullPrompt,
           messages: [{ role: 'user', content: initialQuestion }],
         }),
       })
@@ -202,7 +234,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
-          system: systemPrompt,
+          system: fullPrompt,
           messages: updatedMessages.map(m => ({
             role: m.role,
             content: m.content,
@@ -249,7 +281,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
-        system: systemPrompt,
+        system: fullPrompt,
         messages: [{ role: 'user', content: q }],
       }),
     })
