@@ -40,6 +40,7 @@ const navItems = [
   { to: '/patient-intel', icon: Users, label: 'Patient Intel' },
   { to: '/bil', icon: Activity, label: 'BIL Dashboard' },
   { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
+  { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' },
   { to: '/quality-of-care', icon: Shield, label: 'Quality of Care' },
   { to: '/workforce', icon: Users, label: 'Workforce Intel' },
   { to: '/roi', icon: Calculator, label: 'ROI Calculator' },

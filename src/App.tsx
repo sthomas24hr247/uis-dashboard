@@ -17,7 +17,7 @@ import ROICalculatorPage from "./pages/ROICalculatorPage";
 import BILDashboardPage from './pages/BILDashboardPage';
 import QualityOfCarePage from './pages/QualityOfCarePage';
 import WorkforceIntelPage from "./pages/WorkforceIntelPage";
-import OutcomeGapPage from "./pages/OutcomeGapPage";
+import CDTGapAnalysisPage from "./pages/CDTGapAnalysisPage";import OutcomeGapPage from "./pages/OutcomeGapPage";
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -70,7 +70,7 @@ function App() {
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
             <Route path="quality-of-care" element={<QualityOfCarePage />} />
             <Route path="workforce" element={<WorkforceIntelPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />            <Route path="settings" element={<SettingsPage />} />
             <Route path="roi" element={<ROICalculatorPage />} />
       </Route>
       
