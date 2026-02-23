@@ -15,6 +15,7 @@ import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from "./pages/SettingsPage";
 import ROICalculatorPage from "./pages/ROICalculatorPage";
 import BILDashboardPage from './pages/BILDashboardPage';
+import QualityOfCarePage from './pages/QualityOfCarePage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
 
 // Protected Route wrapper
@@ -67,6 +68,7 @@ function App() {
             <Route path="patient-intel" element={<PatientIntelPage />} />
             <Route path="bil" element={<BILDashboardPage />} />
             <Route path="outcome-gap" element={<OutcomeGapPage />} />
+            <Route path="quality-of-care" element={<QualityOfCarePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="roi" element={<ROICalculatorPage />} />
       </Route>
