@@ -1,3 +1,4 @@
+import AlertBell from "./AlertBell";
 import {
   NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -166,7 +167,7 @@ export default function DashboardLayout() {
             {/* Right */}
             <div className="flex items-center gap-2">
               <button className="relative p-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
-                <Bell className="w-5 h-5" />
+                <AlertBell />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
               </button>
 
