@@ -44,7 +44,7 @@ export default function SettingsPage() {
   ];
 
   const team = [
-    { name: 'Dr. Samuel Thomas', email: 'sthomas@myitcopilot.com', role: 'Administrator', lastLogin: '2 min ago' },
+    { name: 'Samuel Thomas', email: 'sthomas@myitcopilot.com', role: 'Administrator', lastLogin: '2 min ago' },
     { name: 'Dr. Sarah Chen', email: 'schen@demodental.com', role: 'Dentist', lastLogin: '1 hour ago' },
     { name: 'Maria Rodriguez', email: 'mrodriguez@demodental.com', role: 'Office Manager', lastLogin: '3 hours ago' },
     { name: 'James Wilson', email: 'jwilson@demodental.com', role: 'Hygienist', lastLogin: 'Yesterday' },
