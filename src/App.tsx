@@ -12,17 +12,18 @@ import HomePage from './pages/HomePage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
-import SettingsPage from "./pages/SettingsPage";
-import ROICalculatorPage from "./pages/ROICalculatorPage";
+import SettingsPage from './pages/SettingsPage';
+import ROICalculatorPage from './pages/ROICalculatorPage';
 import BILDashboardPage from './pages/BILDashboardPage';
-import InsuranceVerificationPage from "./pages/InsuranceVerificationPage";
+import InsuranceVerificationPage from './pages/InsuranceVerificationPage';
 import QualityOfCarePage from './pages/QualityOfCarePage';
-import WorkforceIntelPage from "./pages/WorkforceIntelPage";
-import CDTGapAnalysisPage from "./pages/CDTGapAnalysisPage";import OutcomeGapPage from "./pages/OutcomeGapPage";
-// Protected Route wrapper
+import WorkforceIntelPage from './pages/WorkforceIntelPage';
+import CDTGapAnalysisPage from './pages/CDTGapAnalysisPage';
+import OutcomeGapPage from './pages/OutcomeGapPage';
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -33,21 +34,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 function App() {
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
-      
-      {/* Protected routes */}
+
       <Route
         path="/"
         element={
@@ -65,18 +64,38 @@ function App() {
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="ai-predictions" element={<AIPredictionsPage />} />
-            <Route path="recommendations" element={<RecommendationsPage />} />
-            <Route path="patient-intel" element={<PatientIntelPage />} />
-            <Route path="bil" element={<BILDashboardPage />} />
-            <Route path="insurance" element={<InsuranceVerificationPage />} />
-            <Route path="outcome-gap" element={<OutcomeGapPage />} />
-            <Route path="quality-of-care" element={<QualityOfCarePage />} />
-            <Route path="workforce" element={<WorkforceIntelPage />} />
-            <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />            <Route path="settings" element={<SettingsPage />} />
-            <Route path="roi" element={<ROICalculatorPage />} />
+        <Route path="recommendations" element={<RecommendationsPage />} />
+        <Route path="patient-intel" element={<PatientIntelPage />} />
+        <Route path="bil" element={<BILDashboardPage />} />
+        <Route path="insurance" element={<InsuranceVerificationPage />} />
+        <Route path="outcome-gap" element={<OutcomeGapPage />} />
+        <Route path="quality-of-care" element={<QualityOfCarePage />} />
+        <Route path="workforce" element={<WorkforceIntelPage />} />
+        <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="roi" element={<ROICalculatorPage />} />
+        <Route path="education" element={
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Educational Resources</h1>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">Coming soon — procedure videos, patient education links, and treatment planning aids.</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-2">Patient Videos</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Procedure-specific educational videos automatically sent to patients before appointments.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-2">In-Chair Playback</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Full-screen video mode for chairside patient education during appointments.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-2">Treatment Plan Links</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Secure patient portal with treatment plans and educational resources for each procedure.</p>
+              </div>
+            </div>
+          </div>
+        } />
       </Route>
-      
-      {/* Catch all */}
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

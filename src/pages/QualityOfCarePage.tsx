@@ -310,7 +310,7 @@ function ProviderDetail({ provider, benchmarks, onBack }: {
       <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/40">
         <p className="text-[10px] font-semibold tracking-widest text-slate-400 mb-2">QCI METHODOLOGY</p>
         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          The Quality of Care Index is a composite score (0-100) derived from six weighted dimensions: Treatment Completion (25%), Recall Compliance (20%), Outcome Gap Closure (20%), No-Show Prevention (15%), Patient Retention (10%), and Revenue Capture (10%). Benchmarks are sourced from ADA Practice Benchmarking 2024 and Dental Economics Survey data. Scores improve as real practice data flows through the Orchestrate AI platform.
+          The Quality of Care Index is an aggregate score (0-100) derived from six weighted dimensions: Treatment Completion (25%), Recall Compliance (20%), Outcome Gap Closure (20%), No-Show Prevention (15%), Patient Retention (10%), and Revenue Capture (10%). Benchmarks are sourced from ADA Practice Benchmarking 2024 and Dental Economics Survey data. Scores improve as real practice data flows through the Orchestrate AI platform.
         </p>
       </div>
     </div>
@@ -377,7 +377,7 @@ export default function QualityOfCarePage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quality of Care Index</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Composite quality scores across 6 clinical dimensions</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Aggregate quality scores across 6 clinical dimensions</p>
           </div>
         </div>
         <button onClick={fetchData} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -388,11 +388,11 @@ export default function QualityOfCarePage() {
       {/* View Toggle */}
       <div className="flex items-center gap-2">
         <button onClick={() => setView('practice')}
-          className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+          className={`flex-1 text-center px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
             view === 'practice' ? 'bg-teal-500 text-white' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}>Practice Overview</button>
         <button onClick={() => setView('providers')}
-          className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+          className={`flex-1 text-center px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
             view === 'providers' ? 'bg-teal-500 text-white' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}>Provider Comparison ({providers.length})</button>
       </div>
@@ -485,7 +485,7 @@ export default function QualityOfCarePage() {
               {providers.map((p, i) => (
                 <div key={p.provider_id}
                   onClick={() => setSelectedProvider(p)}
-                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
+                  className="flex items-center gap-4 p-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                     i === 0 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
                     'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'
@@ -499,7 +499,7 @@ export default function QualityOfCarePage() {
                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider ${percentileColors[p.percentile] || ''}`}>
                     {p.percentile}
                   </span>
-                  <span className={`text-lg font-bold ${gradeText[p.grade] || ''}`}>
+                  <span className={`text-lg font-bold tabular-nums w-12 text-right inline-block ${gradeText[p.grade] || ''}`}>
                     {p.composite_score.toFixed(1)}
                   </span>
                   <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradeColors[p.grade] || ''} flex items-center justify-center text-xs font-bold`}>

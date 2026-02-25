@@ -1,50 +1,105 @@
 import AlertBell from "./AlertBell";
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import {
-  NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  useAuth } from '../context/AuthContext';
-import {
-  useTheme } from '../context/ThemeContext';
-import {
-  Lightbulb, Shield,
-  Home,
+  LayoutDashboard,
+  Briefcase,
   Calendar,
   Users,
   UserCog,
-  BarChart3,
   CalendarCheck,
+  Brain,
+  UserSearch,
+  Fingerprint,
+  HardHat,
+  BarChart3,
+  TrendingDown,
+  FileBarChart,
+  HeartPulse,
+  Shield,
+  BookOpen,
+  Sparkles,
+  Lightbulb,
+  Zap,
+  Calculator,
   LogOut,
   Settings,
-  Calculator,
-  Bell,
   Search,
   Menu,
   ChevronDown,
-  Sparkles,
-  Activity,
+  ChevronRight,
   Moon,
   Sun,
 } from 'lucide-react';
-import {
-  useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const navItems = [
-  { to: '/home', icon: Home, label: 'Home' },
-  { to: '/schedule', icon: Calendar, label: 'Schedule' },
-  { to: '/today', icon: CalendarCheck, label: "Today's Appointments" },
-  { to: '/patients', icon: Users, label: 'Patients' },
-  { to: '/providers', icon: UserCog, label: 'Providers' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind' },
-  { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
-  { to: '/patient-intel', icon: Users, label: 'Patient Intel' },
-  { to: '/insurance', icon: Shield, label: 'Insurance' },
-  { to: '/bil', icon: Activity, label: 'BIL Dashboard' },
-  { to: '/outcome-gap', icon: Activity, label: 'Outcome Gap' },
-  { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' },
-  { to: '/quality-of-care', icon: Shield, label: 'Quality of Care' },
-  { to: '/workforce', icon: Users, label: 'Workforce Intel' },
-  { to: '/roi', icon: Calculator, label: 'ROI Calculator' },
+interface NavItem {
+  to: string;
+  icon: any;
+  label: string;
+}
+
+interface NavGroup {
+  label: string;
+  icon: any;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'Command Center',
+    icon: LayoutDashboard,
+    items: [
+      { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard' },
+    ],
+  },
+  {
+    label: 'Operations',
+    icon: Briefcase,
+    items: [
+      { to: '/schedule', icon: Calendar, label: 'Schedule' },
+      { to: '/today', icon: CalendarCheck, label: "Today's Appointments" },
+      { to: '/patients', icon: Users, label: 'Patients' },
+      { to: '/providers', icon: UserCog, label: 'Providers' },
+    ],
+  },
+  {
+    label: 'Human Intelligence',
+    icon: Brain,
+    items: [
+      { to: '/patient-intel', icon: UserSearch, label: 'Patient Intel' },
+      { to: '/bil', icon: Fingerprint, label: 'Decision Fingerprinting' },
+      { to: '/workforce', icon: HardHat, label: 'Workforce Intel' },
+    ],
+  },
+  {
+    label: 'Business Intelligence',
+    icon: BarChart3,
+    items: [
+      { to: '/outcome-gap', icon: TrendingDown, label: 'Outcome Gap' },
+      { to: '/analytics', icon: FileBarChart, label: 'Practice Performance' },
+      { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' },
+    ],
+  },
+  {
+    label: 'Quality & Care',
+    icon: HeartPulse,
+    items: [
+      { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index' },
+      { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
+      { to: '/education', icon: BookOpen, label: 'Educational Resources' },
+    ],
+  },
+  {
+    label: 'AI & Actions',
+    icon: Sparkles,
+    items: [
+      { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind AI' },
+      { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
+      { to: '/roi', icon: Calculator, label: 'ROI Calculator' },
+    ],
+  },
 ];
 
 export default function DashboardLayout() {
@@ -54,11 +109,29 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  // Auto-expand the group containing the active route
+  useEffect(() => {
+    const activeGroup = navGroups.find(g =>
+      g.items.some(item => location.pathname.startsWith(item.to))
+    );
+    if (activeGroup) {
+      setExpandedGroups(prev => ({ ...prev, [activeGroup.label]: true }));
+    }
+  }, [location.pathname]);
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  const isGroupActive = (group: NavGroup) =>
+    group.items.some(item => location.pathname.startsWith(item.to));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
@@ -87,31 +160,67 @@ export default function DashboardLayout() {
                 <span className="text-lg font-bold text-white">U</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-slate-900 dark:text-white">UIS</h1>
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white">UIS Health</h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Unified Intelligence</p>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-uis-50 dark:bg-teal-500/10 text-uis-700 dark:text-teal-400 shadow-inner-glow'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                  }`
-                }
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </NavLink>
-            ))}
+          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+            {navGroups.map((group) => {
+              const isExpanded = expandedGroups[group.label] ?? false;
+              const isActive = isGroupActive(group);
+
+              return (
+                <div key={group.label}>
+                  {/* Group Header */}
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${
+                      isActive
+                        ? 'text-teal-700 dark:text-teal-400'
+                        : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    <group.icon className="w-4 h-4" />
+                    <span className="flex-1 text-left">{group.label}</span>
+                    <ChevronRight
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        isExpanded ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Group Items */}
+                  <div
+                    className={`overflow-hidden transition-all duration-200 ${
+                      isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <div className="ml-3 pl-3 border-l border-slate-100 dark:border-slate-800 space-y-0.5 py-1">
+                      {group.items.map((item) => (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setSidebarOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              isActive
+                                ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                            }`
+                          }
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span className="truncate">{item.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </nav>
 
           {/* Practice info */}

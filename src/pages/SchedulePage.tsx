@@ -171,7 +171,7 @@ export default function SchedulePage() {
 
       {/* Week View */}
       {view === 'week' && !loading && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden max-h-[calc(100vh-280px)] overflow-y-auto">
           <div className="grid grid-cols-7 border-b border-slate-200">
             {weekDays.map((day) => (
               <div

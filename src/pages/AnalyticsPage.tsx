@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Practice Performance</h1>
           <p className="text-slate-500">Practice performance overview — Live from Open Dental</p>
         </div>
         <button
@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
               <div className="flex-1">
                 <h3 className="text-xl font-bold mb-2">Powered by Dentamind AI</h3>
                 <p className="text-uis-100 mb-4">
-                  Analytics computed from live Open Dental data. Connect more practices 
+                  Practice metrics computed from live Open Dental data. Connect more practices 
                   to unlock cross-practice benchmarking, predictive scheduling, and automated insights.
                 </p>
               </div>
