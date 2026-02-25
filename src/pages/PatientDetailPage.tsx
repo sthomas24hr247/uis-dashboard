@@ -13,6 +13,7 @@ import {
   DollarSign,
   Brain,
   Activity,
+  Lightbulb,
 } from 'lucide-react';
 import { format, parseISO, differenceInYears } from 'date-fns';
 
@@ -46,6 +47,7 @@ export default function PatientDetailPage() {
   const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
   const [prediction, setPrediction] = useState<any>(null);
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [patientRecs, setPatientRecs] = useState<any[]>([]);
 
   useEffect(() => {
     if (!patient) return;
@@ -58,6 +60,7 @@ export default function PatientDetailPage() {
         );
         if (match) setPrediction(match);
       }).catch(() => {});
+    fetch(`${API_URL}/api/recommendations/active?practice_id=00000000-0000-0000-0000-000000000001`).then(r => r.json()).then(d => { const recs = (d.recommendations || []).filter((r: any) => r.patient_name?.toLowerCase().includes(patient.firstName?.toLowerCase())); setPatientRecs(recs); }).catch(() => {});
     fetch(`${API_URL}/api/outcome-gap/stalled?min_days=0`)
       .then(r => r.json())
       .then(d => {
@@ -67,6 +70,7 @@ export default function PatientDetailPage() {
         ) || [];
         setEpisodes(patientEps);
       }).catch(() => {});
+    fetch(`${API_URL}/api/recommendations/active?practice_id=00000000-0000-0000-0000-000000000001`).then(r => r.json()).then(d => { const recs = (d.recommendations || []).filter((r: any) => r.patient_name?.toLowerCase().includes(patient.firstName?.toLowerCase())); setPatientRecs(recs); }).catch(() => {});
   }, [patient]);
 
   const calculateAge = (dob: string) => { try { return differenceInYears(new Date(), parseISO(dob)); } catch { return null; } };
@@ -231,6 +235,42 @@ export default function PatientDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Patient Recommendations */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-teal-600" />Recommendations
+              {patientRecs.length > 0 && <span className="ml-auto text-xs bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 px-2 py-0.5 rounded-full">{patientRecs.length} active</span>}
+            </h2>
+            {patientRecs.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500">No active recommendations for this patient.</p>
+            ) : (
+              <div className="space-y-3">
+                {patientRecs.map((rec: any, i: number) => (
+                  <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700/40">
+                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${rec.priority === "critical" ? "bg-red-500" : rec.priority === "high" ? "bg-amber-500" : "bg-blue-500"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-slate-900 dark:text-white">{rec.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{rec.description}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          rec.priority === "critical" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                          rec.priority === "high" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                          "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                        }`}>{rec.priority}</span>
+                        {rec.estimated_revenue && <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">+${rec.estimated_revenue.toLocaleString()}</span>}
+                        <span className="text-[10px] text-slate-400">{rec.rec_type}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 flex-shrink-0">
+                      <button className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 hover:bg-teal-200 transition-colors">Approve</button>
+                      <button className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">Delay</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Quick Actions */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">

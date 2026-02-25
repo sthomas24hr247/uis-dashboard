@@ -20,6 +20,7 @@ import QualityOfCarePage from './pages/QualityOfCarePage';
 import WorkforceIntelPage from './pages/WorkforceIntelPage';
 import CDTGapAnalysisPage from './pages/CDTGapAnalysisPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
+import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -56,7 +57,8 @@ function App() {
         }
       >
         <Route index element={<Navigate to="/home" replace />} />
-        <Route path="home" element={<HomePage />} />
+        <Route path="home" element={<ExecutiveCommandCenter />} />
+        <Route path="home/manager" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="today" element={<TodayPage />} />
         <Route path="patients" element={<PatientsPage />} />
