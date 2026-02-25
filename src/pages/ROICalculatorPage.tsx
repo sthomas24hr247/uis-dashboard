@@ -503,7 +503,7 @@ export default function ROICalculatorPage() {
                               {category}
                             </h4>
                             <div className="space-y-1.5">
-                              {features.map(feat => (
+                              {features.map((feat: { name: string; included: boolean }) => (
                                 <div key={feat.name} className="flex items-center gap-2">
                                   {feat.included ? (
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
