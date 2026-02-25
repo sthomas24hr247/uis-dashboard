@@ -46,17 +46,22 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const navGroups: NavGroup[] = [
+// Roles: 'executive' | 'admin' | 'manager' | 'staff'
+// admin sees everything, executive skips daily ops, staff sees limited
+const allNavGroups: (NavGroup & { roles?: string[] })[] = [
   {
     label: 'Command Center',
     icon: LayoutDashboard,
+    roles: ['admin', 'executive', 'manager'],
     items: [
       { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard' },
+      { to: '/home/manager', icon: LayoutDashboard, label: 'Manager Dashboard' },
     ],
   },
   {
     label: 'Operations',
     icon: Briefcase,
+    roles: ['admin', 'manager', 'staff'],
     items: [
       { to: '/schedule', icon: Calendar, label: 'Schedule' },
       { to: '/today', icon: CalendarCheck, label: "Today's Appointments" },
@@ -67,6 +72,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Human Intelligence',
     icon: Brain,
+    roles: ['admin', 'executive', 'manager'],
     items: [
       { to: '/patient-intel', icon: UserSearch, label: 'Patient Intel' },
       { to: '/bil', icon: Fingerprint, label: 'Decision Fingerprinting' },
@@ -76,6 +82,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Business Intelligence',
     icon: BarChart3,
+    roles: ['admin', 'executive', 'manager'],
     items: [
       { to: '/outcome-gap', icon: TrendingDown, label: 'Outcome Gap' },
       { to: '/analytics', icon: FileBarChart, label: 'Practice Performance' },
@@ -85,6 +92,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Quality & Care',
     icon: HeartPulse,
+    roles: ['admin', 'executive', 'manager'],
     items: [
       { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index' },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
@@ -94,6 +102,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'AI & Actions',
     icon: Sparkles,
+    roles: ['admin', 'executive', 'manager'],
     items: [
       { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind AI' },
       { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
@@ -110,6 +119,9 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const userRole = user?.role || 'admin';
+  const navGroups = allNavGroups.filter(g => !g.roles || g.roles.includes(userRole));
 
   // Auto-expand the group containing the active route
   useEffect(() => {
