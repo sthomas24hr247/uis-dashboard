@@ -22,6 +22,8 @@ import CDTGapAnalysisPage from './pages/CDTGapAnalysisPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
 import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
 import WaitlistPage from './pages/WaitlistPage';
+import EducationalResourcesPage from './pages/EducationalResourcesPage';
+import AutomationHubPage from './pages/AutomationHubPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -78,26 +80,8 @@ function App() {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="roi" element={<ROICalculatorPage />} />
         <Route path="waitlist" element={<WaitlistPage />} />
-        <Route path="education" element={
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Educational Resources</h1>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">Coming soon — procedure videos, patient education links, and treatment planning aids.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-                <h3 className="font-bold text-slate-900 dark:text-white mb-2">Patient Videos</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Procedure-specific educational videos automatically sent to patients before appointments.</p>
-              </div>
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-                <h3 className="font-bold text-slate-900 dark:text-white mb-2">In-Chair Playback</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Full-screen video mode for chairside patient education during appointments.</p>
-              </div>
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-                <h3 className="font-bold text-slate-900 dark:text-white mb-2">Treatment Plan Links</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Secure patient portal with treatment plans and educational resources for each procedure.</p>
-              </div>
-            </div>
-          </div>
-        } />
+        <Route path="automation" element={<AutomationHubPage />} />
+        <Route path="education" element={<EducationalResourcesPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
