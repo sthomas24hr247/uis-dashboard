@@ -4,6 +4,7 @@ import {
   ArrowLeft, Shield, Search, CheckCircle2, AlertTriangle, Clock,
   DollarSign, FileText, RefreshCw, ChevronRight, X, Zap,
   Calendar, Users, CreditCard, Activity, TrendingUp, Info,
+  Phone, Mail, Send, Filter, MoreHorizontal, ExternalLink,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -77,6 +78,47 @@ interface PatientInsurance {
   lastVerified?: string;
   nextAppointment?: string;
 }
+
+// ── Claims Types ─────────────────────────────────────────────────────────────
+
+type ClaimStatus = 'pending' | 'paid' | 'denied' | 'appeal' | 'in_review';
+
+interface Claim {
+  claimId: string;
+  patientId: string;
+  patientName: string;
+  procedure: string;
+  cdtCode: string;
+  amountBilled: number;
+  amountPaid: number;
+  carrier: string;
+  dateSubmitted: string;
+  expectedResponseDate: string;
+  datePaid?: string;
+  daysSinceSubmission: number;
+  status: ClaimStatus;
+  claimNumber: string;
+  notes?: string;
+  followUpCount: number;
+}
+
+function generateDemoClaims(): Claim[] {
+  const today = new Date();
+  const daysSince = (d: string) => Math.floor((today.getTime() - new Date(d).getTime()) / 86400000);
+  return [
+    { claimId: 'c1', patientId: '1', patientName: 'Emily Chen', procedure: 'Crown - PFM #14', cdtCode: 'D2750', amountBilled: 1250, amountPaid: 0, carrier: 'Delta Dental', dateSubmitted: '2026-01-28', expectedResponseDate: '2026-02-28', daysSinceSubmission: daysSince('2026-01-28'), status: 'pending', claimNumber: 'DD-2026-00891', followUpCount: 0 },
+    { claimId: 'c2', patientId: '2', patientName: 'Robert Brown', procedure: 'SRP - 4 Quadrants', cdtCode: 'D4341', amountBilled: 1140, amountPaid: 912, carrier: 'MetLife', dateSubmitted: '2026-01-10', expectedResponseDate: '2026-02-10', datePaid: '2026-02-08', daysSinceSubmission: daysSince('2026-01-10'), status: 'paid', claimNumber: 'ML-2026-03421', followUpCount: 0 },
+    { claimId: 'c3', patientId: '3', patientName: 'Patricia Davis', procedure: 'Root Canal - Molar #19', cdtCode: 'D3330', amountBilled: 1050, amountPaid: 0, carrier: 'Cigna', dateSubmitted: '2025-12-18', expectedResponseDate: '2026-01-18', daysSinceSubmission: daysSince('2025-12-18'), status: 'denied', claimNumber: 'CIG-2025-88234', notes: 'Denied: Missing pre-authorization. Narrative required.', followUpCount: 2 },
+    { claimId: 'c4', patientId: '4', patientName: 'John Smith', procedure: 'Composite #30 MOD', cdtCode: 'D2393', amountBilled: 295, amountPaid: 0, carrier: 'Aetna', dateSubmitted: '2026-02-05', expectedResponseDate: '2026-03-05', daysSinceSubmission: daysSince('2026-02-05'), status: 'in_review', claimNumber: 'AET-2026-11092', followUpCount: 0 },
+    { claimId: 'c5', patientId: '5', patientName: 'Maria Garcia', procedure: 'Crown - Ceramic #3', cdtCode: 'D2740', amountBilled: 1350, amountPaid: 0, carrier: 'Guardian', dateSubmitted: '2025-12-30', expectedResponseDate: '2026-01-30', daysSinceSubmission: daysSince('2025-12-30'), status: 'appeal', claimNumber: 'GRD-2025-90445', notes: 'Appeal submitted 2/10. Awaiting secondary review.', followUpCount: 3 },
+    { claimId: 'c6', patientId: '6', patientName: 'James Wilson', procedure: 'Extraction #1', cdtCode: 'D7140', amountBilled: 195, amountPaid: 156, carrier: 'UnitedHealthcare', dateSubmitted: '2026-01-22', expectedResponseDate: '2026-02-22', datePaid: '2026-02-20', daysSinceSubmission: daysSince('2026-01-22'), status: 'paid', claimNumber: 'UHC-2026-05567', followUpCount: 0 },
+    { claimId: 'c7', patientId: '1', patientName: 'Emily Chen', procedure: 'Prophylaxis Adult', cdtCode: 'D1110', amountBilled: 110, amountPaid: 110, carrier: 'Delta Dental', dateSubmitted: '2026-02-01', expectedResponseDate: '2026-03-01', datePaid: '2026-02-15', daysSinceSubmission: daysSince('2026-02-01'), status: 'paid', claimNumber: 'DD-2026-01023', followUpCount: 0 },
+    { claimId: 'c8', patientId: '3', patientName: 'Patricia Davis', procedure: 'Bitewings - 4 Films', cdtCode: 'D0274', amountBilled: 72, amountPaid: 0, carrier: 'Cigna', dateSubmitted: '2026-01-05', expectedResponseDate: '2026-02-05', daysSinceSubmission: daysSince('2026-01-05'), status: 'pending', claimNumber: 'CIG-2026-00102', notes: 'Past expected response date. Follow up required.', followUpCount: 1 },
+    { claimId: 'c9', patientId: '2', patientName: 'Robert Brown', procedure: 'Periodic Eval', cdtCode: 'D0120', amountBilled: 55, amountPaid: 0, carrier: 'MetLife', dateSubmitted: '2026-02-18', expectedResponseDate: '2026-03-18', daysSinceSubmission: daysSince('2026-02-18'), status: 'pending', claimNumber: 'ML-2026-04102', followUpCount: 0 },
+    { claimId: 'c10', patientId: '5', patientName: 'Maria Garcia', procedure: 'Amalgam #12 MO', cdtCode: 'D2150', amountBilled: 195, amountPaid: 0, carrier: 'Guardian', dateSubmitted: '2025-12-12', expectedResponseDate: '2026-01-12', daysSinceSubmission: daysSince('2025-12-12'), status: 'denied', claimNumber: 'GRD-2025-88901', notes: 'Denied: Downcoded to D2140 single surface. Difference billed to patient.', followUpCount: 1 },
+  ];
+}
+
 
 // ── Demo Data ────────────────────────────────────────────────────────────────
 
@@ -418,6 +460,202 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLAIMS TRACKING VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function ClaimStatusBadge({ status }: { status: ClaimStatus }) {
+  const styles: Record<ClaimStatus, { bg: string; text: string; label: string }> = {
+    pending: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'PENDING' },
+    paid: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'PAID' },
+    denied: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'DENIED' },
+    appeal: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400', label: 'APPEAL' },
+    in_review: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'IN REVIEW' },
+  };
+  const s = styles[status] || styles.pending;
+  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.bg} ${s.text}`}>{s.label}</span>;
+}
+
+function UrgencyIndicator({ days, status }: { days: number; status: ClaimStatus }) {
+  if (status === 'paid') return null;
+  if (days >= 60) return <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />60+ days</span>;
+  if (days >= 45) return <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-500"><span className="w-2 h-2 rounded-full bg-orange-500" />45-60 days</span>;
+  if (days >= 30) return <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500"><span className="w-2 h-2 rounded-full bg-amber-500" />30-45 days</span>;
+  return <span className="text-[10px] text-slate-400">{days}d</span>;
+}
+
+function ClaimsTrackingView() {
+  const [claims] = useState<Claim[]>(generateDemoClaims());
+  const [claimFilter, setClaimFilter] = useState<'all' | ClaimStatus>('all');
+  const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
+
+  const filtered = claims.filter(c => claimFilter === 'all' || c.status === claimFilter);
+  const totalBilled = claims.reduce((s, c) => s + c.amountBilled, 0);
+  const totalCollected = claims.reduce((s, c) => s + c.amountPaid, 0);
+  const totalPending = claims.filter(c => c.status === 'pending' || c.status === 'in_review').reduce((s, c) => s + c.amountBilled, 0);
+  const totalDenied = claims.filter(c => c.status === 'denied' || c.status === 'appeal').reduce((s, c) => s + c.amountBilled, 0);
+  const needsFollowUp = claims.filter(c => c.status !== 'paid' && c.daysSinceSubmission >= 30).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Claims KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          { label: 'TOTAL BILLED', value: `$${(totalBilled / 1000).toFixed(1)}K`, sub: `${claims.length} claims submitted`, icon: FileText, color: 'text-blue-400' },
+          { label: 'COLLECTED', value: `$${(totalCollected / 1000).toFixed(1)}K`, sub: `${claims.filter(c => c.status === 'paid').length} claims paid`, icon: CheckCircle2, color: 'text-emerald-400' },
+          { label: 'PENDING', value: `$${(totalPending / 1000).toFixed(1)}K`, sub: `${claims.filter(c => c.status === 'pending' || c.status === 'in_review').length} awaiting response`, icon: Clock, color: 'text-amber-400' },
+          { label: 'DENIED/APPEAL', value: `$${(totalDenied / 1000).toFixed(1)}K`, sub: `${claims.filter(c => c.status === 'denied' || c.status === 'appeal').length} need action`, icon: AlertTriangle, color: 'text-red-400' },
+          { label: 'FOLLOW-UP', value: String(needsFollowUp), sub: 'claims past 30 days', icon: Phone, color: needsFollowUp > 0 ? 'text-red-400' : 'text-slate-400' },
+        ].map((stat, i) => (
+          <div key={i} className={`bg-white dark:bg-slate-800/60 border rounded-xl p-4 ${i === 4 && needsFollowUp > 0 ? 'border-red-500/30 dark:border-red-500/20' : 'border-slate-200 dark:border-slate-700/50'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">{stat.label}</p>
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+            </div>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">{stat.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Follow-Up Alert Banner */}
+      {needsFollowUp > 0 && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+          <div className="p-2 bg-red-500/20 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-400" /></div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-400">{needsFollowUp} claim{needsFollowUp > 1 ? 's' : ''} require follow-up</p>
+            <p className="text-xs text-slate-400 mt-0.5">Claims past 30 days without resolution should be followed up with the carrier</p>
+          </div>
+          <button className="px-3 py-1.5 bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg hover:bg-red-500/30 transition-colors">View Overdue</button>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-slate-400">Status:</span>
+        {(['all', 'pending', 'in_review', 'paid', 'denied', 'appeal'] as const).map(s => {
+          const count = s === 'all' ? claims.length : claims.filter(c => c.status === s).length;
+          return (
+            <button key={s} onClick={() => setClaimFilter(s)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-all ${claimFilter === s ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-white hover:bg-slate-600'}`}>
+              {s === 'all' ? 'All' : s === 'in_review' ? 'In Review' : s} <span className="ml-1 opacity-60">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Claims Table */}
+      <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-700/30 text-slate-400 text-[10px] uppercase tracking-wider">
+                <th className="text-left px-4 py-3 font-semibold">Patient</th>
+                <th className="text-left px-4 py-3 font-semibold">Procedure</th>
+                <th className="text-left px-4 py-3 font-semibold">Carrier</th>
+                <th className="text-right px-4 py-3 font-semibold">Billed</th>
+                <th className="text-right px-4 py-3 font-semibold">Paid</th>
+                <th className="text-left px-4 py-3 font-semibold">Submitted</th>
+                <th className="text-center px-4 py-3 font-semibold">Age</th>
+                <th className="text-center px-4 py-3 font-semibold">Status</th>
+                <th className="text-center px-4 py-3 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/30">
+              {filtered.map(c => (
+                <tr key={c.claimId}
+                  className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors ${c.status === 'denied' ? 'bg-red-50/50 dark:bg-red-900/5' : ''}`}>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-slate-900 dark:text-white">{c.patientName}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{c.claimNumber}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-slate-900 dark:text-white">{c.procedure}</p>
+                    <p className="text-[10px] text-teal-500 font-mono">{c.cdtCode}</p>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{c.carrier}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">${c.amountBilled.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right font-semibold">
+                    {c.amountPaid > 0 ? (
+                      <span className="text-emerald-500">${c.amountPaid.toLocaleString()}</span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">{new Date(c.dateSubmitted).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                  <td className="px-4 py-3 text-center"><UrgencyIndicator days={c.daysSinceSubmission} status={c.status} /></td>
+                  <td className="px-4 py-3 text-center"><ClaimStatusBadge status={c.status} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-1">
+                      {c.status === 'pending' && c.daysSinceSubmission >= 30 && (
+                        <button className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-colors" title="Follow Up">
+                          <Phone className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {c.status === 'denied' && (
+                        <button className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition-colors" title="Submit Appeal">
+                          <Send className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {(c.status === 'pending' || c.status === 'in_review') && (
+                        <button className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors" title="Mark Paid">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {c.status !== 'paid' && (
+                        <button className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors" title="Contact Insurance">
+                          <Mail className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => setExpandedClaim(expandedClaim === c.claimId ? null : c.claimId)}
+                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-white hover:bg-slate-500 transition-colors" title="Details">
+                        <MoreHorizontal className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {/* Expanded detail row */}
+                    {expandedClaim === c.claimId && (
+                      <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg text-left space-y-1.5">
+                        <p className="text-[10px] text-slate-400">Claim #: <span className="text-slate-600 dark:text-slate-300 font-mono">{c.claimNumber}</span></p>
+                        <p className="text-[10px] text-slate-400">Submitted: <span className="text-slate-600 dark:text-slate-300">{c.dateSubmitted}</span></p>
+                        <p className="text-[10px] text-slate-400">Expected: <span className="text-slate-600 dark:text-slate-300">{c.expectedResponseDate}</span></p>
+                        {c.datePaid && <p className="text-[10px] text-slate-400">Paid: <span className="text-emerald-500 font-semibold">{c.datePaid}</span></p>}
+                        <p className="text-[10px] text-slate-400">Follow-ups: <span className="text-slate-600 dark:text-slate-300">{c.followUpCount}</span></p>
+                        {c.notes && <p className="text-[10px] text-amber-400 font-medium mt-1">{c.notes}</p>}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Dentamind Claims Intelligence */}
+      <div className="bg-gradient-to-r from-teal-500/10 to-blue-500/10 border border-teal-500/20 rounded-xl p-6">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><Zap className="w-4 h-4 text-teal-400" /> Dentamind Claims Intelligence</h3>
+        <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+          {claims.filter(c => c.status === 'denied').length > 0 && (
+            <div className="flex items-start gap-2"><span>🚨</span><span>{claims.filter(c => c.status === 'denied').length} denied claim{claims.filter(c => c.status === 'denied').length > 1 ? 's' : ''} totaling ${claims.filter(c => c.status === 'denied').reduce((s, c) => s + c.amountBilled, 0).toLocaleString()}. Appeal within 60 days of denial for best recovery rate.</span></div>
+          )}
+          {needsFollowUp > 0 && (
+            <div className="flex items-start gap-2"><span>📞</span><span>{needsFollowUp} claim{needsFollowUp > 1 ? 's' : ''} past 30 days — automated follow-up calls recover 68% of stalled claims within 7 days of contact.</span></div>
+          )}
+          {totalCollected > 0 && (
+            <div className="flex items-start gap-2"><span>💰</span><span>Collection rate: {Math.round((totalCollected / totalBilled) * 100)}% — ${(totalBilled - totalCollected).toLocaleString()} outstanding. Industry benchmark is 95% within 60 days.</span></div>
+          )}
+          <div className="flex items-start gap-2"><span>🎯</span><span>Pro tip: Claims submitted with narrative and clinical notes see 23% fewer denials. Attach X-rays for all major procedures.</span></div>
+        </div>
+      </div>
+
+      <div className="text-center pb-4">
+        <p className="text-xs text-slate-400">Dentamind AI — Claims Tracking · Follow-Up Automation · Denial Management · Clearinghouse Ready</p>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -428,6 +666,7 @@ export default function InsuranceVerificationPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<PatientInsurance | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'pending' | 'expired'>('all');
+  const [pageView, setPageView] = useState<'verification' | 'claims'>('verification');
 
   useEffect(() => {
     setPatients(generatePatientInsurance());
@@ -454,11 +693,26 @@ export default function InsuranceVerificationPage() {
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-500/10 rounded-xl"><Shield className="w-6 h-6 text-blue-400" /></div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Insurance Verification</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Coverage verification, benefit tracking, and CDT code eligibility lookup</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Insurance Intelligence</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Coverage verification, benefit tracking, claims management, and CDT eligibility</p>
           </div>
         </div>
       </div>
+
+      {/* Tab Switcher */}
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-fit">
+        <button onClick={() => setPageView('verification')}
+          className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 ${pageView === 'verification' ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <Shield className="w-4 h-4" /> Verification
+        </button>
+        <button onClick={() => setPageView('claims')}
+          className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 ${pageView === 'claims' ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <FileText className="w-4 h-4" /> Claims Tracking
+          {(() => { const overdue = generateDemoClaims().filter(c => c.status !== 'paid' && c.daysSinceSubmission >= 30).length; return overdue > 0 ? <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">{overdue}</span> : null; })()}
+        </button>
+      </div>
+
+      {pageView === 'claims' ? <ClaimsTrackingView /> : <>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -536,6 +790,7 @@ export default function InsuranceVerificationPage() {
       <div className="text-center pb-4">
         <p className="text-xs text-slate-400">Dentamind AI — Insurance Verification · Benefit Tracking · CDT Coverage Lookup · Clearinghouse Ready</p>
       </div>
+      </>}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
   Briefcase,
   Calendar,
   Users,
-  UserCog,
+  UserCog, UserPlus,
   CalendarCheck,
   Brain,
   UserSearch,
@@ -67,6 +67,7 @@ const allNavGroups: (NavGroup & { roles?: string[] })[] = [
       { to: '/today', icon: CalendarCheck, label: "Today's Appointments" },
       { to: '/patients', icon: Users, label: 'Patients' },
       { to: '/providers', icon: UserCog, label: 'Providers' },
+      { to: '/waitlist', icon: UserPlus, label: 'Waitlist' },
     ],
   },
   {

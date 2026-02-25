@@ -21,6 +21,7 @@ import WorkforceIntelPage from './pages/WorkforceIntelPage';
 import CDTGapAnalysisPage from './pages/CDTGapAnalysisPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
 import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
+import WaitlistPage from './pages/WaitlistPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -76,6 +77,7 @@ function App() {
         <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="roi" element={<ROICalculatorPage />} />
+        <Route path="waitlist" element={<WaitlistPage />} />
         <Route path="education" element={
           <div className="max-w-7xl mx-auto">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Educational Resources</h1>
