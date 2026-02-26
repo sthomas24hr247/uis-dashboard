@@ -78,6 +78,7 @@ function App() {
         <Route path="workforce" element={<WorkforceIntelPage />} />
         <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
+            <Route path="manager-dashboard" element={<ManagerDashboard />} />
         <Route path="roi" element={<ROICalculatorPage />} />
         <Route path="waitlist" element={<WaitlistPage />} />
         <Route path="automation" element={<AutomationHubPage />} />
