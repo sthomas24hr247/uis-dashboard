@@ -47,6 +47,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+function RoleRouter() {
+  const stored = localStorage.getItem("uis_user");
+  const role = stored ? JSON.parse(stored)?.role : "admin";
+  if (role === "manager") return <Navigate to="/manager-dashboard" replace />;
+  return <ExecutiveCommandCenter />;
+}
 function App() {
   return (
     <Routes>
@@ -61,7 +67,7 @@ function App() {
         }
       >
         <Route index element={<Navigate to="/home" replace />} />
-        <Route path="home" element={<ExecutiveCommandCenter />} />
+        <Route path="home" element={<RoleRouter />} />
         <Route path="home/manager" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="today" element={<TodayPage />} />
