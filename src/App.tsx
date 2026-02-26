@@ -13,6 +13,7 @@ import AIPredictionsPage from './pages/AIPredictionsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from './pages/SettingsPage';
+import ManagerDashboard from "./pages/ManagerDashboard";
 import ROICalculatorPage from './pages/ROICalculatorPage';
 import BILDashboardPage from './pages/BILDashboardPage';
 import InsuranceVerificationPage from './pages/InsuranceVerificationPage';
