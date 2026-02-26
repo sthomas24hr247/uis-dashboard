@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useQuery, gql } from "@apollo/client";
 import {
@@ -24,6 +24,12 @@ const GET_DASHBOARD_STATS = gql`
 export default function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Redirect managers to their simplified dashboard
+  if (user?.role === 'manager') {
+    return <Navigate to="/manager-dashboard" replace />;
+  }
+
   const { data } = useQuery(GET_DASHBOARD_STATS);
   const [loaded, setLoaded] = useState(false);
   const [recCount, setRecCount] = useState(0);

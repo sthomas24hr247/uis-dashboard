@@ -38,30 +38,33 @@ interface NavItem {
   to: string;
   icon: any;
   label: string;
+  roles?: string[]; // per-item role filter
 }
 
 interface NavGroup {
   label: string;
   icon: any;
   items: NavItem[];
+  roles?: string[];
 }
 
-// Roles: 'executive' | 'admin' | 'manager' | 'staff'
-// admin sees everything, executive skips daily ops, staff sees limited
-const allNavGroups: (NavGroup & { roles?: string[] })[] = [
+// Roles: 'admin' | 'manager' | 'dentist' | 'staff'
+// admin = executive (full access to everything)
+// manager = daily operations focus (Operations, Quality & Care, Dentamind AI)
+const allNavGroups: NavGroup[] = [
   {
     label: 'Command Center',
     icon: LayoutDashboard,
-    roles: ['admin', 'executive', 'manager'],
+    roles: ['admin', 'manager'],
     items: [
-      { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard' },
-      { to: '/home/manager', icon: LayoutDashboard, label: 'Manager Dashboard' },
+      { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard', roles: ['admin'] },
+      { to: '/manager-dashboard', icon: LayoutDashboard, label: 'Manager Dashboard', roles: ['manager'] },
     ],
   },
   {
     label: 'Operations',
     icon: Briefcase,
-    roles: ['admin', 'manager', 'staff'],
+    roles: ['admin', 'manager', 'staff', 'dentist'],
     items: [
       { to: '/schedule', icon: Calendar, label: 'Schedule' },
       { to: '/today', icon: CalendarCheck, label: "Today's Appointments" },
@@ -73,7 +76,7 @@ const allNavGroups: (NavGroup & { roles?: string[] })[] = [
   {
     label: 'Human Intelligence',
     icon: Brain,
-    roles: ['admin', 'executive', 'manager'],
+    roles: ['admin'],
     items: [
       { to: '/patient-intel', icon: UserSearch, label: 'Patient Intel' },
       { to: '/bil', icon: Fingerprint, label: 'Decision Fingerprinting' },
@@ -83,7 +86,7 @@ const allNavGroups: (NavGroup & { roles?: string[] })[] = [
   {
     label: 'Business Intelligence',
     icon: BarChart3,
-    roles: ['admin', 'executive', 'manager'],
+    roles: ['admin'],
     items: [
       { to: '/outcome-gap', icon: TrendingDown, label: 'Outcome Gap' },
       { to: '/analytics', icon: FileBarChart, label: 'Practice Performance' },
@@ -93,9 +96,9 @@ const allNavGroups: (NavGroup & { roles?: string[] })[] = [
   {
     label: 'Quality & Care',
     icon: HeartPulse,
-    roles: ['admin', 'executive', 'manager'],
+    roles: ['admin', 'manager'],
     items: [
-      { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index' },
+      { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
       { to: '/education', icon: BookOpen, label: 'Educational Resources' },
     ],
@@ -103,15 +106,23 @@ const allNavGroups: (NavGroup & { roles?: string[] })[] = [
   {
     label: 'AI & Actions',
     icon: Sparkles,
-    roles: ['admin', 'executive', 'manager'],
+    roles: ['admin', 'manager'],
     items: [
       { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind AI' },
-      { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
-      { to: '/automation', icon: Zap, label: 'Automation Hub' },
-      { to: '/roi', icon: Calculator, label: 'ROI Calculator' },
+      { to: '/recommendations', icon: Lightbulb, label: 'Recommendations', roles: ['admin'] },
+      { to: '/automation', icon: Zap, label: 'Automation Hub', roles: ['admin'] },
+      { to: '/roi', icon: Calculator, label: 'ROI Calculator', roles: ['admin'] },
     ],
   },
 ];
+
+// Role display labels
+const roleLabelMap: Record<string, string> = {
+  admin: 'Administrator',
+  manager: 'Office Manager',
+  dentist: 'Dentist',
+  staff: 'Staff',
+};
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -123,7 +134,20 @@ export default function DashboardLayout() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const userRole = user?.role || 'admin';
-  const navGroups = allNavGroups.filter(g => !g.roles || g.roles.includes(userRole));
+  const isManager = userRole === 'manager';
+  const roleLabel = roleLabelMap[userRole] || userRole;
+
+  // Filter groups by role, then filter items within each group by role
+  const navGroups = allNavGroups
+    .filter(g => !g.roles || g.roles.includes(userRole))
+    .map(g => ({
+      ...g,
+      items: g.items.filter(item => !item.roles || item.roles.includes(userRole)),
+    }))
+    .filter(g => g.items.length > 0); // remove empty groups
+
+  // Determine the "home" path for this role
+  const homePath = isManager ? '/manager-dashboard' : '/home';
 
   // Auto-expand the group containing the active route
   useEffect(() => {
@@ -248,18 +272,21 @@ export default function DashboardLayout() {
             </div>
           </div>
 
-          {/* Settings + Theme */}
+          {/* Settings + Theme — hide Settings from managers */}
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-            <button onClick={() => navigate("/settings")} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 flex-1">
-              <Settings className="w-5 h-5" />
-              Settings
-            </button>
+            {!isManager && (
+              <button onClick={() => navigate("/settings")} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 flex-1">
+                <Settings className="w-5 h-5" />
+                Settings
+              </button>
+            )}
             <button
               onClick={toggleTheme}
-              className="p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className={`p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${isManager ? 'flex-1 flex items-center justify-center gap-2' : ''}`}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
+              {isManager && <span className="text-sm">{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
             </button>
           </div>
         </div>
@@ -304,11 +331,11 @@ export default function DashboardLayout() {
                   className="flex items-center gap-3 pl-3 pr-2 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
                 >
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.email || 'Demo User'}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Administrator</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.displayName || user?.email || 'Demo User'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{roleLabel}</p>
                   </div>
                   <div className="w-9 h-9 bg-gradient-to-br from-uis-400 to-uis-600 rounded-xl flex items-center justify-center text-white font-medium text-sm">
-                    {user?.email?.charAt(0).toUpperCase() || 'D'}
+                    {(user?.displayName || user?.email || 'D').charAt(0).toUpperCase()}
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
@@ -318,8 +345,8 @@ export default function DashboardLayout() {
                     <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in">
                       <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.email}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{user?.practiceName}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.displayName || user?.email}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{user?.practiceName} · {roleLabel}</p>
                       </div>
                       <button
                         onClick={handleLogout}
@@ -338,9 +365,9 @@ export default function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8 overflow-auto">
-          {location.pathname !== "/home" && (
+          {location.pathname !== homePath && (
             <button
-              onClick={() => navigate("/home")}
+              onClick={() => navigate(homePath)}
               className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
