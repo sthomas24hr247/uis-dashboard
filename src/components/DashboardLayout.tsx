@@ -110,7 +110,7 @@ const allNavGroups: NavGroup[] = [
     items: [
       { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind AI' },
       { to: '/recommendations', icon: Lightbulb, label: 'Recommendations', roles: ['admin'] },
-      { to: '/automation', icon: Zap, label: 'Automation Hub', roles: ['admin'] },
+      { to: '/automation', icon: Zap, label: 'Automation Hub' },
       { to: '/roi', icon: Calculator, label: 'ROI Calculator', roles: ['admin'] },
     ],
   },
