@@ -506,8 +506,8 @@ export default function WorkforceIntelPage() {
                   </div>
 
                   {/* Production */}
-                  <div className="hidden md:block text-right w-24">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">${(provider.productionMTD / 1000).toFixed(1)}K</p>
+                  <div className="hidden md:flex md:flex-col md:items-end w-28">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white tracking-tight w-[72px] inline-block text-right">${(provider.productionMTD / 1000).toFixed(1)}K</p>
                     <p className={`text-[10px] flex items-center justify-end gap-0.5 ${provider.productionTrend >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                       {provider.productionTrend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {Math.abs(provider.productionTrend)}%
