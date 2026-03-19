@@ -2,7 +2,7 @@ import AlertBell from "./AlertBell";
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import {
+import { FileText,
   LayoutDashboard,
   Briefcase,
   Calendar,
@@ -100,6 +100,7 @@ const allNavGroups: NavGroup[] = [
     items: [
       { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
+      { to: '/denti-cal', icon: FileText, label: 'Denti-Cal Claims' },
       { to: '/education', icon: BookOpen, label: 'Educational Resources' },
     ],
   },

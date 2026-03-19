@@ -25,7 +25,7 @@ import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
 import WaitlistPage from './pages/WaitlistPage';
 import EducationalResourcesPage from './pages/EducationalResourcesPage';
 import AutomationHubPage from './pages/AutomationHubPage';
-
+import DentiCalClaimsPage from './pages/DentiCalClaimsPage';
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -89,7 +89,7 @@ function App() {
         <Route path="roi" element={<ROICalculatorPage />} />
         <Route path="waitlist" element={<WaitlistPage />} />
         <Route path="automation" element={<AutomationHubPage />} />
-        <Route path="education" element={<EducationalResourcesPage />} />
+      <Route path="denti-cal" element={<DentiCalClaimsPage />} />        <Route path="education" element={<EducationalResourcesPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
