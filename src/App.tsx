@@ -13,11 +13,13 @@ import AIPredictionsPage from './pages/AIPredictionsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 import ManagerDashboard from "./pages/ManagerDashboard";
 import ROICalculatorPage from './pages/ROICalculatorPage';
 import BILDashboardPage from './pages/BILDashboardPage';
 import InsuranceVerificationPage from './pages/InsuranceVerificationPage';
 import QualityOfCarePage from './pages/QualityOfCarePage';
+import CommandCenterPage from './pages/CommandCenterPage';
 import WorkforceIntelPage from './pages/WorkforceIntelPage';
 import CDTGapAnalysisPage from './pages/CDTGapAnalysisPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
@@ -25,8 +27,11 @@ import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
 import WaitlistPage from './pages/WaitlistPage';
 import EducationalResourcesPage from './pages/EducationalResourcesPage';
 import AutomationHubPage from './pages/AutomationHubPage';
-import DentiCalClaimsPage from './pages/DentiCalClaimsPage';
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+import ClaimsRecoveryPage from './pages/ClaimsRecoveryPage';
+import ClaimsRecoveryDemo from './pages/ClaimsRecoveryDemo';
+import ClaimsLoginPage from './pages/ClaimsLoginPage';
+import ClaimsShell from './components/ClaimsShell';
+const ProtectedRoute = ({ children, redirectTo = '/login' }: { children: React.ReactNode; redirectTo?: string }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -41,7 +46,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;
@@ -85,15 +90,29 @@ function App() {
         <Route path="workforce" element={<WorkforceIntelPage />} />
         <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
+            <Route path="admin" element={<AdminPage />} />
             <Route path="manager-dashboard" element={<ManagerDashboard />} />
         <Route path="roi" element={<ROICalculatorPage />} />
         <Route path="waitlist" element={<WaitlistPage />} />
         <Route path="automation" element={<AutomationHubPage />} />
-      <Route path="denti-cal" element={<DentiCalClaimsPage />} />        <Route path="education" element={<EducationalResourcesPage />} />
+      <Route path="claims-recovery" element={<ClaimsRecoveryPage />} />
+        <Route path="command-center" element={<CommandCenterPage />} />        <Route path="education" element={<EducationalResourcesPage />} />
       </Route>
 
+      {/* ── Standalone Claims Recovery product ── */}
+      <Route path="/claims-login" element={<ClaimsLoginPage />} />
+      <Route
+        path="/claims"
+        element={
+          <ProtectedRoute redirectTo="/claims-login">
+            <ClaimsShell />
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      <Route path="demo/claims" element={<ClaimsShell />} />
+      </Routes>
   );
 }
 

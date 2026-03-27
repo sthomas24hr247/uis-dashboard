@@ -25,12 +25,14 @@ import { FileText,
   Calculator,
   LogOut,
   Settings,
+  Shield,
   Search,
   Menu,
   ChevronDown,
   ChevronRight,
   Moon,
   Sun,
+  Monitor,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -53,10 +55,11 @@ interface NavGroup {
 // manager = daily operations focus (Operations, Quality & Care, Dentamind AI)
 const allNavGroups: NavGroup[] = [
   {
-    label: 'Command Center',
+    label: 'Command Center Suite',
     icon: LayoutDashboard,
     roles: ['admin', 'manager'],
     items: [
+      { to: '/command-center', icon: Monitor, label: 'Command Center', roles: ['admin'] },
       { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard', roles: ['admin'] },
       { to: '/manager-dashboard', icon: LayoutDashboard, label: 'Manager Dashboard', roles: ['manager'] },
     ],
@@ -100,7 +103,7 @@ const allNavGroups: NavGroup[] = [
     items: [
       { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
-      { to: '/denti-cal', icon: FileText, label: 'Denti-Cal Claims' },
+      { to: '/claims-recovery', icon: FileText, label: 'Claims Recovery' },
       { to: '/education', icon: BookOpen, label: 'Educational Resources' },
     ],
   },
@@ -366,7 +369,7 @@ export default function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8 overflow-auto">
-          {location.pathname !== homePath && (
+          {location.pathname !== homePath && location.pathname !== "/command-center" && (
             <button
               onClick={() => navigate(homePath)}
               className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"

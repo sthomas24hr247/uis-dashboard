@@ -157,6 +157,39 @@ const NARRATIVE_TEMPLATES: NarrativeTemplate[] = [
     requiredDocumentation: ['Chief complaint', 'Pain level and onset', 'Clinical findings', 'Treatment provided', 'Definitive treatment plan'],
     dentalCalNotes: 'Palliative treatment is covered for established and new patients. Limited to situations where definitive care cannot be provided same day. Document that this was emergency/palliative and that definitive treatment is planned. Cannot bill D9110 and a definitive procedure on the same tooth same day.',
   },
+  {
+    code: 'D9222',
+    description: 'Deep Sedation / General Anesthesia – First 30 Minutes',
+    category: 'Anesthesia',
+    narrativeRequired: true,
+    template: 'Deep sedation/general anesthesia, first 30 minutes (D9222), administered on [DATE] for patient [PATIENT_NAME] (DOB: [DOB]). TAR #[TAR_NUMBER] obtained [TAR_DATE]. Provider: [PROVIDER_NAME], Level 4 Anesthesia Permit #[PERMIT_NUMBER].\n\nMedical Necessity: Patient requires GA due to [REASON — extreme dental anxiety / intellectual disability / autism spectrum disorder / age under 6 with extensive caries]. Prior treatment attempts: [FAILED_ATTEMPTS_WITH_DATES].\n\nASA Physical Status: [CLASS]. Medical history: [CONDITIONS]. Behavioral assessment: [NOTES].\n\nTreatment performed under GA: [LIST_ALL_PROCEDURES_WITH_TOOTH_NUMBERS]. Anesthesia start: [START_TIME]. Anesthesia end: [END_TIME]. Total time: [TOTAL] minutes. Induction agent(s): [AGENTS_DOSES]. Maintenance: [AGENTS]. Airway: [INTUBATION/LMA/MASK]. Monitoring: continuous pulse oximetry, BP, HR. No complications. Patient recovered without incident.',
+    requiredDocumentation: ['TAR number and approval date', 'Level 4 anesthesia permit number', 'ASA physical status classification', 'Medical/behavioral history supporting necessity', 'Failed prior treatment attempts with dates', 'All procedures performed with tooth numbers', 'Anesthesia start and end times', 'Agents and dosages', 'Airway management', 'Denti-Cal GA Criteria scoring form (22+ points)', 'Pre-operative radiographs'],
+    dentalCalNotes: 'TAR (Treatment Authorization Request) must be obtained BEFORE service. Provider must hold Level 4 anesthesia permit. Patient must score 22+ points on Denti-Cal GA Criteria form. Document ASA physical status, behavioral assessment, failed prior treatment attempts, and ALL dental treatment completed under GA. Limited to once per 6 months by any provider. Radiographs required.',
+    frequencyLimit: 'Once per 6 months by any provider',
+    maxBenefit: 'Prior authorization / TAR required',
+  },
+  {
+    code: 'D9223',
+    description: 'Deep Sedation / General Anesthesia – Each Additional 15 Minutes',
+    category: 'Anesthesia',
+    narrativeRequired: true,
+    template: 'Deep sedation/general anesthesia, additional 15-minute increment(s) (D9223 x [UNITS]), administered on [DATE] for patient [PATIENT_NAME] (DOB: [DOB]). Billed in conjunction with D9222 (first 30 minutes). TAR #[TAR_NUMBER].\n\nAdditional anesthesia time required due to [REASON — extent of dental treatment / complexity of procedures / patient required additional time for safe induction and recovery].\n\nAnesthesia time breakdown:\n- D9222: Minutes 0–30 (first 30 minutes)\n- D9223 Unit 1: Minutes 31–45\n[- D9223 Unit 2: Minutes 46–60 if applicable]\n\nTotal anesthesia time: [TOTAL] minutes. All time medically necessary. Start: [TIME]. End: [TIME]. Provider: [PROVIDER], Permit #[PERMIT_NUMBER]. No adverse events.',
+    requiredDocumentation: ['Must be billed with D9222 on same claim', 'TAR number (same as D9222)', 'Exact anesthesia start and end times', 'Units of D9223 billed (max 2 per day)', 'Justification for additional time beyond 30 min', 'Time breakdown by 15-minute increment'],
+    dentalCalNotes: 'Billed in addition to D9222 for each additional 15-minute increment beyond the first 30 minutes. Maximum 2 units of D9223 per day (combined D9222+D9223 = max 3 units/60 min total). Must be on same claim as D9222. Document exact time — carriers audit closely. Same TAR covers both codes.',
+    frequencyLimit: 'Max 2 units/day — combined with D9222 = 60 min max',
+    maxBenefit: 'Prior authorization / TAR required (same as D9222)',
+  },
+  {
+    code: 'D9239',
+    description: 'IV Moderate (Conscious) Sedation – First 15 Minutes',
+    category: 'Anesthesia',
+    narrativeRequired: true,
+    template: 'Intravenous moderate (conscious) sedation, first 15 minutes (D9239), administered on [DATE] for patient [PATIENT_NAME] (DOB: [DOB]). TAR #[TAR_NUMBER] obtained [TAR_DATE]. Provider: [PROVIDER_NAME], Permit #[PERMIT_NUMBER].\n\nMedical Necessity: IV moderate sedation necessary due to [REASON — documented dental anxiety / inability to cooperate / gag reflex / medical condition]. Alternative behavior management [ATTEMPTED/NOT APPROPRIATE BECAUSE: REASON].\n\nASA Physical Status: [CLASS]. Medical history: [CONDITIONS]. Medications: [MEDICATIONS]. Allergies: [ALLERGIES/NONE].\n\nIV access: [SITE]. Pre-sedation vitals: BP [BP], HR [HR], O2 sat [SAT]%. Agent(s): [AGENTS_DOSES]. Sedation start: [TIME]. Patient achieved moderate sedation — responsive to verbal commands, maintained own airway throughout. Monitoring: continuous pulse oximetry, BP, HR. No complications. Recovery per protocol. Post-sedation vitals stable.\n\nDental treatment completed: [LIST_PROCEDURES].',
+    requiredDocumentation: ['TAR number and date', 'Provider permit number', 'Medical necessity documentation', 'ASA physical status', 'IV access site', 'Agents with dosages', 'Sedation start and end times', 'Pre and post vital signs', 'Confirmation patient maintained own airway'],
+    dentalCalNotes: 'TAR required prior to service. D9239 is limited to 1 unit per day. Less documentation burden than GA but still requires medical necessity narrative, ASA classification, and complete sedation records. Patient must remain responsive to verbal commands (moderate sedation). Document IV access, monitoring, and that patient maintained own airway.',
+    frequencyLimit: 'Limited to 1 unit per day',
+    maxBenefit: 'Prior authorization / TAR required',
+  },
 ];
 
 // ─── Helper functions ─────────────────────────────────────────────────────────
@@ -188,6 +221,7 @@ function CodeBadge({ category }: { category: string }) {
     'Endodontic': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     'Periodontal': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
     'Oral Surgery': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    'Anesthesia': 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
     'Other Services': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
   };
   return (

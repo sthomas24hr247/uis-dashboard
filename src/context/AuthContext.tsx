@@ -57,13 +57,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           headers: { Authorization: `Bearer ${storedToken}` },
         })
           .then(res => {
-            if (!res.ok) {
-              // Token expired or invalid
+            if (!res.ok && res.status === 401) {
+              // Only log out on explicit 401 — not on 500 or network issues
               localStorage.removeItem('uis_token');
               localStorage.removeItem('uis_user');
               setToken(null);
               setUser(null);
             }
+            // Any other error — keep local session
           })
           .catch(() => {
             // Network error - keep local session

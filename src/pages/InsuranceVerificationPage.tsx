@@ -668,10 +668,121 @@ export default function InsuranceVerificationPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'pending' | 'expired'>('all');
   const [pageView, setPageView] = useState<'verification' | 'claims'>('verification');
 
-  useEffect(() => {
-    setPatients(generatePatientInsurance());
-    setLoading(false);
-  }, []);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    patientFirstName: '', patientLastName: '', patientDob: '',
+    carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
+    subscriberName: '', effectiveDate: '', terminationDate: '',
+    annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
+    preventiveCoverage: '100', basicCoverage: '80', majorCoverage: '50',
+    verificationStatus: 'verified', verificationMethod: 'phone', verifiedBy: '', notes: '',
+  });
+
+  const practiceId = (() => {
+    try { return JSON.parse(localStorage.getItem('uis_user') || '{}').practiceId || 'default'; } catch { return 'default'; }
+  })();
+
+  const loadVerifications = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`https://api.uishealth.com/api/insurance/verifications?practiceId=${practiceId}&limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.verifications && data.verifications.length > 0) {
+          // Map API response to PatientInsurance shape
+          const mapped = data.verifications.map((v: any) => ({
+            patientId: v.verificationId,
+            firstName: v.patientFirstName,
+            lastName: v.patientLastName,
+            dateOfBirth: v.patientDob || '',
+            verificationStatus: v.verificationStatus,
+            verificationDate: v.verifiedAt || v.updatedAt,
+            plan: {
+              carrier: v.carrier,
+              planName: v.planName || '',
+              planType: v.planType || 'PPO',
+              memberId: v.memberId || '',
+              groupNumber: v.groupNumber || '',
+              subscriberName: v.subscriberName || '',
+              effectiveDate: v.effectiveDate || '',
+              terminationDate: v.terminationDate || '',
+            },
+            benefits: {
+              annualMax: parseFloat(v.annualMax) || 0,
+              annualUsed: parseFloat(v.annualUsed) || 0,
+              annualRemaining: parseFloat(v.annualRemaining) || 0,
+              deductibleTotal: parseFloat(v.deductibleTotal) || 0,
+              deductibleMet: parseFloat(v.deductibleMet) || 0,
+              deductibleRemaining: parseFloat(v.deductibleRemaining) || 0,
+              coverageBreakdown: [
+                { category: 'Preventive (Class I)', coveragePercent: v.preventiveCoverage || 100, patientPercent: 100 - (v.preventiveCoverage || 100), notes: '', examples: [] },
+                { category: 'Basic (Class II)', coveragePercent: v.basicCoverage || 80, patientPercent: 100 - (v.basicCoverage || 80), notes: '', examples: [] },
+                { category: 'Major (Class III)', coveragePercent: v.majorCoverage || 50, patientPercent: 100 - (v.majorCoverage || 50), notes: '', examples: [] },
+              ],
+            },
+            cdtEligibility: [],
+            recentClaims: [],
+          }));
+          setPatients(mapped);
+        } else {
+          // Fall back to demo data if no real records yet
+          setPatients(generatePatientInsurance());
+        }
+      } else {
+        setPatients(generatePatientInsurance());
+      }
+    } catch {
+      setPatients(generatePatientInsurance());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadVerifications(); }, []);
+
+  const handleSaveVerification = async () => {
+    if (!form.patientFirstName || !form.patientLastName || !form.carrier) {
+      alert('Patient first name, last name, and carrier are required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const annualRemaining = form.annualMax && form.annualUsed
+        ? String(parseFloat(form.annualMax) - parseFloat(form.annualUsed))
+        : form.annualMax || '';
+      const deductibleRemaining = form.deductibleTotal && form.deductibleMet
+        ? String(parseFloat(form.deductibleTotal) - parseFloat(form.deductibleMet))
+        : form.deductibleTotal || '';
+
+      const res = await fetch('https://api.uishealth.com/api/insurance/verifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          practiceId,
+          annualRemaining,
+          deductibleRemaining,
+          verifiedBy: form.verifiedBy || 'Staff',
+        }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setShowAddForm(false);
+      setForm({
+        patientFirstName: '', patientLastName: '', patientDob: '',
+        carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
+        subscriberName: '', effectiveDate: '', terminationDate: '',
+        annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
+        preventiveCoverage: '100', basicCoverage: '80', majorCoverage: '50',
+        verificationStatus: 'verified', verificationMethod: 'phone', verifiedBy: '', notes: '',
+      });
+      await loadVerifications();
+    } catch {
+      alert('Failed to save verification. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filtered = patients.filter(p => filterStatus === 'all' || p.verificationStatus === filterStatus);
   const verified = patients.filter(p => p.verificationStatus === 'verified').length;
@@ -690,13 +801,156 @@ export default function InsuranceVerificationPage() {
         <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1 mb-2">
           <ArrowLeft className="w-3 h-3" /> Back to Dashboard
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 rounded-xl"><Shield className="w-6 h-6 text-blue-400" /></div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Insurance Intelligence</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Coverage verification, benefit tracking, claims management, and CDT eligibility</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/10 rounded-xl"><Shield className="w-6 h-6 text-blue-400" /></div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Insurance Intelligence</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Coverage verification, benefit tracking, claims management, and CDT eligibility</p>
+            </div>
           </div>
+          <button onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg">
+            + Add Verification
+          </button>
         </div>
+
+        {/* Add Verification Modal */}
+        {showAddForm && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add Insurance Verification</h2>
+                <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl">✕</button>
+              </div>
+              <div className="p-6 space-y-5">
+                {/* Patient Info */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Patient Information</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">First Name *</label>
+                      <input value={form.patientFirstName} onChange={e => setForm(p => ({...p, patientFirstName: e.target.value}))}
+                        placeholder="First name" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Last Name *</label>
+                      <input value={form.patientLastName} onChange={e => setForm(p => ({...p, patientLastName: e.target.value}))}
+                        placeholder="Last name" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Date of Birth</label>
+                      <input type="date" value={form.patientDob} onChange={e => setForm(p => ({...p, patientDob: e.target.value}))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                  </div>
+                </div>
+                {/* Insurance Plan */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Insurance Plan</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Carrier *</label>
+                      <input value={form.carrier} onChange={e => setForm(p => ({...p, carrier: e.target.value}))}
+                        placeholder="e.g. Delta Dental, Medi-Cal" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Plan Type</label>
+                      <select value={form.planType} onChange={e => setForm(p => ({...p, planType: e.target.value}))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
+                        <option>PPO</option><option>HMO</option><option>DMO</option><option>Medi-Cal</option><option>Medicare</option><option>Self-Pay</option><option>Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Plan Name</label>
+                      <input value={form.planName} onChange={e => setForm(p => ({...p, planName: e.target.value}))}
+                        placeholder="e.g. PPO Premier" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Member ID</label>
+                      <input value={form.memberId} onChange={e => setForm(p => ({...p, memberId: e.target.value}))}
+                        placeholder="Member ID / Subscriber ID" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Group Number</label>
+                      <input value={form.groupNumber} onChange={e => setForm(p => ({...p, groupNumber: e.target.value}))}
+                        placeholder="Group #" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Effective Date</label>
+                      <input type="date" value={form.effectiveDate} onChange={e => setForm(p => ({...p, effectiveDate: e.target.value}))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                  </div>
+                </div>
+                {/* Benefits */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Benefits</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {label:'Annual Max ($)', key:'annualMax', ph:'e.g. 2000'},
+                      {label:'Annual Used ($)', key:'annualUsed', ph:'e.g. 500'},
+                      {label:'Deductible ($)', key:'deductibleTotal', ph:'e.g. 100'},
+                      {label:'Deductible Met ($)', key:'deductibleMet', ph:'e.g. 50'},
+                      {label:'Preventive Coverage (%)', key:'preventiveCoverage', ph:'100'},
+                      {label:'Basic Coverage (%)', key:'basicCoverage', ph:'80'},
+                      {label:'Major Coverage (%)', key:'majorCoverage', ph:'50'},
+                    ].map(({label, key, ph}) => (
+                      <div key={key}>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">{label}</label>
+                        <input value={(form as any)[key]} onChange={e => setForm(p => ({...p, [key]: e.target.value}))}
+                          placeholder={ph} type="number" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Verification Details */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Verification Details</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Status</label>
+                      <select value={form.verificationStatus} onChange={e => setForm(p => ({...p, verificationStatus: e.target.value}))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
+                        <option value="verified">Verified</option>
+                        <option value="pending">Pending</option>
+                        <option value="expired">Expired</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Method</label>
+                      <select value={form.verificationMethod} onChange={e => setForm(p => ({...p, verificationMethod: e.target.value}))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
+                        <option value="phone">Phone</option>
+                        <option value="portal">Payer Portal</option>
+                        <option value="fax">Fax</option>
+                        <option value="clearinghouse">Clearinghouse</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Verified By</label>
+                      <input value={form.verifiedBy} onChange={e => setForm(p => ({...p, verifiedBy: e.target.value}))}
+                        placeholder="Staff name" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Notes</label>
+                    <textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))}
+                      placeholder="Any notes about coverage, limitations, or special conditions..."
+                      rows={3} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
+                  </div>
+                </div>
+              </div>
+              <div className="sticky bottom-0 bg-white dark:bg-slate-900 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-3">
+                <button onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg transition-all">Cancel</button>
+                <button onClick={handleSaveVerification} disabled={saving}
+                  className="px-6 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-all">
+                  {saving ? 'Saving...' : 'Save Verification'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tab Switcher */}

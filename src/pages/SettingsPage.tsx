@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { UserManagement } from '@/components/claims/UserManagement';
 import { useAuth } from '../context/AuthContext';
 import {
   Settings, Database, Shield, Users, Bell, Plug, CheckCircle2,
