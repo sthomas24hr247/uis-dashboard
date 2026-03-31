@@ -10,6 +10,7 @@ interface User {
   displayName: string;
   practiceId: string;
   practiceName: string;
+  pmsType: string;
   role: string;
   roles: string[];
 }

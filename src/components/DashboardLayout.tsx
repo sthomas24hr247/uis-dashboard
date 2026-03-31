@@ -271,7 +271,7 @@ export default function DashboardLayout() {
               <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                 {user?.practiceName || 'Demo Practice'}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Open Dental FHIR · Connected</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{user?.pmsType === 'dentrix_ascend' ? 'Dentrix Ascend' : user?.pmsType === 'cleardent' ? 'ClearDent' : 'Open Dental FHIR'} · Connected</p>
             </div>
           </div>
 
