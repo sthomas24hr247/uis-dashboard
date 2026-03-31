@@ -21,6 +21,126 @@ interface TeamUser {
   createdAt?: string;
 }
 
+
+function MFASection() {
+  const { token } = useAuth();
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [step, setStep] = useState<'idle'|'setup'|'verify'|'disable'>('idle');
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+
+  const apiBase = 'https://api.uishealth.com';
+
+  const startSetup = async () => {
+    setLoading(true); setError('');
+    try {
+      const r = await fetch(`${apiBase}/api/auth/mfa/setup`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setQrCode(d.qrCode); setSecret(d.manualEntry); setStep('setup');
+    } catch (e: any) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const verifyCode = async () => {
+    setLoading(true); setError('');
+    try {
+      const r = await fetch(`${apiBase}/api/auth/mfa/${step === 'setup' ? 'verify' : 'disable'}`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      if (step === 'setup') { setMfaEnabled(true); setSuccess('MFA enabled successfully!'); }
+      else { setMfaEnabled(false); setSuccess('MFA disabled.'); }
+      setStep('idle'); setCode(''); setQrCode(''); setSecret('');
+    } catch (e: any) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Two-Factor Authentication (MFA)</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Add an extra layer of security to your account using an authenticator app.</p>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${mfaEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+          {mfaEnabled ? '✓ Enabled' : 'Not enabled'}
+        </span>
+      </div>
+
+      {success && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">{success}</div>}
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>}
+
+      {step === 'idle' && (
+        <div className="flex gap-3">
+          {!mfaEnabled ? (
+            <button onClick={startSetup} disabled={loading}
+              className="px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50">
+              {loading ? 'Setting up...' : 'Enable MFA'}
+            </button>
+          ) : (
+            <button onClick={() => setStep('disable')}
+              className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors">
+              Disable MFA
+            </button>
+          )}
+        </div>
+      )}
+
+      {step === 'setup' && (
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Step 1: Scan this QR code with your authenticator app</p>
+            {qrCode && <img src={qrCode} alt="MFA QR Code" className="w-40 h-40 rounded-lg border border-slate-200" />}
+            <p className="text-xs text-slate-500 mt-2">Can't scan? Enter this code manually: <code className="bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded text-xs font-mono">{secret}</code></p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Step 2: Enter the 6-digit code from your app</p>
+            <div className="flex gap-3">
+              <input type="text" maxLength={6} placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+                className="w-32 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-teal-500 dark:bg-slate-700 dark:text-white" />
+              <button onClick={verifyCode} disabled={loading || code.length !== 6}
+                className="px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50">
+                {loading ? 'Verifying...' : 'Verify & Enable'}
+              </button>
+              <button onClick={() => { setStep('idle'); setCode(''); setQrCode(''); setSecret(''); setError(''); }}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-xl text-sm hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 'disable' && (
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400">Enter your current 6-digit MFA code to disable two-factor authentication.</p>
+          <div className="flex gap-3">
+            <input type="text" maxLength={6} placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+              className="w-32 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-slate-700 dark:text-white" />
+            <button onClick={verifyCode} disabled={loading || code.length !== 6}
+              className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50">
+              {loading ? 'Disabling...' : 'Disable MFA'}
+            </button>
+            <button onClick={() => { setStep('idle'); setCode(''); setError(''); }}
+              className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-xl text-sm hover:bg-slate-50 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('practice');
@@ -572,6 +692,8 @@ export default function SettingsPage() {
       {/* ═══ SECURITY TAB ═══ */}
       {activeTab === 'security' && (
         <div className="space-y-6">
+          {/* MFA Section */}
+          <MFASection />
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">HIPAA Compliance</h3>
             <div className="space-y-2">
