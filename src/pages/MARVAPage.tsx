@@ -84,6 +84,237 @@ function MetricCard({ value, label, delta, note }: { value: string; label: strin
 }
 
 // ─── Diana View (Analytical / Deliberate / Calculated / Deep Diver / Annual) ──
+
+// ─── Real User View — driven by actual marva_config ─────────────────────────
+function RealUserView({ config, profile }: { config: any; profile: any }) {
+  const [approved, setApproved] = useState(false);
+
+  const isNarrative = config.default_view === 'narrative_summary';
+  const isDataTable = config.default_view === 'data_table';
+  const isTrendChart = config.default_view === 'trend_chart';
+  const exceptionOnly = config.show_only_exceptions === true;
+  const showScenarios = config.scenario_modeling_enabled === true;
+  const showShareable = config.shareable_reports === true;
+  const showYoY = config.show_yoy !== false;
+  const showLtv = config.show_ltv_metrics === true;
+  const timeWindow = config.default_time_window || '1y';
+  const framing = config.recommendation_framing || 'confidence_interval';
+  const density = config.dashboard_density || 'medium';
+
+  const timeLabel = timeWindow === '90d' ? 'Quarter over Quarter'
+    : timeWindow === '3y' ? '3-Year Portfolio View'
+    : 'Year over Year';
+
+  return (
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-6">
+      {/* Config strip */}
+      <div className="flex flex-wrap gap-2">
+        <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-purple-500" />
+          {profile.cognitive_style} → {config.default_view?.replace(/_/g, ' ')}
+        </div>
+        <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          {profile.decision_velocity} → {showScenarios ? 'scenario modeling on' : 'single action'}
+        </div>
+        <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-teal-500" />
+          {profile.risk_orientation} → {framing.replace(/_/g, ' ')}
+        </div>
+        <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-pink-500" />
+          {profile.attention_pattern} → {exceptionOnly ? 'exceptions only' : density + ' density'}
+        </div>
+        <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          {profile.strategic_horizon} → {timeWindow} default
+        </div>
+      </div>
+
+      {/* Nav — order changes based on cognitive style */}
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
+        {(isNarrative
+          ? ['Intelligence', 'Locations', 'Providers', 'Data']
+          : isDataTable
+          ? ['Performance', 'Locations', 'Providers', 'Intelligence']
+          : ['Overview', 'Trends', 'Locations', 'Intelligence']
+        ).map((t, i) => (
+          <button key={t} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${i === 0 ? 'text-teal-600 border-teal-600' : 'text-slate-400 border-transparent'}`}>{t}</button>
+        ))}
+      </div>
+
+      {/* Narrative lead — only for narrative cognitive style */}
+      {isNarrative && (
+        <div className="border-l-4 border-teal-500 pl-6 py-2 bg-slate-50 dark:bg-slate-700/30 rounded-r-2xl">
+          <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+            Your practice is tracking above target this {timeWindow === '90d' ? 'quarter' : 'year'}. Production is up and collections remain strong.
+            {exceptionOnly ? ' One location needs your attention — everything else is running smoothly.' : ' Review the full breakdown below for detail on each location.'}
+          </p>
+        </div>
+      )}
+
+      {/* Metrics */}
+      <div>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">
+          Enterprise performance — {timeLabel}
+        </h3>
+        <div className={`grid gap-3 ${density === 'low' ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 text-center">
+            <div className="text-2xl font-bold text-teal-600">$4.2M</div>
+            <div className="text-xs text-slate-500 mt-1">Total Production</div>
+            {showYoY && <div className="text-xs font-semibold text-emerald-600 mt-1">↑ +8.3% {timeWindow === '90d' ? 'QoQ' : 'YoY'}</div>}
+          </div>
+          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 text-center">
+            <div className="text-2xl font-bold text-teal-600">96.1%</div>
+            <div className="text-xs text-slate-500 mt-1">Collections Rate</div>
+            {showYoY && <div className="text-xs font-semibold text-emerald-600 mt-1">↑ +1.4 pts {timeWindow === '90d' ? 'QoQ' : 'YoY'}</div>}
+          </div>
+          {!exceptionOnly && (
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 text-center">
+              <div className="text-2xl font-bold text-teal-600">$301K</div>
+              <div className="text-xs text-slate-500 mt-1">Avg / Location</div>
+              <div className="text-xs font-semibold text-slate-400 mt-1">— Flat</div>
+            </div>
+          )}
+          {showLtv && (
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 text-center">
+              <div className="text-2xl font-bold text-teal-600">$4,820</div>
+              <div className="text-xs text-slate-500 mt-1">Avg Patient LTV</div>
+              <div className="text-xs font-semibold text-emerald-600 mt-1">↑ +12% 3Y</div>
+            </div>
+          )}
+          {!showLtv && !exceptionOnly && (
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 text-center">
+              <div className="text-2xl font-bold text-teal-600">1,847</div>
+              <div className="text-xs text-slate-500 mt-1">New Patients</div>
+              <div className="text-xs font-semibold text-red-500 mt-1">↓ -6.2% {timeWindow === '90d' ? 'QoQ' : 'YoY'}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Exception-only or full location table */}
+      {exceptionOnly ? (
+        <div>
+          <h3 className="text-base font-semibold text-slate-400 dark:text-slate-500 mb-2">What needs you right now</h3>
+          <div className="border-2 border-red-400 rounded-2xl p-6 bg-red-50 dark:bg-red-900/10 space-y-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Exception flag</span>
+              <span className="font-semibold text-sm text-slate-800 dark:text-white">San Bernardino down 11% — action required</span>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Hygiene capacity is the bottleneck. One additional hygienist closes the gap within 60 days.</p>
+            {approved ? (
+              <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+                <CheckCircle2 className="w-4 h-4" /> Action approved
+              </div>
+            ) : (
+              <button onClick={() => setApproved(true)} className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                {framing === 'directional' ? 'Approve hire now' : 'Review & approve'}
+              </button>
+            )}
+          </div>
+          <div className="mt-4">
+            <p className="text-sm text-slate-400">6 locations on track — no action needed.</p>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">Location performance</h3>
+          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-700">
+                  {['Location', 'Production', showYoY ? 'YoY' : 'QoQ', 'Collections %', 'Status'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {LOCATIONS.map((l, i) => (
+                  <tr key={l.name} className={i % 2 === 1 ? 'bg-slate-50 dark:bg-slate-700/30' : ''}>
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{l.name}</td>
+                    <td className="px-4 py-3">${(l.production/1000).toFixed(0)}K</td>
+                    <td className={`px-4 py-3 font-semibold ${l.yoy > 0 ? 'text-emerald-600' : l.yoy < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                      {l.yoy > 0 ? '+' : ''}{l.yoy}%
+                    </td>
+                    <td className="px-4 py-3">{l.collections}%</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${l.status === 'on_track' ? 'bg-emerald-100 text-emerald-700' : l.status === 'watch' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                        {l.status === 'on_track' ? 'On track' : l.status === 'watch' ? 'Watch' : 'Flagged'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Recommendation with framing based on risk_orientation */}
+      <div>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">San Bernardino — recommended action</h3>
+        <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-4">
+          <div>
+            <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${framing === 'directional' ? 'bg-amber-100 text-amber-700' : framing === 'confidence_interval' ? 'bg-teal-100 text-teal-700' : 'bg-purple-100 text-purple-700'}`}>
+              {framing === 'directional' ? 'Act now — first mover advantage' : framing === 'confidence_interval' ? 'Calculated framing' : 'Peer benchmarks'}
+            </span>
+          </div>
+
+          {framing === 'peer_benchmarks' && (
+            <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Peer evidence</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">DSOs that resolved hygiene capacity gaps within 60 days averaged +23% production lift vs those that waited. 18 comparable practices have done this successfully.</p>
+            </div>
+          )}
+
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {framing === 'directional'
+              ? 'Add a hygienist at San Bernardino now. Production gap is hygiene-driven. Early movers capture 23% more revenue.'
+              : 'Add a second hygienist at San Bernardino. Production gap is hygiene-driven — provider capacity, not patient volume. Based on 18 comparable locations.'}
+          </p>
+
+          {showScenarios && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Outcome projections — 90-day horizon</h4>
+              <div className="space-y-3">
+                {SCENARIOS.map(s => (
+                  <div key={s.label} className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-500 w-24 flex-shrink-0">{s.label}</span>
+                    <div className="flex-1 h-2.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${s.pct}%`, background: s.color }} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 w-12 text-right">{s.value}</span>
+                    <span className="text-xs text-slate-400 w-14">{s.conf} conf</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showShareable && (
+            <div className="flex items-center gap-2 text-xs text-teal-600 font-medium">
+              <Share2 className="w-3.5 h-3.5" />
+              Share with stakeholders before approving
+            </div>
+          )}
+
+          {approved ? (
+            <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+              <CheckCircle2 className="w-4 h-4" /> Action approved
+            </div>
+          ) : (
+            <button onClick={() => setApproved(true)}
+              className={`px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors ${framing === 'directional' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+              {framing === 'directional' ? 'Approve now' : showScenarios ? 'Approve action' : 'Review & approve'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DianaView() {
   const [approved, setApproved] = useState(false);
   return (
@@ -347,7 +578,7 @@ function DimensionsTable() {
 export default function MARVAPage() {
   const { user, token } = useAuth();
   const [activeExec, setActiveExec] = useState<'diana' | 'marcus'>('diana');
-  const [activeTab, setActiveTab] = useState<'demo' | 'how-it-works'>('demo');
+  const [activeTab, setActiveTab] = useState<'my-dashboard' | 'demo' | 'how-it-works'>('demo');
   const [executiveProfile, setExecutiveProfile] = useState<ExecutiveProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
@@ -368,6 +599,7 @@ export default function MARVAPage() {
           const data = await res.json();
           if (data.entity_type === 'executive' && data.marva_config) {
             setExecutiveProfile(data);
+            setActiveTab('my-dashboard');
           } else {
             setShowAssessment(true);
           }
@@ -489,14 +721,22 @@ export default function MARVAPage() {
       )}
 
       {/* Tab switcher */}
-      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 max-w-xs mx-auto">
-        {[{ id: 'demo', label: 'Live Demo' }, { id: 'how-it-works', label: 'How It Works' }].map(t => (
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 max-w-sm mx-auto">
+        {[
+          ...(executiveProfile?.marva_config ? [{ id: 'my-dashboard', label: 'My Dashboard' }] : []),
+          { id: 'demo', label: 'Live Demo' },
+          { id: 'how-it-works', label: 'How It Works' }
+        ].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id as any)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === t.id ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
             {t.label}
           </button>
         ))}
       </div>
+
+      {activeTab === 'my-dashboard' && executiveProfile?.marva_config && (
+        <RealUserView config={executiveProfile.marva_config} profile={executiveProfile} />
+      )}
 
       {activeTab === 'demo' && (
         <>
