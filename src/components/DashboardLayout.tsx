@@ -112,6 +112,7 @@ const allNavGroups: NavGroup[] = [
     roles: ['admin', 'manager'],
     items: [
       { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind AI' },
+      { to: '/marva', icon: Brain, label: 'MARVA' },
       { to: '/recommendations', icon: Lightbulb, label: 'Recommendations', roles: ['admin'] },
       { to: '/automation', icon: Zap, label: 'Automation Hub' },
       { to: '/roi', icon: Calculator, label: 'ROI Calculator', roles: ['admin'] },

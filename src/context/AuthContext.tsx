@@ -21,6 +21,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  completeMfaLogin: (tempToken: string, code: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   error: string | null;
@@ -100,6 +101,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error(data.error || 'Login failed');
       }
 
+      // MFA required — throw special error with tempToken
+      if (data.mfaRequired) {
+        const mfaError: any = new Error('MFA_REQUIRED');
+        mfaError.mfaRequired = true;
+        mfaError.tempToken = data.tempToken;
+        throw mfaError;
+      }
+
       // Store in localStorage
       localStorage.setItem('uis_token', data.token);
       localStorage.setItem('uis_user', JSON.stringify(data.user));
@@ -108,6 +117,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(data.user);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const completeMfaLogin = async (tempToken: string, code: string): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/mfa/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken, code }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'MFA validation failed');
+      localStorage.setItem('uis_token', data.token);
+      localStorage.setItem('uis_user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'MFA failed';
       setError(message);
       throw err;
     } finally {
@@ -162,6 +195,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user && !!token,
         isLoading,
         login,
+        completeMfaLogin,
         register,
         logout,
         error,

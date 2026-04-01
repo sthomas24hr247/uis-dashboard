@@ -10,6 +10,7 @@ import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import HomePage from './pages/HomePage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
+import MARVAPage from './pages/MARVAPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from './pages/SettingsPage';
@@ -81,6 +82,7 @@ function App() {
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="ai-predictions" element={<AIPredictionsPage />} />
+        <Route path="marva" element={<MARVAPage />} />
         <Route path="recommendations" element={<RecommendationsPage />} />
         <Route path="patient-intel" element={<PatientIntelPage />} />
         <Route path="bil" element={<BILDashboardPage />} />

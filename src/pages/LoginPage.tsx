@@ -34,7 +34,12 @@ export default function LoginPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const animStartRef = useRef(Date.now());
 
-  const { login } = useAuth();
+  const { login, completeMfaLogin } = useAuth();
+  const [mfaStep, setMfaStep] = useState<'login'|'mfa_setup'|'mfa_code'>('login');
+  const [mfaTempToken, setMfaTempToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,10 +94,30 @@ export default function LoginPage() {
     try {
       await login(email, password);
       navigate('/home');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+    } catch (err: any) {
+      if (err.mfaRequired) {
+        setMfaTempToken(err.tempToken);
+        setMfaStep('mfa_code');
+      } else {
+        setError(err instanceof Error ? err.message : 'Authentication failed');
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMfaError('');
+    setMfaLoading(true);
+    try {
+      await completeMfaLogin(mfaTempToken, mfaCode);
+      navigate('/home');
+    } catch (err: any) {
+      setMfaError(err.message || 'Invalid code. Please try again.');
+      setMfaCode('');
+    } finally {
+      setMfaLoading(false);
     }
   };
 
@@ -210,11 +235,49 @@ export default function LoginPage() {
           <div className="border border-cyan-500/20 rounded-xl bg-black/60 backdrop-blur-sm p-6">
             <div className="flex items-center gap-2 mb-0.5">
               <div className="w-2 h-2 rounded-full bg-cyan-400" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
-              <span className="text-[10px] tracking-[0.2em] text-cyan-400">AUTHENTICATION REQUIRED</span>
+              <span className="text-[10px] tracking-[0.2em] text-cyan-400">{mfaStep === 'mfa_code' ? 'MFA VERIFICATION REQUIRED' : 'AUTHENTICATION REQUIRED'}</span>
             </div>
             <div className="text-[10px] text-slate-600 tracking-widest mb-6">AUTHORIZED PERSONNEL ONLY // HIPAA PROTECTED</div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {mfaStep === 'mfa_code' && (
+              <form onSubmit={handleMfaSubmit} className="space-y-4">
+                {mfaError && (
+                  <div className="border border-red-500/30 bg-red-500/10 text-red-400 px-3 py-2.5 rounded-lg text-[11px] tracking-wider">
+                    ⚠ {mfaError.toUpperCase()}
+                  </div>
+                )}
+                <div className="text-center mb-2">
+                  <div className="text-3xl mb-2">🔐</div>
+                  <p className="text-xs text-slate-400 tracking-wider">ENTER THE 6-DIGIT CODE FROM YOUR AUTHENTICATOR APP</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] tracking-[0.25em] text-slate-400 mb-2">VERIFICATION CODE</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={mfaCode}
+                    onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500/60 text-white text-2xl px-4 py-4 rounded-lg outline-none transition-colors placeholder:text-slate-700 tracking-[0.5em] text-center font-mono"
+                    placeholder="000000"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={mfaLoading || mfaCode.length !== 6}
+                  className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-500/70 text-cyan-400 text-[11px] tracking-[0.3em] font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {mfaLoading ? <><span className="animate-spin">⟳</span> VERIFYING...</> : '⬡  VERIFY & ENTER'}
+                </button>
+                <button type="button" onClick={() => { setMfaStep('login'); setMfaCode(''); setMfaError(''); }}
+                  className="w-full text-[10px] text-slate-600 hover:text-slate-400 tracking-widest transition-colors mt-1">
+                  ← BACK TO LOGIN
+                </button>
+              </form>
+            )}
+
+            {mfaStep === 'login' && <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="border border-red-500/30 bg-red-500/10 text-red-400 px-3 py-2.5 rounded-lg text-[11px] tracking-wider">
                   ⚠ {error.toUpperCase()}
@@ -266,9 +329,9 @@ export default function LoginPage() {
                   '⬡  AUTHENTICATE & ENTER'
                 )}
               </button>
-            </form>
+            </form>}
 
-            <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+            {mfaStep === 'login' && <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
               <span className="text-[10px] text-slate-700 tracking-widest">DEMO ACCESS</span>
               <button
                 onClick={() => { setEmail('claims-demo@uishealth.com'); setPassword('ClaimsDemo2026!'); }}
@@ -276,7 +339,7 @@ export default function LoginPage() {
               >
                 USE DEMO CREDENTIALS →
               </button>
-            </div>
+            </div>}
           </div>
 
           <div className="text-center mt-5 text-[10px] text-slate-700 tracking-widest">
