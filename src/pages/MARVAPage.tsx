@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ECPAssessment from '../components/ECPAssessment';
 import { useAuth } from '../context/AuthContext';
 import {
   Brain, Zap, TrendingUp, AlertTriangle, CheckCircle2,
@@ -349,6 +350,77 @@ export default function MARVAPage() {
   const [activeTab, setActiveTab] = useState<'demo' | 'how-it-works'>('demo');
   const [executiveProfile, setExecutiveProfile] = useState<ExecutiveProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [showAssessment, setShowAssessment] = useState(false);
+  const [assessmentComplete, setAssessmentComplete] = useState(false);
+
+  const apiBase = 'https://api.uishealth.com';
+
+  useEffect(() => {
+    if (!user?.userId || !token) return;
+    const loadProfile = async () => {
+      setLoadingProfile(true);
+      try {
+        const res = await fetch(
+          `${apiBase}/api/bfs/fingerprint/${user.userId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.entity_type === 'executive' && data.marva_config) {
+            setExecutiveProfile(data);
+          } else {
+            setShowAssessment(true);
+          }
+        } else {
+          setShowAssessment(true);
+        }
+      } catch {
+        setShowAssessment(true);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    loadProfile();
+  }, [user?.userId, token]);
+
+  const handleAssessmentComplete = async (result: any) => {
+    setShowAssessment(false);
+    setAssessmentComplete(true);
+    try {
+      const res = await fetch(`${apiBase}/api/bfs/fingerprint`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_type: 'executive',
+          entity_id: user?.userId,
+          practice_id: user?.practiceId,
+          overall_confidence: 0.95,
+          data_source_count: 1,
+          access_policy: 'self_only',
+          executive_dimensions: {
+            cognitive_style: result.cognitive_style,
+            decision_velocity: result.decision_velocity,
+            risk_orientation: result.risk_orientation,
+            attention_pattern: result.attention_pattern,
+            strategic_horizon: result.strategic_horizon,
+          },
+        }),
+      });
+      if (res.ok) {
+        // Reload the fingerprint to get the MARVA config
+        const fpRes = await fetch(
+          `${apiBase}/api/bfs/fingerprint/${user?.userId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (fpRes.ok) {
+          const data = await fpRes.json();
+          setExecutiveProfile(data);
+        }
+      }
+    } catch (err) {
+      console.error('[MARVA] Failed to save ECP assessment:', err);
+    }
+  };
 
   const executives = [
     {
@@ -369,6 +441,20 @@ export default function MARVAPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+      {showAssessment && (
+        <ECPAssessment
+          onComplete={handleAssessmentComplete}
+          onDismiss={() => setShowAssessment(false)}
+        />
+      )}
+      {loadingProfile && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+          <div className="text-center space-y-3">
+            <div className="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading your MARVA profile...</p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 text-xs font-semibold rounded-full border border-teal-200 dark:border-teal-700">
@@ -382,6 +468,25 @@ export default function MARVAPage() {
           Same underlying data. Two completely different executive experiences — shaped entirely by behavioral fingerprint.
         </p>
       </div>
+
+      {/* Real MARVA config banner */}
+      {executiveProfile?.marva_config && Object.keys(executiveProfile.marva_config).length > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 rounded-2xl">
+          <div className="w-8 h-8 bg-teal-100 dark:bg-teal-900/40 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Brain className="w-4 h-4 text-teal-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-teal-700 dark:text-teal-300">Your MARVA profile is active</div>
+            <div className="text-xs text-teal-600 dark:text-teal-400 mt-0.5">
+              {executiveProfile.cognitive_style} · {executiveProfile.decision_velocity} · {executiveProfile.risk_orientation} · {executiveProfile.attention_pattern} · {executiveProfile.strategic_horizon}
+            </div>
+          </div>
+          <button onClick={() => setShowAssessment(true)}
+            className="text-xs font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 whitespace-nowrap">
+            Retake →
+          </button>
+        </div>
+      )}
 
       {/* Tab switcher */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 max-w-xs mx-auto">
