@@ -90,6 +90,11 @@ const statusColors = {
 
 const statusLabels = { above: "Above Benchmark", at: "At Benchmark", below: "Below Benchmark" };
 
+// "Newly Onboarded" — practice exists with assigned revenue but no patient data has flowed in yet.
+// Distinguishes ramp-up state from broken/dormant practices (which have $0 revenue).
+const isNewlyOnboarded = (o: { activePatients: number; monthlyRevenue: number }): boolean =>
+  o.activePatients === 0 && o.monthlyRevenue > 0;
+
 const dimensionLabels: Record<string, string> = {
   treatment_completion: "Treatment Completion",
   recall_compliance: "Recall Compliance",
@@ -319,9 +324,17 @@ export default function ExecutiveCommandCenter() {
                     <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{office.name}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{office.location} · {office.providers} providers</p>
                   </div>
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.bg} ${sc.text}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-                    {statusLabels[office.benchmarkStatus]}
+                  <div className="flex flex-col items-end gap-1">
+                    {isNewlyOnboarded(office) && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                        Newly Onboarded
+                      </div>
+                    )}
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.bg} ${sc.text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                      {statusLabels[office.benchmarkStatus]}
+                    </div>
                   </div>
                 </div>
 
@@ -408,10 +421,18 @@ export default function ExecutiveCommandCenter() {
                       );
                     })}
                     <td className="text-center py-3 px-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${statusColors[office.benchmarkStatus].bg} ${statusColors[office.benchmarkStatus].text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusColors[office.benchmarkStatus].dot}`} />
-                        {statusLabels[office.benchmarkStatus]}
-                      </span>
+                      <div className="inline-flex flex-col items-center gap-1">
+                        {isNewlyOnboarded(office) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                            Newly Onboarded
+                          </span>
+                        )}
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${statusColors[office.benchmarkStatus].bg} ${statusColors[office.benchmarkStatus].text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusColors[office.benchmarkStatus].dot}`} />
+                          {statusLabels[office.benchmarkStatus]}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
