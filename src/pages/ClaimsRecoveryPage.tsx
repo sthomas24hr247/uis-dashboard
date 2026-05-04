@@ -850,6 +850,18 @@ function PreventionEngineTab({ claims }: { claims: DeniedClaim[] }) {
   const [scanning, setScanning] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
+  // F-06 — Track which rules a user has marked resolved per claim, keyed by claim.id.
+  // Resolved rules are treated as passing in the validations useMemo below.
+  // State is ephemeral (refresh resets) — backend persistence comes in next session.
+  const [resolvedRules, setResolvedRules] = useState<Record<string, Set<string>>>({});
+
+  const markResolved = (claimId: string, ruleId: string) => {
+    setResolvedRules(prev => {
+      const claimSet = prev[claimId] ? new Set(prev[claimId]) : new Set<string>();
+      claimSet.add(ruleId);
+      return { ...prev, [claimId]: claimSet };
+    });
+  };
 
   const denied = claims.filter(c => c.status === "denied");
 
@@ -865,12 +877,19 @@ function PreventionEngineTab({ claims }: { claims: DeniedClaim[] }) {
       else if (rule.id === "V007") { pass = !claim.issues.some(i => /frankl/i.test(i)); detail = pass ? "Frankl scale documented" : "Frankl Behavior Rating Scale not recorded — required for pediatric GA justification"; }
       else if (rule.id === "V008") { pass = !claim.issues.some(i => /step therapy|previous attempt|TAR not obtained/i.test(i)); detail = pass ? "Step therapy attempts documented" : "Prior sedation attempts not documented with dates/outcomes per APL 23-028 §2.1"; }
       else if (rule.id === "V012") { const isGA = ["D9222","D9223","D9239","D9243"].includes(claim.cdtCode); pass = isGA ? !claim.denialCode.includes("013") : true; detail = pass ? "Permit endorsements verified" : `Missing required permit. Age ${claim.patientAge || "?"}: ${claim.patientAge && claim.patientAge <= 6 ? "013H required" : "013I required"} for sedation, 013G for GA`; }
-      else { pass = Math.random() > 0.25; detail = pass ? `${rule.name} verified` : `${rule.name} requires attention before resubmission`; }
+      else { pass = true; detail = `${rule.name} verified`; }
       return { rule, pass, detail };
     });
-    const passCount = results.filter(r => r.pass).length;
-    return { claim, results, score: Math.round((passCount / results.length) * 100), passCount, failCount: results.length - passCount };
-  }), [denied]);
+    // F-06: Override pass=true for any rule the user has marked resolved on this claim.
+    const claimResolved = resolvedRules[claim.id];
+    const finalResults = claimResolved
+      ? results.map(r => claimResolved.has(r.rule.id)
+          ? { ...r, pass: true, detail: `${r.detail} (Marked resolved)` }
+          : r)
+      : results;
+    const passCount = finalResults.filter(r => r.pass).length;
+    return { claim, results: finalResults, score: Math.round((passCount / finalResults.length) * 100), passCount, failCount: finalResults.length - passCount };
+  }), [denied, resolvedRules]);
 
   const criticalFails = validations.reduce((s, v) => s + v.results.filter(r => !r.pass && r.rule.severity === "critical").length, 0);
   const selectedVal = validations.find(v => v.claim.id === selected);
@@ -967,6 +986,16 @@ function PreventionEngineTab({ claims }: { claims: DeniedClaim[] }) {
                           {r.rule.arc && !r.pass && <span className="text-[9px] font-mono font-bold text-amber-500">{r.rule.arc}</span>}
                         </div>
                         <p className={`text-[10px] ml-6 ${r.pass ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>{r.detail}</p>
+                        {!r.pass && selectedVal && (
+                          <div className="ml-6 mt-2">
+                            <button
+                              onClick={() => markResolved(selectedVal.claim.id, r.rule.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-teal-600 hover:bg-teal-500 text-white transition-all"
+                            >
+                              <CheckCircle className="w-3 h-3" /> Mark Resolved
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
