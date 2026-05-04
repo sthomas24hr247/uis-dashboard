@@ -162,11 +162,28 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
   const [scanComplete, setScanComplete] = useState(false);
   const [scanning, setScanning] = useState(false);
+  // F-06 — Track which rules a user has marked resolved per claim, keyed by claim.id.
+  // Resolved rules are treated as passing in the validations useMemo below.
+  // State is ephemeral (refresh resets) — backend persistence comes in F-06 session 2.
+  const [resolvedRules, setResolvedRules] = useState<Record<string, Set<string>>>({});
+
+  const markResolved = (claimId: string, ruleId: string) => {
+    setResolvedRules((prev) => {
+      const claimSet = prev[claimId] ? new Set(prev[claimId]) : new Set<string>();
+      claimSet.add(ruleId);
+      return { ...prev, [claimId]: claimSet };
+    });
+  };
 
   const validations = useMemo<ClaimValidation[]>(() => {
     return claims.filter((c) => c.status === "denied").map((claim) => {
+      const claimResolved = resolvedRules[claim.id];
       const results = VALIDATION_RULES.map((rule) => {
         const { pass, detail } = rule.check(claim);
+        // F-06: Override pass=true for any rule the user has marked resolved on this claim.
+        if (claimResolved && claimResolved.has(rule.id)) {
+          return { rule, pass: true, detail: `${detail} (Marked resolved)` };
+        }
         return { rule, pass, detail };
       });
       const passCount = results.filter((r) => r.pass).length;
@@ -178,7 +195,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
         failCount: results.length - passCount,
       };
     });
-  }, [claims]);
+  }, [claims, resolvedRules]);
 
   const handleRunScan = () => {
     setScanning(true);
@@ -460,6 +477,14 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
                             <p className={`text-[10px] leading-relaxed ${r.pass ? "text-emerald-400/80" : "text-destructive/80"}`}>
                               {r.detail}
                             </p>
+                            {!r.pass && selectedValidation && (
+                              <button
+                                onClick={() => markResolved(selectedValidation.claim.id, r.rule.id)}
+                                className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
+                              >
+                                ✓ Mark Resolved
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
