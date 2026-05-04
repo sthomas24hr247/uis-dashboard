@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
   DollarSign, CalendarClock, TrendingUp, Users, ShieldAlert, Activity,
@@ -143,6 +143,18 @@ function getRiskBadge(category: string) {
 export default function AIPredictionsPage() {
   const { data, loading, refetch } = useQuery(GET_COMMAND_CENTER);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
+  const [dsoContext, setDsoContext] = useState<any>(null);
+
+  useEffect(() => {
+    const API = 'https://api.uishealth.com';
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    fetch(`${API}/api/dashboard/practice-summary`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.dsoContext) setDsoContext(d.dsoContext); })
+      .catch(() => {});
+  }, []);
 
   const summary = data?.aiPredictionsSummary;
   const noshowRisks = data?.noshowRisks || [];
@@ -152,15 +164,16 @@ export default function AIPredictionsPage() {
 
   // Build practiceData object to pass to AskDentamind
   const practiceData = useMemo(() => {
-    if (!data) return null;
+    if (!data && !dsoContext) return null;
     return {
       summary: summary || undefined,
       noshowRisks: noshowRisks.length > 0 ? noshowRisks : undefined,
       churnRisks: churnRisks.length > 0 ? churnRisks : undefined,
       forecast: forecast.length > 0 ? forecast : undefined,
       stats: stats || undefined,
+      dsoContext: dsoContext || undefined,
     };
-  }, [data, summary, noshowRisks, churnRisks, forecast, stats]);
+  }, [data, summary, noshowRisks, churnRisks, forecast, stats, dsoContext]);
 
   // Compute signal metrics
   const totalRiskAppts = (summary?.highRiskAppointments || 0) + (summary?.mediumRiskAppointments || 0);

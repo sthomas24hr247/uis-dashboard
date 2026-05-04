@@ -51,6 +51,28 @@ interface PracticeData {
     cancelledAppointments: number;
     noShowRate: number;
   };
+  dsoContext?: {
+    dsoName: string;
+    totalLocations: number;
+    totalActivePatients: number;
+    totalMonthlyRevenue: number;
+    metros: Array<{
+      slug: string;
+      label: string;
+      locationCount: number;
+      locationNames: string[];
+      monthlyRevenue: number;
+      prevMonthRevenue: number;
+      revenueChangePct: number;
+      avgNoShowRate: number;
+      avgQciScore: number;
+      qciGrade: string;
+      benchmarkStatus: string;
+      totalOutcomeGapLeakage: number;
+      totalActivePatients: number;
+      totalProviders: number;
+    }>;
+  };
 }
 
 interface AskDentamindProps {
@@ -74,12 +96,35 @@ Your capabilities include:
 
 Keep responses concise, actionable, and specific to dental practice operations. Use dental industry terminology naturally.
 
+When the user is part of a DSO with multiple locations, you may receive a "DSO Structure" section listing locations grouped by metro area, with revenue, QCI, no-show rate, and outcome gap leakage per metro. Use this for cross-metro comparisons, identifying which metros are leading or lagging, and reasoning about portfolio-level decisions. Do not compare a single practice against the DSO total — they are different units of analysis. When asked "how is X metro performing", cite the metro's specific numbers (revenue, QCI grade, MoM change) and contrast against other metros where useful.
+
 IMPORTANT: You have access to LIVE practice data provided below. Always reference specific numbers, patient names, and risk scores from this data when answering. Be precise and data-driven — cite the actual figures. Never say you don't have access to data — you DO have the practice's real data.
 
 Always be confident but precise. You are the decision brain — not a search engine.`;
 
 function buildDataContext(data: PracticeData): string {
   const sections: string[] = [];
+
+  if (data.dsoContext) {
+    const dso = data.dsoContext;
+    const metroSections = dso.metros.map(m =>
+      `### ${m.label} (${m.slug}) — ${m.locationCount} location${m.locationCount === 1 ? '' : 's'}
+  Locations: ${m.locationNames.join(', ')}
+  Monthly Revenue: $${m.monthlyRevenue.toLocaleString()} (${m.revenueChangePct >= 0 ? '+' : ''}${m.revenueChangePct}% MoM vs $${m.prevMonthRevenue.toLocaleString()})
+  Active Patients: ${m.totalActivePatients} across ${m.totalProviders} provider${m.totalProviders === 1 ? '' : 's'}
+  Avg No-Show Rate: ${m.avgNoShowRate}% | Avg QCI: ${m.avgQciScore} (${m.qciGrade}, ${m.benchmarkStatus} benchmark)
+  Outcome Gap Leakage: $${m.totalOutcomeGapLeakage.toLocaleString()}/mo`
+    ).join('\n\n');
+
+    sections.push(`## DSO Structure: ${dso.dsoName}
+- Total Locations: ${dso.totalLocations} across ${dso.metros.length} metro${dso.metros.length === 1 ? '' : 's'}
+- DSO-wide Active Patients: ${dso.totalActivePatients}
+- DSO-wide Monthly Revenue: $${dso.totalMonthlyRevenue.toLocaleString()}
+
+### Metro Breakdown:
+
+${metroSections}`);
+  }
 
   if (data.stats) {
     sections.push(`## Practice Overview (Live Data)
