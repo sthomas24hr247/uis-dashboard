@@ -355,7 +355,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3.5 
+          className="fixed bottom-6 right-6 z-[2147483647] flex items-center gap-2.5 px-5 py-3.5 
             bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400
             text-white rounded-2xl shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40
             transition-all duration-300 hover:scale-105 group"
@@ -367,7 +367,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[420px] h-[600px] flex flex-col
+        <div className="fixed bottom-6 right-6 z-[2147483647] w-[420px] h-[600px] flex flex-col
           bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700
           overflow-hidden animate-in"
         >
