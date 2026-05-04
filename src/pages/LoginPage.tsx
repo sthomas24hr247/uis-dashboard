@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 
 const BOOT_STEPS = [
   { id: 'kernel',   label: 'INITIALIZING UIS KERNEL v4.2.1',        duration: 700  },
@@ -19,6 +19,8 @@ const AI_LINES = [
   'Dentamind AI .................. v5.1 LOADED',
 ];
 
+const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
+
 export default function LoginPage() {
   const [phase, setPhase] = useState<'boot' | 'login'>('boot');
   const [bootStep, setBootStep] = useState(0);
@@ -32,10 +34,15 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const animStartRef = useRef(Date.now());
+
+  // Forgot password state
+  const [authView, setAuthView] = useState<'login' | 'forgot' | 'forgot_sent'>('login');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
 
   const { login, completeMfaLogin } = useAuth();
-  const [mfaStep, setMfaStep] = useState<'login'|'mfa_setup'|'mfa_code'>('login');
+  const [mfaStep, setMfaStep] = useState<'login'|'mfa_code'>('login');
   const [mfaTempToken, setMfaTempToken] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [mfaError, setMfaError] = useState('');
@@ -44,7 +51,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const totalDuration = BOOT_STEPS.reduce((s, step) => s + step.duration, 0);
-    animStartRef.current = Date.now();
+    const animStartRef = Date.now();
     let stepIndex = 0;
     let elapsed = 0;
 
@@ -61,7 +68,6 @@ export default function LoginPage() {
       setBootStep(stepIndex);
 
       if (step.id === 'ai') {
-        let lineIdx = 0;
         const delay = step.duration / (AI_LINES.length + 1);
         AI_LINES.forEach((_, i) => {
           setTimeout(() => setAiLines(prev => [...prev, AI_LINES[i]]), delay * (i + 1));
@@ -70,7 +76,7 @@ export default function LoginPage() {
 
       const stepElapsed = elapsed;
       const tick = setInterval(() => {
-        const now = Date.now() - animStartRef.current;
+        const now = Date.now() - animStartRef;
         const frac = Math.min((now - stepElapsed) / step.duration, 1);
         setProgress(((stepElapsed + frac * step.duration) / totalDuration) * 100);
       }, 16);
@@ -121,6 +127,27 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      setAuthView('forgot_sent');
+    } catch (err: any) {
+      // Always show success to prevent email enumeration
+      setAuthView('forgot_sent');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const now = new Date().toISOString().slice(0, 19).replace('T', ' // ');
 
   return (
@@ -143,7 +170,6 @@ export default function LoginPage() {
       {/* ── BOOT PHASE ── */}
       {phase === 'boot' && (
         <div className="w-full max-w-2xl px-8" style={{ animation: 'fadeIn 0.5s ease forwards' }}>
-          {/* Logo */}
           <div className="flex items-center justify-center gap-5 mb-10">
             <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30">
               <span className="text-3xl font-black text-cyan-400">U</span>
@@ -155,7 +181,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Boot card */}
           <div className="border border-cyan-500/20 rounded-xl bg-black/50 backdrop-blur-sm p-6">
             <div className="flex items-start justify-between mb-1">
               <div className="text-[11px] tracking-[0.2em] text-cyan-400">SYSTEM BOOT SEQUENCE</div>
@@ -165,7 +190,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Progress bar */}
             <div className="mt-4 mb-5">
               <div className="h-[3px] bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-75" style={{ width: `${progress}%` }} />
@@ -176,7 +200,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Steps */}
             <div className="space-y-2.5">
               {BOOT_STEPS.slice(0, bootStep).map(step => (
                 <div key={step.id} className="flex items-center justify-between">
@@ -190,7 +213,6 @@ export default function LoginPage() {
                 </div>
               ))}
 
-              {/* Active step */}
               {bootStep < BOOT_STEPS.length && (
                 <div className="border border-cyan-500/20 bg-cyan-500/5 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -220,7 +242,6 @@ export default function LoginPage() {
       {/* ── LOGIN PHASE ── */}
       {phase === 'login' && (
         <div className="w-full max-w-md px-6" style={{ transition: 'opacity 0.7s ease, transform 0.7s ease', opacity: loginVisible ? 1 : 0, transform: loginVisible ? 'translateY(0)' : 'translateY(24px)' }}>
-          {/* Logo */}
           <div className="flex items-center justify-center gap-3 mb-7">
             <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
               <span className="text-2xl font-black text-cyan-400">U</span>
@@ -231,21 +252,84 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Auth card */}
           <div className="border border-cyan-500/20 rounded-xl bg-black/60 backdrop-blur-sm p-6">
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-2 h-2 rounded-full bg-cyan-400" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
-              <span className="text-[10px] tracking-[0.2em] text-cyan-400">{mfaStep === 'mfa_code' ? 'MFA VERIFICATION REQUIRED' : 'AUTHENTICATION REQUIRED'}</span>
-            </div>
-            <div className="text-[10px] text-slate-600 tracking-widest mb-6">AUTHORIZED PERSONNEL ONLY // HIPAA PROTECTED</div>
 
-            {mfaStep === 'mfa_code' && (
+            {/* ── FORGOT PASSWORD SENT ── */}
+            {authView === 'forgot_sent' && (
+              <div className="text-center py-4">
+                <CheckCircle className="w-12 h-12 text-cyan-400 mx-auto mb-4" />
+                <div className="text-[11px] tracking-[0.2em] text-cyan-400 mb-2">RESET LINK DISPATCHED</div>
+                <p className="text-[11px] text-slate-400 tracking-wider mb-6">
+                  If an account exists for <span className="text-cyan-400">{forgotEmail}</span>, a password reset link has been sent. Check your inbox.
+                </p>
+                <button
+                  onClick={() => { setAuthView('login'); setForgotEmail(''); setForgotError(''); }}
+                  className="flex items-center gap-2 text-[10px] text-cyan-700 hover:text-cyan-400 tracking-widest transition-colors mx-auto"
+                >
+                  <ArrowLeft className="w-3 h-3" /> BACK TO LOGIN
+                </button>
+              </div>
+            )}
+
+            {/* ── FORGOT PASSWORD FORM ── */}
+            {authView === 'forgot' && (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Mail className="w-3 h-3 text-cyan-400" />
+                  <span className="text-[10px] tracking-[0.2em] text-cyan-400">PASSWORD RESET</span>
+                </div>
+                <div className="text-[10px] text-slate-600 tracking-widest mb-4">ENTER YOUR EMAIL TO RECEIVE A RESET LINK</div>
+
+                {forgotError && (
+                  <div className="border border-red-500/30 bg-red-500/10 text-red-400 px-3 py-2.5 rounded-lg text-[11px] tracking-wider">
+                    ⚠ {forgotError.toUpperCase()}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] tracking-[0.25em] text-slate-400 mb-2">REGISTERED EMAIL</label>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    className="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500/60 text-white text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-slate-700 tracking-wider"
+                    style={{ fontFamily: 'inherit' }}
+                    placeholder="operator@uishealth.com"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-500/70 text-cyan-400 text-[11px] tracking-[0.3em] font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {forgotLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> SENDING...</> : '⬡  SEND RESET LINK'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setAuthView('login'); setForgotError(''); }}
+                  className="w-full flex items-center justify-center gap-2 text-[10px] text-slate-600 hover:text-slate-400 tracking-widest transition-colors mt-1"
+                >
+                  <ArrowLeft className="w-3 h-3" /> BACK TO LOGIN
+                </button>
+              </form>
+            )}
+
+            {/* ── MFA STEP ── */}
+            {authView === 'login' && mfaStep === 'mfa_code' && (
               <form onSubmit={handleMfaSubmit} className="space-y-4">
                 {mfaError && (
                   <div className="border border-red-500/30 bg-red-500/10 text-red-400 px-3 py-2.5 rounded-lg text-[11px] tracking-wider">
                     ⚠ {mfaError.toUpperCase()}
                   </div>
                 )}
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <span className="text-[10px] tracking-[0.2em] text-cyan-400">MFA VERIFICATION REQUIRED</span>
+                </div>
                 <div className="text-center mb-2">
                   <div className="text-3xl mb-2">🔐</div>
                   <p className="text-xs text-slate-400 tracking-wider">ENTER THE 6-DIGIT CODE FROM YOUR AUTHENTICATOR APP</p>
@@ -277,69 +361,89 @@ export default function LoginPage() {
               </form>
             )}
 
-            {mfaStep === 'login' && <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="border border-red-500/30 bg-red-500/10 text-red-400 px-3 py-2.5 rounded-lg text-[11px] tracking-wider">
-                  ⚠ {error.toUpperCase()}
+            {/* ── MAIN LOGIN FORM ── */}
+            {authView === 'login' && mfaStep === 'login' && (
+              <>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <span className="text-[10px] tracking-[0.2em] text-cyan-400">AUTHENTICATION REQUIRED</span>
                 </div>
-              )}
+                <div className="text-[10px] text-slate-600 tracking-widest mb-6">AUTHORIZED PERSONNEL ONLY // HIPAA PROTECTED</div>
 
-              <div>
-                <label className="block text-[10px] tracking-[0.25em] text-slate-400 mb-2">OPERATOR EMAIL</label>
-                <input
-                  ref={inputRef}
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500/60 text-white text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-slate-700 tracking-wider"
-                  style={{ fontFamily: 'inherit' }}
-                  placeholder="operator@uishealth.com"
-                  required
-                  autoComplete="email"
-                />
-              </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="border border-red-500/30 bg-red-500/10 text-red-400 px-3 py-2.5 rounded-lg text-[11px] tracking-wider">
+                      ⚠ {error.toUpperCase()}
+                    </div>
+                  )}
 
-              <div>
-                <label className="block text-[10px] tracking-[0.25em] text-slate-400 mb-2">ACCESS CODE</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500/60 text-white text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-slate-700 tracking-widest pr-11"
-                    style={{ fontFamily: 'inherit' }}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                  />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <div>
+                    <label className="block text-[10px] tracking-[0.25em] text-slate-400 mb-2">OPERATOR EMAIL</label>
+                    <input
+                      ref={inputRef}
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500/60 text-white text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-slate-700 tracking-wider"
+                      style={{ fontFamily: 'inherit' }}
+                      placeholder="operator@uishealth.com"
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-[10px] tracking-[0.25em] text-slate-400">ACCESS CODE</label>
+                      <button
+                        type="button"
+                        onClick={() => { setAuthView('forgot'); setForgotEmail(email); }}
+                        className="text-[10px] text-cyan-700 hover:text-cyan-400 tracking-widest transition-colors"
+                      >
+                        FORGOT PASSWORD?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500/60 text-white text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-slate-700 tracking-widest pr-11"
+                        style={{ fontFamily: 'inherit' }}
+                        placeholder="••••••••"
+                        required
+                        autoComplete="current-password"
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-500/70 text-cyan-400 text-[11px] tracking-[0.3em] font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> AUTHENTICATING...</>
+                    ) : (
+                      '⬡  AUTHENTICATE & ENTER'
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-700 tracking-widest">DEMO ACCESS</span>
+                  <button
+                    onClick={() => { setEmail('demo@dentalcorp.ca'); setPassword('DemoDay2026'); }}
+                    className="text-[10px] text-cyan-700 hover:text-cyan-400 tracking-widest transition-colors"
+                  >
+                    USE DEMO CREDENTIALS →
                   </button>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-500/70 text-cyan-400 text-[11px] tracking-[0.3em] font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> AUTHENTICATING...</>
-                ) : (
-                  '⬡  AUTHENTICATE & ENTER'
-                )}
-              </button>
-            </form>}
-
-            {mfaStep === 'login' && <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-              <span className="text-[10px] text-slate-700 tracking-widest">DEMO ACCESS</span>
-              <button
-                onClick={() => { setEmail('claims-demo@uishealth.com'); setPassword('ClaimsDemo2026!'); }}
-                className="text-[10px] text-cyan-700 hover:text-cyan-400 tracking-widest transition-colors"
-              >
-                USE DEMO CREDENTIALS →
-              </button>
-            </div>}
+              </>
+            )}
           </div>
 
           <div className="text-center mt-5 text-[10px] text-slate-700 tracking-widest">

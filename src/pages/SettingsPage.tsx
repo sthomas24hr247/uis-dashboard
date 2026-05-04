@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { UserManagement } from '@/components/claims/UserManagement';
 import { useAuth } from '../context/AuthContext';
+import { useJurisdiction } from '../context/JurisdictionContext';
+import { TeamMemberPasswordReset } from '@/components/TeamMemberPasswordReset';
 import {
   Settings, Database, Shield, Users, Bell, Plug, CheckCircle2,
   AlertTriangle, RefreshCw, Globe, Lock, Cpu, ChevronRight, Building2,
@@ -142,7 +144,11 @@ function MFASection() {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { jurisdiction, isCanada, refresh: refreshJurisdiction } = useJurisdiction();
+  const [jurisdictionSaving, setJurisdictionSaving] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(isCanada ? 'CA' : 'US');
+  const [selectedProvince, setSelectedProvince] = useState(jurisdiction?.province_state || 'CA');
   const [activeTab, setActiveTab] = useState('practice');
   const [healthStatus, setHealthStatus] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
@@ -570,7 +576,7 @@ export default function SettingsPage() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Cpu className="w-5 h-5 text-teal-500" /> PMS Connection</h3>
             <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-700/30 mb-4">
-              <span className="text-2xl">🦷</span>
+
               <div className="flex-1"><p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{user?.pmsType === 'dentrix_ascend' ? 'Dentrix Ascend' : user?.pmsType === 'cleardent' ? 'ClearDent' : 'Open Dental FHIR'}</p><p className="text-xs text-emerald-600 dark:text-emerald-500">Connected · Real-time sync</p></div>
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             </div>
@@ -593,6 +599,113 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 p-6 lg:col-span-2">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-teal-500" /> Jurisdiction Settings
+            </h3>
+            {jurisdiction && (
+              <div className="flex items-start gap-3 p-3 mb-4 rounded-xl bg-teal-50 dark:bg-teal-900/10 border border-teal-200 dark:border-teal-700/30">
+                <span className="text-xl">{isCanada ? '🍁' : '🇺🇸'}</span>
+                <div>
+                  <p className="text-sm font-semibold text-teal-700 dark:text-teal-400">
+                    {isCanada ? 'Canadian Practice' : 'US Practice'} — {jurisdiction.province_state}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {jurisdiction.public_payer} · {jurisdiction.fee_schedule} fee schedule · {jurisdiction.currency} · {jurisdiction.predetermination_label}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Country</label>
+                <select
+                  value={selectedCountry}
+                  onChange={e => {
+                    setSelectedCountry(e.target.value);
+                    setSelectedProvince(e.target.value === 'CA' ? 'ON' : 'CA');
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+                >
+                  <option value="US">🇺🇸 United States</option>
+                  <option value="CA">🍁 Canada</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                  {selectedCountry === 'CA' ? 'Province' : 'State'}
+                </label>
+                <select
+                  value={selectedProvince}
+                  onChange={e => setSelectedProvince(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+                >
+                  {selectedCountry === 'CA' ? (
+                    <>
+                      <option value="ON">Ontario</option>
+                      <option value="BC">British Columbia</option>
+                      <option value="AB">Alberta</option>
+                      <option value="QC">Quebec</option>
+                      <option value="MB">Manitoba</option>
+                      <option value="SK">Saskatchewan</option>
+                      <option value="NS">Nova Scotia</option>
+                      <option value="NB">New Brunswick</option>
+                      <option value="NL">Newfoundland & Labrador</option>
+                      <option value="PE">Prince Edward Island</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="CA">California</option>
+                      <option value="TX">Texas</option>
+                      <option value="FL">Florida</option>
+                      <option value="NY">New York</option>
+                      <option value="WA">Washington</option>
+                      <option value="OR">Oregon</option>
+                      <option value="AZ">Arizona</option>
+                      <option value="CO">Colorado</option>
+                      <option value="IL">Illinois</option>
+                      <option value="OH">Ohio</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                if (!user?.practiceId) return;
+                setJurisdictionSaving(true);
+                try {
+                  await fetch(`${API_URL}/api/admin/practices/${user.practiceId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ country: selectedCountry, province_state: selectedProvince }),
+                  });
+                  refreshJurisdiction();
+                } catch {}
+                setJurisdictionSaving(false);
+              }}
+              disabled={jurisdictionSaving}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {jurisdictionSaving ? 'Saving...' : 'Save Jurisdiction'}
+            </button>
+            {jurisdiction && (
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  ['Public Payer', jurisdiction.public_payer],
+                  ['Fee Schedule', jurisdiction.fee_schedule],
+                  ['Currency', jurisdiction.currency],
+                  ['Auth Label', jurisdiction.predetermination_label],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">{label}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -645,6 +758,7 @@ export default function SettingsPage() {
                 <span className="text-xs text-slate-400 w-20 text-right">{formatLastLogin(u.lastLogin)}</span>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => setEditingUser(u)} className="p-1.5 hover:bg-teal-100 dark:hover:bg-teal-900/30 rounded-lg" title="Edit user">
+                  <TeamMemberPasswordReset userId={u.id} userName={u.name} userEmail={u.email} token={token} />
                     <Edit3 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   </button>
                   <button onClick={() => setShowDeleteConfirm(u.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Remove user">

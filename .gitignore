@@ -23,3 +23,9 @@ npm-debug.log*
 
 # Local scripts
 deploy-azure.sh
+
+# Backup files (added 2026-05-03)
+*.bak
+*.bak2
+.env.bak
+.env.bak.*

@@ -199,7 +199,7 @@ export default function ROICalculatorPage() {
   }) => (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <span className="text-sm text-slate-300">{label}</span>
+        <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
         <span className="text-sm font-bold text-white">{format(value)}</span>
       </div>
       <input
@@ -223,7 +223,7 @@ export default function ROICalculatorPage() {
     <div className="space-y-6 pb-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
           <div className="p-2 bg-uis-600/20 rounded-xl">
             <Calculator className="w-6 h-6 text-uis-400" />
           </div>
@@ -236,8 +236,8 @@ export default function ROICalculatorPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         {/* ─── LEFT: Practice Inputs ─────────────────────────────────── */}
-        <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-6 space-y-6">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
             <Building2 className="w-5 h-5 text-uis-400" />
             Practice Profile
           </h2>
@@ -259,8 +259,8 @@ export default function ROICalculatorPage() {
         {/* ─── CENTER: Outcome Gap Funnel + Leakage ──────────────────── */}
         <div className="space-y-6">
           {/* Funnel */}
-          <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <Target className="w-5 h-5 text-uis-400" />
               Outcome Gap Funnel
             </h2>
@@ -268,13 +268,13 @@ export default function ROICalculatorPage() {
               {funnelStages.map((stage, i) => (
                 <div key={stage.label} className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-300">{stage.label}</span>
+                    <span className="text-slate-600 dark:text-slate-300">{stage.label}</span>
                     <div className="flex gap-3">
-                      <span className="text-slate-500">{stage.pct}%</span>
-                      <span className="text-white font-medium">{fmtFull(stage.value)}</span>
+                      <span className="text-slate-400 dark:text-slate-500">{stage.pct}%</span>
+                      <span className="text-slate-900 dark:text-white font-medium">{fmtFull(stage.value)}</span>
                     </div>
                   </div>
-                  <div className="h-8 bg-slate-700/50 rounded-lg overflow-hidden">
+                  <div className="h-8 bg-slate-200 dark:bg-slate-700/50 rounded-lg overflow-hidden">
                     <div
                       className={`h-full rounded-lg transition-all duration-500 ${
                         i === 0 ? 'bg-blue-500' : i === 1 ? 'bg-indigo-500' : i === 2 ? 'bg-purple-500' : 'bg-emerald-500'
@@ -292,15 +292,15 @@ export default function ROICalculatorPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
               <span className="text-sm text-uis-400 font-medium">Total Monthly Leakage</span>
               <span className="text-xl font-bold text-red-400">{fmtFull(totalLeakage)}</span>
             </div>
           </div>
 
           {/* Recovery Breakdown */}
-          <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-uis-400" />
               UIS Recovery Breakdown
             </h2>
@@ -311,7 +311,7 @@ export default function ROICalculatorPage() {
                 { label: 'Collection Gap Recovery', desc: '40% of unbilled/uncollected recovered via automation', value: completedNotCollected },
                 { label: 'No-Show Recovery', desc: '30% of no-shows prevented via predictive outreach', value: noShowRecovery },
               ].map(item => (
-                <div key={item.label} className="flex justify-between items-start p-3 bg-slate-700/30 rounded-xl">
+                <div key={item.label} className="flex justify-between items-start p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-white">{item.label}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
@@ -320,7 +320,7 @@ export default function ROICalculatorPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
               <span className="text-sm text-uis-400 font-medium">Total Monthly Recovery</span>
               <span className="text-xl font-bold text-emerald-400">+{fmtFull(totalMonthlyRecovery)}</span>
             </div>
@@ -345,15 +345,15 @@ export default function ROICalculatorPage() {
           </div>
 
           {/* 12-Month Projection */}
-          <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
-            <h3 className="text-sm font-semibold text-white mb-3">12-Month Projection</h3>
+          <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-6">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">12-Month Projection</h3>
             {[
               { month: 'Month 1', value: totalMonthlyRecovery },
               { month: 'Month 3', value: totalMonthlyRecovery * 3 },
               { month: 'Month 6', value: totalMonthlyRecovery * 6 },
               { month: 'Month 12', value: totalMonthlyRecovery * 12 },
             ].map(item => (
-              <div key={item.month} className="flex justify-between py-2 border-b border-slate-700/30 last:border-0">
+              <div key={item.month} className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700/30 last:border-0">
                 <span className="text-sm text-slate-400">{item.month}</span>
                 <span className="text-sm font-semibold text-emerald-400">+{fmtFull(item.value)} recovered</span>
               </div>
@@ -361,8 +361,8 @@ export default function ROICalculatorPage() {
           </div>
 
           {/* What Powers These Results */}
-          <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
-            <h3 className="text-sm font-semibold text-white mb-3">What Powers These Results</h3>
+          <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-6">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">What Powers These Results</h3>
             <div className="space-y-2">
               {[
                 'Outcome Gap Intelligence Engine',
@@ -376,7 +376,7 @@ export default function ROICalculatorPage() {
               ].map(item => (
                 <div key={item} className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-uis-400 shrink-0" />
-                  <span className="text-sm text-slate-300">{item}</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-300">{item}</span>
                 </div>
               ))}
             </div>
@@ -386,7 +386,7 @@ export default function ROICalculatorPage() {
 
       {/* ─── PRICING SECTION: Expandable Plan Cards ─────────────────────────── */}
       <div>
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-uis-400" />
           UIS Health Plans
         </h2>
@@ -403,8 +403,8 @@ export default function ROICalculatorPage() {
                 <div
                   className={`relative rounded-2xl border transition-all duration-300 ${
                     isSelected
-                      ? `${p.borderColor} bg-slate-800/80 ring-1 ring-uis-500/30`
-                      : 'border-slate-700/50 bg-slate-800/40 hover:border-slate-600/50'
+                      ? `${p.borderColor} bg-white dark:bg-slate-800/80 ring-1 ring-uis-500/30`
+                      : 'border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/40 hover:border-slate-600/50'
                   }`}
                 >
                   {/* Popular Badge */}
@@ -445,7 +445,7 @@ export default function ROICalculatorPage() {
                         className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                           isSelected
                             ? 'bg-uis-600 text-white'
-                            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                            : 'bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-700'
                         }`}
                       >
                         {isSelected ? '✓ Selected' : 'Calculate ROI'}
@@ -460,7 +460,7 @@ export default function ROICalculatorPage() {
                     </div>
 
                     {/* Quick Feature Summary (always visible) */}
-                    <div className="mt-4 pt-4 border-t border-slate-700/30 space-y-2">
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/30 space-y-2">
                       {key === 'starter' && (
                         <>
                           <QuickFeature text="1 PMS connection" />
@@ -493,7 +493,7 @@ export default function ROICalculatorPage() {
 
                   {/* ─── Expanded Feature Details ─────────────────────────── */}
                   {isExpanded && (
-                    <div className="border-t border-slate-700/50 p-5 space-y-5 animate-in">
+                    <div className="border-t border-slate-200 dark:border-slate-700/50 p-5 space-y-5 animate-in">
                       {Object.entries(p.features).map(([category, features]) => {
                         const Icon = categoryIcons[category] || CheckCircle2;
                         return (
@@ -510,7 +510,7 @@ export default function ROICalculatorPage() {
                                   ) : (
                                     <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                                   )}
-                                  <span className={`text-sm ${feat.included ? 'text-slate-300' : 'text-slate-600'}`}>
+                                  <span className={`text-sm ${feat.included ? 'text-slate-600 dark:text-slate-300' : 'text-slate-600'}`}>
                                     {feat.name}
                                   </span>
                                 </div>
@@ -521,7 +521,7 @@ export default function ROICalculatorPage() {
                       })}
 
                       {/* ROI at this tier */}
-                      <div className="pt-3 border-t border-slate-700/30">
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700/30">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-slate-400">Monthly cost</span>
                           <span className="text-sm font-semibold text-white">${p.price}/mo</span>
@@ -566,7 +566,7 @@ function QuickFeature({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-2">
       <CheckCircle2 className="w-3.5 h-3.5 text-uis-400 shrink-0" />
-      <span className="text-xs text-slate-300">{text}</span>
+      <span className="text-xs text-slate-600 dark:text-slate-300">{text}</span>
     </div>
   );
 }

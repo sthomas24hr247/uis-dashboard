@@ -24,6 +24,7 @@ import CommandCenterPage from './pages/CommandCenterPage';
 import WorkforceIntelPage from './pages/WorkforceIntelPage';
 import CDTGapAnalysisPage from './pages/CDTGapAnalysisPage';
 import OutcomeGapPage from './pages/OutcomeGapPage';
+import OutcomeGapClassifiedPage from './pages/OutcomeGapClassifiedPage';
 import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
 import WaitlistPage from './pages/WaitlistPage';
 import EducationalResourcesPage from './pages/EducationalResourcesPage';
@@ -88,6 +89,7 @@ function App() {
         <Route path="bil" element={<BILDashboardPage />} />
         <Route path="insurance" element={<InsuranceVerificationPage />} />
         <Route path="outcome-gap" element={<OutcomeGapPage />} />
+        <Route path="outcome-gap/classified" element={<OutcomeGapClassifiedPage />} />
         <Route path="quality-of-care" element={<QualityOfCarePage />} />
         <Route path="workforce" element={<WorkforceIntelPage />} />
         <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />

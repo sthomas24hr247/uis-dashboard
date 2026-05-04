@@ -107,9 +107,48 @@ export default function ExecutiveCommandCenter() {
   const [activeTab, setActiveTab] = useState<TabType>("offices");
   const [showPriorities, setShowPriorities] = useState(false);
   const [selectedOffice, setSelectedOffice] = useState<string | null>(null);
+
+  // Fetch live practice summary from /api/dashboard/practice-summary.
+  // Falls back to demoOffices if the API is unreachable so the dashboard
+  // never goes blank during demos.
+  const [offices, setOffices] = useState<typeof demoOffices>(demoOffices);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/dashboard/practice-summary`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.offices && data.offices.length > 0) {
+          setOffices(data.offices);
+        } else {
+          console.warn('[ExecutiveCommandCenter] API returned no offices, keeping demo data');
+        }
+      } catch (err: any) {
+        console.error('[ExecutiveCommandCenter] Failed to fetch practice summary:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSummary();
+  }, []);
+
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => { setLoaded(true); }, []);
+
+  const [missingContact, setMissingContact] = useState<{ episode_count: number; total_dollars: number; affected_patients: number } | null>(null);
+  useEffect(() => {
+    fetch(`${API_URL}/api/outcome-gap/missing-contact`)
+      .then(r => r.json())
+      .then(d => setMissingContact(d))
+      .catch(() => {});
+  }, []);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -121,14 +160,14 @@ export default function ExecutiveCommandCenter() {
   const userName = user?.displayName || user?.firstName || user?.email?.split("@")[0] || "Executive";
 
   // Aggregate stats across all offices
-  const totalRevenue = demoOffices.reduce((s, o) => s + o.monthlyRevenue, 0);
-  const totalPrevRevenue = demoOffices.reduce((s, o) => s + o.prevMonthRevenue, 0);
+  const totalRevenue = offices.reduce((s, o) => s + o.monthlyRevenue, 0);
+  const totalPrevRevenue = offices.reduce((s, o) => s + o.prevMonthRevenue, 0);
   const revenueChange = ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100);
-  const totalPatients = demoOffices.reduce((s, o) => s + o.activePatients, 0);
-  const avgQCI = demoOffices.reduce((s, o) => s + o.qciScore, 0) / demoOffices.length;
-  const totalLeakage = demoOffices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
+  const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
+  const avgQCI = offices.reduce((s, o) => s + o.qciScore, 0) / offices.length;
+  const totalLeakage = offices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
 
-  const officeAlerts = demoOffices.flatMap(o => {
+  const officeAlerts = offices.flatMap(o => {
     const alerts: { office: string; message: string; severity: "high" | "medium" | "low" }[] = [];
     if (o.noShowRate > 14) alerts.push({ office: o.name, message: `No-show rate at ${o.noShowRate}% — above 14% threshold`, severity: "high" });
     if (o.benchmarkStatus === "below") alerts.push({ office: o.name, message: `Overall QCI below benchmark (${o.qciScore})`, severity: "high" });
@@ -153,12 +192,12 @@ export default function ExecutiveCommandCenter() {
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          <span className="ml-3 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium">{demoOffices.length} offices</span>
+          <span className="ml-3 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium">{offices.length} offices</span>
         </p>
       </div>
 
       {/* Organization KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenue (MTD)</p>
@@ -177,7 +216,7 @@ export default function ExecutiveCommandCenter() {
             <Users className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalPatients.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 mt-1">Across {demoOffices.length} locations</p>
+          <p className="text-xs text-slate-400 mt-1">Across {offices.length} locations</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
@@ -196,6 +235,19 @@ export default function ExecutiveCommandCenter() {
           </div>
           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">${(totalLeakage / 1000).toFixed(1)}K</p>
           <p className="text-xs text-slate-400 mt-1">Outcome gap monthly total</p>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 cursor-pointer hover:border-orange-400/50 transition-all" onClick={() => navigate('/outcome-gap')}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Missing Contact</p>
+            <Users className="w-4 h-4 text-orange-500" />
+          </div>
+          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {missingContact ? `$${(missingContact.total_dollars / 1000).toFixed(1)}K` : '—'}
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            {missingContact ? `${missingContact.episode_count} episodes · ${missingContact.affected_patients} patients` : 'Loading...'}
+          </p>
         </div>
       </div>
 
@@ -253,13 +305,13 @@ export default function ExecutiveCommandCenter() {
       {/* All Offices View */}
       {activeTab === "offices" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {demoOffices.map((office) => {
+          {offices.map((office) => {
             const sc = statusColors[office.benchmarkStatus];
             const revChange = ((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100);
             return (
               <div
                 key={office.id}
-                onClick={() => navigate(`/home?office=${office.id}`)}
+                onClick={() => setSelectedOffice(office.id)}
                 className={`p-5 rounded-2xl bg-white dark:bg-slate-800/80 border ${sc.border} hover:shadow-lg transition-all cursor-pointer group`}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -331,8 +383,8 @@ export default function ExecutiveCommandCenter() {
                 </tr>
               </thead>
               <tbody>
-                {demoOffices.map(office => (
-                  <tr key={office.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 cursor-pointer" onClick={() => navigate(`/home?office=${office.id}`)}>
+                {offices.map(office => (
+                  <tr key={office.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 cursor-pointer" onClick={() => setSelectedOffice(office.id)}>
                     <td className="py-3 px-4">
                       <p className="font-semibold text-slate-900 dark:text-white">{office.name.replace("Bright Smiles Dental - ", "")}</p>
                       <p className="text-[10px] text-slate-400">{office.providers} providers</p>
@@ -417,6 +469,154 @@ export default function ExecutiveCommandCenter() {
           ))}
         </div>
       </div>
+      {/* Practice drill-down panel */}
+      {selectedOffice && (() => {
+        const office = offices.find(o => o.id === selectedOffice);
+        return office ? <PracticeDrillDown office={office} onClose={() => setSelectedOffice(null)} missingContact={missingContact} /> : null;
+      })()}
     </div>
+  );
+}
+
+// ── Practice Drill-Down Panel ────────────────────────────────────────────────
+function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof demoOffices[0]; onClose: () => void; missingContact: { episode_count: number; total_dollars: number; affected_patients: number } | null }) {
+  const worklistItems = [
+    { patient: 'P. Alvarez', age: 52, action: 'Reschedule crown — insurance resets in 47 days', value: 1840, tier: 'HIGH', stage: 'Accepted → Not Scheduled' },
+    { patient: 'M. Chen', age: 38, action: 'Recall overdue 94 days — high compliance history', value: 312, tier: 'HIGH', stage: 'Completed → Recall Gap' },
+    { patient: 'T. Washington', age: 44, action: 'Tomorrow 2pm — elevated no-show risk', value: 485, tier: 'MEDIUM', stage: 'Scheduled → At Risk' },
+    { patient: 'R. Okonkwo', age: 61, action: 'Perio maintenance dropped to prophy', value: 228, tier: 'MEDIUM', stage: 'Completed → Coding Gap' },
+    { patient: 'J. Patel', age: 29, action: 'Treatment plan presented 6 days ago — follow-up window open', value: 3200, tier: 'LOW', stage: 'Presented → Pending' },
+  ];
+
+  const tierColor = (t: string) =>
+    t === 'HIGH' ? 'text-pink-400 bg-pink-500/10 border-pink-500/20' :
+    t === 'MEDIUM' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+    'text-slate-400 bg-slate-500/10 border-slate-500/20';
+
+  const outcomeGap = [
+    { label: 'Actionable now', value: 7285, color: '#2DD4BF', pct: 5 },
+    { label: 'Queued', value: 38000, color: '#A855F7', pct: 24 },
+    { label: 'Structural', value: 68000, color: '#F59E0B', pct: 43 },
+    { label: 'Unrecoverable', value: 44000, color: '#6B6A7D', pct: 28 },
+  ];
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="fixed right-0 top-0 h-full w-full max-w-3xl z-50 bg-[#0A0A14] border-l border-purple-500/20 overflow-y-auto shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-8 py-5 bg-[#0A0A14]/95 backdrop-blur border-b border-purple-500/10">
+          <div>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-pink-400 mb-1">Practice Intelligence</div>
+            <h2 className="text-xl font-semibold text-white">{office.name}</h2>
+            <p className="text-sm text-slate-400 mt-0.5">{office.location} · {office.providers} providers · {office.activePatients.toLocaleString()} patients</p>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-full border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 flex items-center justify-center transition-all text-lg">×</button>
+        </div>
+
+        <div className="px-8 py-6 space-y-6">
+          {/* 60-second briefing */}
+          <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0b2e 0%, #0F0820 100%)', border: '1px solid rgba(168,85,247,0.2)' }}>
+            <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #A855F7, transparent)' }} />
+            <div className="relative">
+              <div className="text-[10px] tracking-[0.25em] uppercase text-pink-400 mb-3">The 60-second briefing</div>
+              <p className="text-base leading-relaxed text-slate-200" style={{ fontStyle: 'italic' }}>
+                This month, <span className="text-red-400">$157K flowed out</span> of your pipeline.{' '}
+                <span className="text-teal-400">$7,285 is immediately recoverable</span> from five actions today.
+                P. Alvarez and M. Chen need attention first.
+              </p>
+            </div>
+          </div>
+
+          {/* KPI strip */}
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { label: 'Monthly Revenue', value: `$${(office.monthlyRevenue/1000).toFixed(0)}K`, sub: `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs last mo`, color: 'text-teal-400' },
+              { label: 'QCI Score', value: `${office.qciScore}`, sub: office.qciGrade + ' grade', color: office.qciGrade === 'B' ? 'text-blue-400' : 'text-amber-400' },
+              { label: 'No-Show Rate', value: `${office.noShowRate}%`, sub: office.noShowRate > 10 ? 'Above threshold' : 'On target', color: office.noShowRate > 10 ? 'text-red-400' : 'text-teal-400' },
+              { label: 'Gap Leakage', value: `$${(office.outcomeGapLeakage/1000).toFixed(1)}K`, sub: 'This month', color: 'text-pink-400' },
+              { label: 'Missing Contact', value: missingContact ? `$${(missingContact.total_dollars/1000).toFixed(1)}K` : '—', sub: missingContact ? `${missingContact.episode_count} episodes` : 'Loading...', color: 'text-orange-400' },
+            ].map((k, i) => (
+              <div key={i} className="rounded-xl p-4" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
+                <div className="text-[10px] tracking-[0.15em] uppercase text-slate-500 mb-1">{k.label}</div>
+                <div className={`text-2xl font-semibold ${k.color}`}>{k.value}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{k.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Outcome gap breakdown */}
+          <div className="rounded-2xl p-5" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-slate-500 mb-4">Outcome Gap — $157K This Month</div>
+            <div className="flex h-2 rounded-full overflow-hidden mb-4">
+              {outcomeGap.map((s, i) => (
+                <div key={i} style={{ width: `${s.pct}%`, background: s.color }} />
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {outcomeGap.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                  <span className="text-xs text-slate-400">{s.label}</span>
+                  <span className="text-xs font-mono ml-auto" style={{ color: s.color }}>${(s.value/1000).toFixed(0)}K</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Worklist */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] tracking-[0.25em] uppercase text-slate-500">Today's Worklist</div>
+              <div className="text-[10px] text-pink-400 font-mono">{worklistItems.filter(i => i.tier === 'HIGH').length} HIGH PRIORITY</div>
+            </div>
+            <div className="space-y-2">
+              {worklistItems.map((item, i) => (
+                <div key={i} className="rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-purple-500/30 transition-all" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
+                  <div className={`text-[9px] font-bold px-2 py-1 rounded-full border flex-shrink-0 mt-0.5 ${tierColor(item.tier)}`}>{item.tier}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-medium text-white">{item.patient}</span>
+                      <span className="text-sm font-mono text-teal-400 flex-shrink-0">${item.value.toLocaleString()}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">{item.action}</p>
+                    <div className="text-[10px] text-slate-600 mt-1">{item.stage}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* QCI dimension breakdown */}
+          <div className="rounded-2xl p-5" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-slate-500 mb-4">QCI Dimension Breakdown</div>
+            <div className="space-y-3">
+              {Object.entries(office.dimensions).map(([key, dim]) => {
+                const label = key.replace(/_/g, ' ').replace(/\w/g, c => c.toUpperCase());
+                const isAbove = dim.status === 'above';
+                const isBelow = dim.status === 'below';
+                return (
+                  <div key={key}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-slate-400">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">Benchmark: {dim.benchmark}%</span>
+                        <span className={`text-xs font-bold ${isAbove ? 'text-teal-400' : isBelow ? 'text-red-400' : 'text-slate-300'}`}>{dim.score}%</span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div className={`h-full rounded-full ${isAbove ? 'bg-teal-500' : isBelow ? 'bg-red-500' : 'bg-slate-500'}`} style={{ width: `${dim.score}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

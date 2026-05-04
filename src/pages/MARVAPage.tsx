@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ECPAssessment from '../components/ECPAssessment';
+import MARVAPortfolioBenchmarks from '../components/MARVAPortfolioBenchmarks';
 import { useAuth } from '../context/AuthContext';
 import {
   Brain, Zap, TrendingUp, AlertTriangle, CheckCircle2,
@@ -578,13 +579,21 @@ function DimensionsTable() {
 export default function MARVAPage() {
   const { user, token } = useAuth();
   const [activeExec, setActiveExec] = useState<'diana' | 'marcus'>('diana');
-  const [activeTab, setActiveTab] = useState<'my-dashboard' | 'demo' | 'how-it-works'>('demo');
+  const [activeTab, setActiveTab] = useState<'my-dashboard' | 'demo' | 'how-it-works' | 'portfolio'>('demo');
   const [executiveProfile, setExecutiveProfile] = useState<ExecutiveProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
   const [assessmentComplete, setAssessmentComplete] = useState(false);
+  const [missingContact, setMissingContact] = useState<{ episode_count: number; total_dollars: number; affected_patients: number; pct_patients_no_channel: string } | null>(null);
 
   const apiBase = 'https://api.uishealth.com';
+
+  useEffect(() => {
+    fetch('https://api.uishealth.com/api/outcome-gap/missing-contact')
+      .then(r => r.json())
+      .then(d => setMissingContact(d))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!user?.userId || !token) return;
@@ -725,7 +734,8 @@ export default function MARVAPage() {
         {[
           ...(executiveProfile?.marva_config ? [{ id: 'my-dashboard', label: 'My Dashboard' }] : []),
           { id: 'demo', label: 'Live Demo' },
-          { id: 'how-it-works', label: 'How It Works' }
+          { id: 'how-it-works', label: 'How It Works' },
+          { id: 'portfolio', label: 'Portfolio' }
         ].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id as any)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === t.id ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
@@ -762,6 +772,40 @@ export default function MARVAPage() {
             {activeExec === 'diana' ? <DianaView /> : <MarcusView />}
           </div>
         </>
+      )}
+
+      {activeTab === 'portfolio' && (
+        <div className="p-4 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-orange-200 dark:border-orange-800/40">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Queued — Missing Contact</p>
+                <AlertTriangle className="w-4 h-4 text-orange-500" />
+              </div>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {missingContact ? `$${(missingContact.total_dollars / 1000).toFixed(1)}K` : '—'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {missingContact ? `${missingContact.episode_count} episodes · ${missingContact.affected_patients} patients` : 'Loading...'}
+              </p>
+            </div>
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Patients — No Channel</p>
+                <Users className="w-4 h-4 text-slate-400" />
+              </div>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                {missingContact ? `${missingContact.pct_patients_no_channel}%` : '—'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">No phone, SMS, or email on file</p>
+            </div>
+            <div className="p-5 rounded-2xl bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/40 flex flex-col justify-center">
+              <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-1">Action Required</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Front desk: capture phone or email at next patient contact. Episodes auto-promote to Actionable when a channel is added.</p>
+            </div>
+          </div>
+          <MARVAPortfolioBenchmarks />
+        </div>
       )}
 
       {activeTab === 'how-it-works' && (

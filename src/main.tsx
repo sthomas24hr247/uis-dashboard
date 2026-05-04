@@ -18,6 +18,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { ApolloProvider } from '@apollo/client'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
+import { JurisdictionProvider } from './context/JurisdictionContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { apolloClient } from './services/apollo'
 import './index.css'
@@ -28,7 +29,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ApolloProvider client={apolloClient}>
           <AuthProvider>
-            <App />
+            <JurisdictionProvider>
+              <App />
+            </JurisdictionProvider>
           </AuthProvider>
         </ApolloProvider>
       </BrowserRouter>

@@ -4,7 +4,10 @@ import { SignSubmit } from "@/components/claims/SignSubmit";
 import { PreventionEngine } from "@/components/claims/PreventionEngine";
 import DocumentsVault from "@/components/claims/DocumentsVault";
 import { OptionAFlow } from "@/components/claims/OptionAFlow";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useJurisdiction } from "../context/JurisdictionContext";
+import { useAuth } from "../context/AuthContext";
+import { ODA_FEES, CDCP_STEP_THERAPY, CDCP_GA_CRITERIA, CDCP_DENIAL_CODES, CDCP_NARRATIVE_TEMPLATES, CA_PAYERS, CA_MOCK_CLAIMS } from "../data/canadian-claims-data";
 import {
   FileText, Shield, PenTool, BarChart3,
   CheckCircle, XCircle, ArrowRight, RefreshCw,
@@ -349,6 +352,9 @@ function RecoveryWorkflow({ claims, preselected, onApprove, bulkQueue }: {
   bulkQueue?: DeniedClaim[];
 }) {
   const [selected, setSelected] = useState<DeniedClaim | null>(preselected);
+  const { isCanada } = useJurisdiction();
+  const activeDenialCodes = isCanada ? CDCP_DENIAL_CODES : ARC_CODES;
+  const activeProcedureCodes = isCanada ? ODA_FEES : SMA_FEES;
   const [activeSection, setActiveSection] = useState<"arc" | "criteria" | "narrative" | "checklist">("arc");
   const [criteriaChecked, setCriteriaChecked] = useState<Record<string, boolean>>({});
   const [narrative, setNarrative] = useState("");
@@ -372,9 +378,9 @@ function RecoveryWorkflow({ claims, preselected, onApprove, bulkQueue }: {
 
   const loadTemplate = () => {
     const templates: Record<string, string> = {
-      preauth_v: NARRATIVE_TEMPLATES.preauth_immature_cognition,
-      preauth_med: NARRATIVE_TEMPLATES.preauth_medical_condition,
-      emergency_inf: NARRATIVE_TEMPLATES.emergency_infection,
+      preauth_v: isCanada ? CDCP_NARRATIVE_TEMPLATES.preauth_behaviour : NARRATIVE_TEMPLATES.preauth_immature_cognition,
+      preauth_med: isCanada ? CDCP_NARRATIVE_TEMPLATES.preauth_medical : NARRATIVE_TEMPLATES.preauth_medical_condition,
+      emergency_inf: isCanada ? CDCP_NARRATIVE_TEMPLATES.emergency_acute : NARRATIVE_TEMPLATES.emergency_infection,
     };
     const claim = preselected ?? null;
     const raw = templates[narrativeMode];
@@ -384,8 +390,8 @@ function RecoveryWorkflow({ claims, preselected, onApprove, bulkQueue }: {
       const sexDefault = claim.patientAge && claim.patientAge <= 12 ? 'pediatric' : '[SEX]';
       const unitsD9222 = Math.max(1, Math.round((claim.billedAmt || 45.68) / 45.68));
       const unitsD9223 = Math.max(0, unitsD9222 - 1);
-      const procedureDesc = SMA_FEES[claim.cdtCode as keyof typeof SMA_FEES]?.desc || claim.procedure || '[PROCEDURE]';
-      const denialContext = ARC_CODES[claim.denialCode as keyof typeof ARC_CODES]?.rootCause || '[DENIAL_REASON]';
+      const procedureDesc = activeProcedureCodes[claim.cdtCode as keyof typeof activeProcedureCodes]?.desc || claim.procedure || '[PROCEDURE]';
+      const denialContext = activeDenialCodes[claim.denialCode as keyof typeof activeDenialCodes]?.rootCause || '[DENIAL_REASON]';
 
       const populated = raw
         .replace(/\[AGE\]/g, String(claim.patientAge || '[AGE]'))
@@ -412,7 +418,7 @@ A — Assessment
 Denial basis: ${denialContext}
 
 P — Plan
-Resubmit with corrected documentation per ARC resolution guidelines.`;
+Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution guidelines." : "ARC resolution guidelines."}`;
 
       setNarrative(soapFormatted);
     } else {
@@ -436,6 +442,7 @@ Resubmit with corrected documentation per ARC resolution guidelines.`;
                 className="w-full text-left bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 hover:border-teal-500/40 transition-all group">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
+
                     <span className="font-mono text-teal-500 font-bold text-sm">{c.patientId}</span>
                     <div>
                       <div className="font-semibold text-slate-900 dark:text-white">{c.patientName}{c.patientAge ? `, age ${c.patientAge}` : ""}</div>
@@ -462,13 +469,13 @@ Resubmit with corrected documentation per ARC resolution guidelines.`;
     );
   }
 
-  const arc = ARC_CODES[selected.denialCode];
-  const smaFee = SMA_FEES[selected.cdtCode];
+  const arc = activeDenialCodes[selected.denialCode];
+  const smaFee = activeProcedureCodes[selected.cdtCode];
   const isGAClaim = ["D9222","D9223","D9239","D9243"].includes(selected.cdtCode);
   const isEmergency = selected.claimType === "EMERGENCY";
 
   const sectionTabs = [
-    { id: "arc",       label: "1. ARC Analysis",      icon: AlertTriangle },
+    { id: "arc",       label: isCanada ? "1. Denial Analysis" : "1. ARC Analysis",      icon: AlertTriangle },
     { id: "criteria",  label: "2. Criteria Check",    icon: Shield, show: isGAClaim },
     { id: "narrative", label: "3. Narrative Builder",  icon: FileText },
     { id: "checklist", label: "4. Submission Checklist", icon: CheckCircle },
@@ -498,7 +505,7 @@ Resubmit with corrected documentation per ARC resolution guidelines.`;
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-black uppercase tracking-wider text-teal-600 dark:text-teal-400">Claims Recovery — {selected.denialCode}</h3>
           <div className="flex gap-2">
-            {isEmergency && <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-red-500/15 text-red-400 uppercase">Emergency — Title 22 TAR Waiver</span>}
+            {isEmergency && <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-red-500/15 text-red-400 uppercase">{isCanada ? "Emergency — CDCP Section 4.2.5" : "Emergency — Title 22 TAR Waiver"}</span>}
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${arc?.resolutionType === "TAR_RESUBMISSION" ? "bg-violet-500/15 text-violet-400" : arc?.resolutionType === "DOCUMENTATION_APPEND" ? "bg-sky-500/15 text-sky-400" : "bg-amber-500/15 text-amber-400"}`}>{arc?.resolutionType?.replace(/_/g,' ')}</span>
           </div>
         </div>
@@ -506,7 +513,7 @@ Resubmit with corrected documentation per ARC resolution guidelines.`;
           <div><span className="text-slate-500">Patient:</span><br /><span className="font-semibold text-slate-900 dark:text-white">{selected.patientName}</span></div>
           <div><span className="text-slate-500">Age:</span><br /><span className="text-slate-700 dark:text-slate-200">{selected.patientAge || "—"} years</span></div>
           <div><span className="text-slate-500">DOS:</span><br /><span className="text-slate-700 dark:text-slate-200">{selected.claimDate}</span></div>
-          <div><span className="text-slate-500">CDT (Current Rate):</span><br /><span className="font-mono text-teal-500">{selected.cdtCode} ({fmtCurrency(PROP56_FEES[selected.cdtCode as keyof typeof PROP56_FEES] || smaFee?.fee || 0)})</span>{PROP56_FEES[selected.cdtCode as keyof typeof PROP56_FEES] && <span className="text-[9px] text-amber-400 ml-1">Prop 56 — reverts to {fmtCurrency(smaFee?.fee || 0)} July 1</span>}</div>
+          <div><span className="text-slate-500">{isCanada ? "ODA Code" : "CDT"} (Current Rate):</span><br /><span className="font-mono text-teal-500">{selected.cdtCode} ({fmtCurrency(isCanada ? (smaFee?.fee || 0) : (PROP56_FEES[selected.cdtCode as keyof typeof PROP56_FEES] || smaFee?.fee || 0))})</span>{!isCanada && PROP56_FEES[selected.cdtCode as keyof typeof PROP56_FEES] && <span className="text-[9px] text-amber-400 ml-1">Prop 56 — reverts to {fmtCurrency(smaFee?.fee || 0)} July 1</span>}</div>
           <div><span className="text-slate-500">Days Old:</span><br /><span className={`font-bold ${selected.daysOld > 30 ? "text-red-400" : "text-amber-400"}`}>{selected.daysOld}d</span></div>
         </div>
       </div>
@@ -555,11 +562,11 @@ Resubmit with corrected documentation per ARC resolution guidelines.`;
           {/* SMA Fee Reference */}
           {smaFee && (
             <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">SMA Fee Schedule Reference — Feb 2026</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{isCanada ? "ODA Fee Schedule Reference — 2026" : "SMA Fee Schedule Reference — Feb 2026"}</div>
               <div className="grid grid-cols-4 gap-4 text-xs">
-                <div><span className="text-slate-500">CDT Code:</span><br /><span className="font-mono text-teal-500 font-bold">{selected.cdtCode}</span></div>
-                <div><span className="text-slate-500">SMA Fee:</span><br /><span className="font-bold text-slate-700 dark:text-slate-200">{fmtCurrency(smaFee.fee)}</span></div>
-                <div><span className="text-slate-500">Auth Required:</span><br /><span className={`font-bold ${smaFee.authRequired ? "text-red-400" : "text-emerald-400"}`}>{smaFee.authRequired ? "YES — TAR Required" : "No"}</span></div>
+                <div><span className="text-slate-500">{isCanada ? "ODA Code:" : "CDT Code:"}</span><br /><span className="font-mono text-teal-500 font-bold">{selected.cdtCode}</span></div>
+                <div><span className="text-slate-500">{isCanada ? "ODA Fee:" : "SMA Fee:"}</span><br /><span className="font-bold text-slate-700 dark:text-slate-200">{fmtCurrency(smaFee.fee)}</span></div>
+                <div><span className="text-slate-500">Auth Required:</span><br /><span className={`font-bold ${smaFee.authRequired ? "text-red-400" : "text-emerald-400"}`}>{smaFee.authRequired ? (isCanada ? "YES — Predetermination Required" : "YES — TAR Required") : "No"}</span></div>
                 <div><span className="text-slate-500">Key Rule:</span><br /><span className="text-slate-600 dark:text-slate-300">{smaFee.notes}</span></div>
               </div>
             </div>
@@ -639,9 +646,19 @@ Resubmit with corrected documentation per ARC resolution guidelines.`;
             <div className="flex-1">
               <select value={narrativeMode} onChange={e => setNarrativeMode(e.target.value as any)}
                 className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200">
-                <option value="preauth_v">Pre-Auth Template: Extensive Treatment / Immature Cognition</option>
-                <option value="preauth_med">Pre-Auth Template: Failed Behavior Management / Medical Condition</option>
-                <option value="emergency_inf">Emergency Template: Acute Infection / Facial Swelling</option>
+                {isCanada ? (
+                  <>
+                    <option value="preauth_v">Predetermination: Behaviour Management / Immature Cognition</option>
+                    <option value="preauth_med">Predetermination: Medical Condition (CDCP Section 4.2.3)</option>
+                    <option value="emergency_inf">Emergency GA: Acute Infection / CDCP Section 4.2.5</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="preauth_v">Pre-Auth Template: Extensive Treatment / Immature Cognition</option>
+                    <option value="preauth_med">Pre-Auth Template: Failed Behavior Management / Medical Condition</option>
+                    <option value="emergency_inf">Emergency Template: Acute Infection / Facial Swelling</option>
+                  </>
+                )}
               </select>
             </div>
             <button onClick={loadTemplate} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-lg transition-all">
@@ -970,8 +987,15 @@ function PreventionEngineTab({ claims }: { claims: DeniedClaim[] }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ClaimsRecoveryPage() {
+  const { isCanada } = useJurisdiction();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"tracker" | "recovery" | "sign" | "prevention" | "bulk" | "documents">("tracker");
-  const [claims, setClaims] = useState<DeniedClaim[]>(MOCK_CLAIMS);
+  const [claims, setClaims] = useState<DeniedClaim[]>(isCanada ? CA_MOCK_CLAIMS as any : MOCK_CLAIMS);
+  useEffect(() => {
+    setClaims(isCanada ? CA_MOCK_CLAIMS as any : MOCK_CLAIMS);
+    setPreselected(null);
+    setActiveTab('tracker');
+  }, [isCanada]);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [preselected, setPreselected] = useState<DeniedClaim | null>(null);
   const [bulkQueue, setBulkQueue] = useState<DeniedClaim[]>([]);
@@ -1023,12 +1047,24 @@ export default function ClaimsRecoveryPage() {
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <span className="text-2xl">💼</span> Claims Recovery
+            {user?.practiceName && (
+              <span className="text-sm font-normal text-slate-400 ml-2">— {user.practiceName}</span>
+            )}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Denied claim management · SOAP narrative generation · Pre-flight validation · Provider sign-off
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {isCanada && (
+            <div className="bg-red-700/10 border border-red-700/20 rounded-xl px-3 py-1.5 flex items-center gap-2">
+              <span className="text-base">&#127809;</span>
+              <div>
+                <div className="text-[9px] font-bold uppercase text-red-400 tracking-wider">Canadian Practice</div>
+                <div className="text-[10px] text-slate-400">CDCP · ODA · CAD</div>
+              </div>
+            </div>
+          )}
           {denied.length > 0 && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2 text-center">
               <div className="text-lg font-black text-red-400">{denied.length}</div>

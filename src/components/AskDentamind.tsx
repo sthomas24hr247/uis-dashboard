@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
+import { VoiceButton } from './VoiceButton';
+import { useAuth } from "../context/AuthContext";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -125,6 +127,7 @@ function buildDataContext(data: PracticeData): string {
 }
 
 export default function AskDentamind({ initialQuestion, onQuestionHandled, practiceData }: AskDentamindProps) {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -132,10 +135,10 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const processedQuestionRef = useRef<string | null>(null);
-  const [patientIntel, setPatientIntel] = useState<string>("");
+  const [patientIntel, setPatientIntel] = useState<string>('');
 
   useEffect(() => {
-    const API = "https://api.uishealth.com";
+    const API = 'https://api.uishealth.com';
     Promise.all([
       fetch(`${API}/api/predictions/patients`).then(r => r.json()),
       fetch(`${API}/api/outcome-gap/stalled?min_days=0`).then(r => r.json()),
@@ -144,23 +147,23 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       const sections: string[] = [];
       if (predData.predictions?.length) {
         const lines = predData.predictions.map((p: any) =>
-          `  - ${p.first_name} ${p.last_name}: Cancel Risk ${(p.cancel_risk_score*100).toFixed(0)}% (${p.cancel_risk_tier}) | Acceptance: ${p.acceptance_tier} | OOP: ${p.oop_willingness_tier} (max $${p.oop_threshold_estimate}) | Attrition: ${p.attrition_risk_tier} | Channel: ${p.preferred_channel} | ${p.days_since_last_visit}d since visit`
-        ).join("\n");
+          `  - ${p.first_name} ${p.last_name}: Cancel Risk ${(p.cancel_risk_score * 100).toFixed(0)}% (${p.cancel_risk_tier}) | Acceptance: ${p.acceptance_tier} | OOP: ${p.oop_willingness_tier} (max $${p.oop_threshold_estimate}) | Attrition: ${p.attrition_risk_tier} | Channel: ${p.preferred_channel} | ${p.days_since_last_visit}d since visit`
+        ).join('\n');
         sections.push(`## Patient Predictions (${predData.predictions.length} patients scored)\n${lines}`);
       }
       if (gapData.stalled_episodes?.length) {
         const lines = gapData.stalled_episodes.map((e: any) =>
-          `  - ${e.first_name || "Unknown"} ${e.last_name || ""}: Stalled at ${e.stalled_at_stage} for ${e.days_stalled}d | Plan Value: $${e.plan_value} | ${e.leaked ? "LEAKED" : "At Risk"}`
-        ).join("\n");
+          `  - ${e.first_name || 'Unknown'} ${e.last_name || ''}: Stalled at ${e.stalled_at_stage} for ${e.days_stalled}d | Plan Value: $${e.plan_value} | ${e.leaked ? 'LEAKED' : 'At Risk'}`
+        ).join('\n');
         sections.push(`## Stalled Treatment Episodes (${gapData.stalled_episodes.length} episodes)\n${lines}`);
       }
       if (recData.recommendations?.length) {
         const lines = recData.recommendations.slice(0, 10).map((r: any) =>
           `  - [${r.priority?.toUpperCase()}] ${r.title} | Type: ${r.type} | Est Revenue: $${r.estimated_revenue} | Status: ${r.status}`
-        ).join("\n");
+        ).join('\n');
         sections.push(`## Active AI Recommendations (${recData.count || recData.recommendations.length})\n${lines}`);
       }
-      setPatientIntel(sections.join("\n\n"));
+      setPatientIntel(sections.join('\n\n'));
     }).catch(() => {});
   }, []);
 
@@ -218,13 +221,15 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
     }
   }, [initialQuestion, onQuestionHandled, systemPrompt]);
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = useCallback(async (directText?: string) => {
+    const text = directText || input;
+    if (!text.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input.trim() };
+    const userMessage: Message = { role: 'user', content: text.trim() };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-    setInput('');
+    if (!directText) setInput('');
+    else setInput('');
     setIsLoading(true);
 
     try {
@@ -257,7 +262,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, systemPrompt]);
+  }, [input, isLoading, messages, fullPrompt]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -332,7 +337,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
               <div>
                 <h3 className="text-white font-bold text-sm">Ask Dentamind</h3>
                 <p className="text-slate-400 text-xs">
-                  {practiceData ? '● Connected to live practice data' : 'AI-powered dental intelligence'}
+                  {practiceData ? `● ${user?.practiceName || 'Connected to live practice data'}` : 'AI-powered dental intelligence'}
                 </p>
               </div>
             </div>
@@ -401,7 +406,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
+          {/* Input with Voice */}
           <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2
               border border-slate-200 dark:border-slate-700 focus-within:border-teal-400 transition-colors">
@@ -414,8 +419,15 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
                 className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400
                   outline-none"
               />
+              <VoiceButton
+                onTranscript={(text) => {
+                  setInput(text);
+                  sendMessage(text);
+                }}
+                size="sm"
+              />
               <button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!input.trim() || isLoading}
                 className="p-1.5 text-teal-500 hover:text-teal-600 disabled:text-slate-300 
                   dark:disabled:text-slate-600 transition-colors"

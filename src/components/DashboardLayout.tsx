@@ -31,8 +31,7 @@ import { FileText,
   ChevronRight,
   Moon,
   Sun,
-  Monitor,
-} from 'lucide-react';
+  Monitor, Layers} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -81,7 +80,7 @@ const allNavGroups: NavGroup[] = [
     roles: ['admin'],
     items: [
       { to: '/patient-intel', icon: UserSearch, label: 'Patient Intel' },
-      { to: '/bil', icon: Fingerprint, label: 'Decision Fingerprinting' },
+      { to: '/bil', icon: Fingerprint, label: 'Fingerprinting' },
       { to: '/workforce', icon: HardHat, label: 'Workforce Intel' },
     ],
   },
@@ -91,6 +90,7 @@ const allNavGroups: NavGroup[] = [
     roles: ['admin'],
     items: [
       { to: '/outcome-gap', icon: TrendingDown, label: 'Outcome Gap' },
+      { to: '/outcome-gap/classified', icon: Layers, label: 'Revenue Recovery' },
       { to: '/analytics', icon: FileBarChart, label: 'Practice Performance' },
       { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' },
     ],
@@ -111,7 +111,7 @@ const allNavGroups: NavGroup[] = [
     icon: Sparkles,
     roles: ['admin', 'manager'],
     items: [
-      { to: '/ai-predictions', icon: Sparkles, label: 'Dentamind AI' },
+      { to: '/ai-predictions', icon: Sparkles, label: 'AI Predictions' },
       { to: '/marva', icon: Brain, label: 'MARVA' },
       { to: '/recommendations', icon: Lightbulb, label: 'Recommendations', roles: ['admin'] },
       { to: '/automation', icon: Zap, label: 'Automation Hub' },
