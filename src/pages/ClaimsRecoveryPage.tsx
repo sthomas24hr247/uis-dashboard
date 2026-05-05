@@ -730,13 +730,29 @@ Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution g
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SOAP Narrative (Edit before submitting)</span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {hasAutoPopulated && (
                     <span className="flex items-center gap-1 text-[10px] text-teal-400 font-bold">
                       <Zap className="w-3 h-3" /> Auto-populated
                     </span>
                   )}
-                  <button onClick={() => setEditing(!editing)} className="text-[10px] text-teal-500 font-bold">{editing ? "Lock ✓" : "Edit ✎"}</button>
+                  {/* F-07 Phase 2 — visible "Attached" badge when all four SOAP sections have content */}
+                  {isNarrativeComplete(narrativeSections) && (
+                    <span className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <CheckCircle className="w-3 h-3" /> Attached to Claim
+                    </span>
+                  )}
+                  {/* F-07 Phase 2 — proper button instead of 10px text link */}
+                  <button
+                    onClick={() => setEditing(!editing)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${
+                      editing
+                        ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25"
+                        : "bg-teal-500/15 border-teal-500/40 text-teal-400 hover:bg-teal-500/25"
+                    }`}
+                  >
+                    {editing ? (<><CheckCircle className="w-3.5 h-3.5" /> Lock Narrative</>) : (<><FileText className="w-3.5 h-3.5" /> Edit Narrative</>)}
+                  </button>
                 </div>
               </div>
 
