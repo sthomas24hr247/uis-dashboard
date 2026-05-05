@@ -22,6 +22,8 @@ interface ClaimValidation {
   score: number;
   passCount: number;
   failCount: number;
+  aiRecommendations?: string | null;
+  error?: string;
 }
 
 const VALIDATION_RULES: ValidationRule[] = [
@@ -163,9 +165,13 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
   const [scanComplete, setScanComplete] = useState(false);
   const [scanning, setScanning] = useState(false);
   // F-06 — Track which rules a user has marked resolved per claim, keyed by claim.id.
-  // Resolved rules are treated as passing in the validations useMemo below.
-  // State is ephemeral (refresh resets) — backend persistence comes in F-06 session 2.
+  // Applied as client-side override on top of backend results in the validations useMemo.
+  // State is ephemeral (refresh resets) — DB persistence is a future session.
   const [resolvedRules, setResolvedRules] = useState<Record<string, Set<string>>>({});
+
+  // F-06 session 2 — Backend results from POST /api/claims/validate, keyed by claim.id.
+  // Populated progressively by handleRunScan as each parallel API call completes.
+  const [backendValidations, setBackendValidations] = useState<Record<string, ClaimValidation>>({});
 
   const markResolved = (claimId: string, ruleId: string) => {
     setResolvedRules((prev) => {
@@ -175,34 +181,88 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
     });
   };
 
+  // F-06 session 2 — Derive `validations` from backend results + client-side resolved overrides.
+  // If backend hasn't returned for a claim yet (or scan never ran), use a placeholder so the
+  // existing rendering code (totalFails/criticalFails/etc.) doesn't break.
   const validations = useMemo<ClaimValidation[]>(() => {
     return claims.filter((c) => c.status === "denied").map((claim) => {
+      const backend = backendValidations[claim.id];
+      // Placeholder for un-scanned claims — keeps array shape stable for downstream consumers.
+      if (!backend) {
+        return { claim, results: [], score: 0, passCount: 0, failCount: 0, aiRecommendations: null };
+      }
+      // Apply client-side resolvedRules overrides on top of backend's authoritative results.
       const claimResolved = resolvedRules[claim.id];
-      const results = VALIDATION_RULES.map((rule) => {
-        const { pass, detail } = rule.check(claim);
-        // F-06: Override pass=true for any rule the user has marked resolved on this claim.
-        if (claimResolved && claimResolved.has(rule.id)) {
-          return { rule, pass: true, detail: `${detail} (Marked resolved)` };
-        }
-        return { rule, pass, detail };
-      });
+      if (!claimResolved || claimResolved.size === 0) return backend;
+      const results = backend.results.map((r) =>
+        claimResolved.has(r.rule.id)
+          ? { ...r, pass: true, detail: `${r.detail} (Marked resolved)` }
+          : r
+      );
       const passCount = results.filter((r) => r.pass).length;
+      const total = results.length || 1;
       return {
-        claim,
+        ...backend,
         results,
-        score: Math.round((passCount / results.length) * 100),
+        score: Math.round((passCount / total) * 100),
         passCount,
-        failCount: results.length - passCount,
+        failCount: total - passCount,
       };
     });
-  }, [claims, resolvedRules]);
+  }, [claims, backendValidations, resolvedRules]);
 
-  const handleRunScan = () => {
+  // F-06 session 2 — Real backend scan via parallel calls to POST /api/claims/validate.
+  // Each call's result lands in state independently as it completes (Promise.all settles
+  // when the slowest finishes, but partial results render progressively in the meantime).
+  const handleRunScan = async () => {
     setScanning(true);
-    setTimeout(() => {
-      setScanning(false);
-      setScanComplete(true);
-    }, 2000);
+    setBackendValidations({}); // clear any previous run
+
+    const denied = claims.filter((c) => c.status === "denied");
+    const token = localStorage.getItem("uis_token") || "";
+
+    await Promise.all(
+      denied.map(async (claim) => {
+        try {
+          const res = await fetch("https://api.uishealth.com/api/claims/validate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ claim }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const validation: ClaimValidation = {
+            claim,
+            results: data.results || [],
+            score: data.score ?? 0,
+            passCount: data.passed ?? 0,
+            failCount: data.failed ?? 0,
+            aiRecommendations: data.aiRecommendations ?? null,
+          };
+          setBackendValidations((prev) => ({ ...prev, [claim.id]: validation }));
+        } catch (err: any) {
+          console.error(`[Pre-Flight] validation failed for ${claim.id}:`, err);
+          setBackendValidations((prev) => ({
+            ...prev,
+            [claim.id]: {
+              claim,
+              results: [],
+              score: 0,
+              passCount: 0,
+              failCount: 0,
+              aiRecommendations: null,
+              error: err?.message || "Validation request failed",
+            },
+          }));
+        }
+      })
+    );
+
+    setScanning(false);
+    setScanComplete(true);
   };
 
   const totalFails = validations.reduce((s, v) => s + v.failCount, 0);
@@ -490,6 +550,28 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
                       </div>
                     ))}
                   </div>
+
+                  {/* AI Recommendations — shown when backend returned recommendations for this claim */}
+                  {selectedValidation.aiRecommendations && (
+                    <div className="mt-4 bg-primary/5 border border-primary/30 rounded-xl p-3">
+                      <div className="text-[10px] font-bold text-teal-light uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <span>✦</span> AI Fix Recommendations
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-secondary-foreground whitespace-pre-wrap">
+                        {selectedValidation.aiRecommendations}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Error state — backend call failed for this claim */}
+                  {selectedValidation.error && (
+                    <div className="mt-4 bg-destructive/5 border border-destructive/30 rounded-xl p-3">
+                      <div className="text-[10px] font-bold text-destructive uppercase tracking-widest mb-1">✕ Validation Error</div>
+                      <p className="text-[10px] text-destructive/80 leading-relaxed">
+                        Backend validation failed: {selectedValidation.error}. Click Re-run Full Scan to retry.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Summary */}
                   {selectedValidation.failCount > 0 && (
