@@ -357,7 +357,26 @@ function RecoveryWorkflow({ claims, preselected, onApprove, bulkQueue }: {
   const activeProcedureCodes = isCanada ? ODA_FEES : SMA_FEES;
   const [activeSection, setActiveSection] = useState<"arc" | "criteria" | "narrative" | "checklist">("arc");
   const [criteriaChecked, setCriteriaChecked] = useState<Record<string, boolean>>({});
-  const [narrative, setNarrative] = useState("");
+  // F-07 — SOAP narrative is stored as 4 separate sections so each textarea
+  // edits independently. Helpers below serialize/check completeness.
+  type SOAPSection = 'S' | 'O' | 'A' | 'P';
+  const [narrativeSections, setNarrativeSections] = useState<Record<SOAPSection, string>>({
+    S: '',
+    O: '',
+    A: '',
+    P: '',
+  });
+  const serializeSOAP = (s: Record<SOAPSection, string>) =>
+    `S — Subjective\n${s.S}\n\nO — Objective\n${s.O}\n\nA — Assessment\n${s.A}\n\nP — Plan\n${s.P}`;
+  const isNarrativeComplete = (s: Record<SOAPSection, string>) =>
+    s.S.trim().length > 0 && s.O.trim().length > 0 && s.A.trim().length > 0 && s.P.trim().length > 0;
+  const updateSection = (key: SOAPSection, value: string) =>
+    setNarrativeSections(prev => ({ ...prev, [key]: value }));
+  // Backwards-compat: any code that reads `narrative` as a single string
+  // gets the serialized form. Reads only — writes go through updateSection.
+  const narrative = isNarrativeComplete(narrativeSections) || narrativeSections.S || narrativeSections.O || narrativeSections.A || narrativeSections.P
+    ? serializeSOAP(narrativeSections)
+    : "";
   const [narrativeMode, setNarrativeMode] = useState<"preauth_v" | "preauth_med" | "emergency_inf">("preauth_v");
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -420,11 +439,52 @@ Denial basis: ${denialContext}
 P — Plan
 Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution guidelines." : "ARC resolution guidelines."}`;
 
-      setNarrative(soapFormatted);
+      // F-07 — Parse the merged SOAP string into per-section state so each
+      // textarea edits independently. Also set editing mode so the user lands
+      // in an editable state after Load Template (eliminates the "tiny Edit
+      // button" discovery problem from Neal's test).
+      const parsed = parseSOAPString(soapFormatted);
+      setNarrativeSections(parsed);
+      setEditing(true);
     } else {
-      setNarrative(raw);
+      const parsed = parseSOAPString(raw);
+      setNarrativeSections(parsed);
+      setEditing(true);
     }
     setHasAutoPopulated(!!claim);
+  };
+
+  // F-07 — Parse a merged "S — Subjective\n...\nO — Objective\n..." string
+  // into per-section fields. If the input doesn't have section markers, the
+  // entire content lands in S (with O/A/P blank for the user to fill in).
+  function parseSOAPString(raw: string): Record<SOAPSection, string> {
+    const sections: Record<SOAPSection, string> = { S: '', O: '', A: '', P: '' };
+    if (!raw) return sections;
+    // Split on SOAP markers; works with em-dash (—) or regular dash (-).
+    const markers: { key: SOAPSection; re: RegExp }[] = [
+      { key: 'S', re: /S\s*[—–-]\s*Subjective\s*\n/i },
+      { key: 'O', re: /O\s*[—–-]\s*Objective\s*\n/i },
+      { key: 'A', re: /A\s*[—–-]\s*Assessment\s*\n/i },
+      { key: 'P', re: /P\s*[—–-]\s*Plan\s*\n/i },
+    ];
+    // Find the index of each marker in the raw string
+    const positions = markers.map(m => {
+      const match = raw.match(m.re);
+      return match ? { key: m.key, start: match.index! + match[0].length, markerEnd: match.index! + match[0].length, markerStart: match.index! } : null;
+    }).filter((p): p is NonNullable<typeof p> => p !== null);
+    if (positions.length === 0) {
+      sections.S = raw.trim();
+      return sections;
+    }
+    // Sort positions by appearance order
+    positions.sort((a, b) => a.markerStart - b.markerStart);
+    for (let i = 0; i < positions.length; i++) {
+      const cur = positions[i];
+      const next = positions[i + 1];
+      const end = next ? next.markerStart : raw.length;
+      sections[cur.key] = raw.substring(cur.start, end).trim();
+    }
+    return sections;
   };
 
   if (!selected) {
@@ -497,7 +557,7 @@ Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution g
           <span className="ml-auto text-[10px] text-amber-400">Complete workflow to advance to next claim</span>
         </div>
       )}
-      <button onClick={() => { setSelected(null); setCriteriaChecked({}); setNarrative(""); }}
+      <button onClick={() => { setSelected(null); setCriteriaChecked({}); setNarrativeSections({ S: '', O: '', A: '', P: '' }); }}
         className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 mb-4 flex items-center gap-1">← Back to claim list</button>
 
       {/* Claim Header */}
@@ -666,7 +726,7 @@ Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution g
             </button>
           </div>
 
-          {narrative ? (
+          {(narrativeSections.S || narrativeSections.O || narrativeSections.A || narrativeSections.P) ? (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SOAP Narrative (Edit before submitting)</span>
@@ -687,24 +747,28 @@ Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution g
                   { label: "O — Objective", hint: "Clinical findings, CDT codes, tooth numbers, vitals" },
                   { label: "A — Assessment", hint: "Diagnosis, ICD-10, GA medical necessity, MOC criteria met" },
                   { label: "P — Plan", hint: "Procedures performed, anesthesia details, follow-up" },
-                ].map(section => (
-                  <div key={section.label} className="rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-hidden">
-                    <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 flex items-center justify-between">
-                      <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider">{section.label}</span>
-                      <span className="text-[9px] text-slate-400 italic">{section.hint}</span>
+                ].map(section => {
+                  const sectionKey = section.label.charAt(0) as SOAPSection;
+                  const sectionValue = narrativeSections[sectionKey];
+                  return (
+                    <div key={section.label} className="rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+                      <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 flex items-center justify-between">
+                        <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider">{section.label}</span>
+                        <span className="text-[9px] text-slate-400 italic">{section.hint}</span>
+                      </div>
+                      {editing ? (
+                        <textarea
+                          value={sectionValue}
+                          onChange={e => updateSection(sectionKey, e.target.value)}
+                          placeholder={`Enter ${section.label} details...`}
+                          className="w-full h-20 bg-white dark:bg-slate-900/50 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 font-mono focus:outline-none resize-none border-0"
+                        />
+                      ) : (
+                        <pre className="w-full min-h-[3rem] bg-white dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 font-mono whitespace-pre-wrap overflow-y-auto">{sectionValue || <span className="text-slate-400 italic">(empty)</span>}</pre>
+                      )}
                     </div>
-                    {editing ? (
-                      <textarea
-                        value={narrative}
-                        onChange={e => setNarrative(e.target.value)}
-                        placeholder={`Enter ${section.label} details...`}
-                        className="w-full h-20 bg-white dark:bg-slate-900/50 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 font-mono focus:outline-none resize-none border-0"
-                      />
-                    ) : (
-                      <pre className="w-full min-h-[3rem] bg-white dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 font-mono whitespace-pre-wrap overflow-y-auto">{narrative}</pre>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-2 flex items-center gap-2 text-[10px] text-amber-600 dark:text-amber-400">
@@ -784,7 +848,7 @@ Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution g
             const queuePos = bulkQueue ? bulkQueue.findIndex(c => c.id === selected.id) : -1;
             const remaining = bulkQueue ? bulkQueue.length - queuePos - 1 : 0;
             return (
-              <button onClick={() => { onApprove(selected.id); setSelected(null); setCriteriaChecked({}); setNarrative(""); }}
+              <button onClick={() => { onApprove(selected.id); setSelected(null); setCriteriaChecked({}); setNarrativeSections({ S: '', O: '', A: '', P: '' }); }}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 {isLastInQueue
