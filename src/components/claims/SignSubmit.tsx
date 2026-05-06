@@ -47,6 +47,10 @@ function buildFormForClaim(claim: DeniedClaim, index: number) {
 export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGoToReview, onSubmitAll }: SignSubmitProps) => {
   const [signature, setSignature] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  // F-07 — Snapshot of approvedClaims at submit-time. Parent's handleSubmit clears
+  // pendingIds, which would otherwise leave approvedClaims empty for the success
+  // screen and download flow. We capture before clearing so download can still work.
+  const [submittedClaims, setSubmittedClaims] = useState<DeniedClaim[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [confirmMode, setConfirmMode] = useState(false);
   const [countdown, setCountdown] = useState(CONFIRM_SECONDS);
@@ -74,6 +78,8 @@ export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGo
   // Auto-submit when countdown reaches 0
   useEffect(() => {
     if (confirmMode && countdown === 0 && signature) {
+      // F-07 — Snapshot approved claims BEFORE parent clears pendingIds.
+      setSubmittedClaims(approvedClaims);
       onSubmitAll(signature);
       setSubmitted(true);
       setConfirmMode(false);
@@ -95,6 +101,8 @@ export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGo
 
   const handleImmediateSubmit = () => {
     if (!signature) return;
+    // F-07 — Snapshot approved claims BEFORE parent clears pendingIds.
+    setSubmittedClaims(approvedClaims);
     onSubmitAll(signature);
     setSubmitted(true);
     setConfirmMode(false);
@@ -102,12 +110,15 @@ export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGo
   };
 
   const handleDownloadZip = useCallback(async () => {
-    if (!signature || approvedClaims.length === 0) return;
+    // F-07 — After submit, approvedClaims is cleared by parent. Use the
+    // submittedClaims snapshot if we're in the post-submit state.
+    const claimsToDownload = submittedClaims.length > 0 ? submittedClaims : approvedClaims;
+    if (!signature || claimsToDownload.length === 0) return;
     setDownloading(true);
     try {
       const zip = new JSZip();
       const dateStr = new Date().toISOString().slice(0, 10);
-      const pdfPromises = approvedClaims.map(async (claim, idx) => {
+      const pdfPromises = claimsToDownload.map(async (claim, idx) => {
         const form = buildFormForClaim(claim, idx);
         // F-07 Phase 3 — use the user-edited narrative for this claim; fall back to a sane default only if no narrative was attached.
         const narrative = narrativesByClaimId[claim.id] || "Auto-generated SOAP addendum";
@@ -138,15 +149,17 @@ export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGo
   // the success screen with the Download button would never render — user would
   // see "No approved claims yet" instead of the Submitted! screen with download.
   if (submitted) {
+    // F-07 — Use submittedClaims snapshot for accurate count post-submit.
+    const submittedTotal = submittedClaims.reduce((sum, c) => sum + (c.billedAmt || 0), 0);
     return (
       <div className="max-w-lg mx-auto text-center py-12">
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-2xl font-black text-stone-900 dark:text-white mb-2">Submitted!</h2>
         <p className="text-sm text-stone-400 dark:text-slate-400 mb-3">
-          {approvedClaims.length} addendums signed & queued for Denti-Cal resubmission — {fmtCurrency(totalAmount)} to recover!
+          {submittedClaims.length} addendums signed & queued for Denti-Cal resubmission — {fmtCurrency(submittedTotal)} to recover!
         </p>
         <button onClick={handleDownloadZip} disabled={downloading} className="mt-2 px-6 py-2.5 bg-teal-600 hover:bg-teal-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/40">
-          {downloading ? "Generating…" : `Download All ${approvedClaims.length} PDFs (.zip)`}
+          {downloading ? "Generating…" : `Download All ${submittedClaims.length} PDFs (.zip)`}
         </button>
       </div>
     );
