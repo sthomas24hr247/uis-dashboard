@@ -9,6 +9,10 @@ import { buildSOAPPdfBlob } from "@/lib/generate-soap-pdf";
 interface SignSubmitProps {
   claims: DeniedClaim[];
   approvedIds: Set<string>;
+  // F-07 Phase 3 — narrative content per approved claim, keyed by claim.id.
+  // Replaces the previous hardcoded "Auto-generated SOAP addendum" placeholder
+  // with the actual narrative the user edited in RecoveryWorkflow.
+  narrativesByClaimId?: Record<string, string>;
   onGoToReview: () => void;
   onSubmitAll: (signatureData: string) => void;
 }
@@ -40,7 +44,7 @@ function buildFormForClaim(claim: DeniedClaim, index: number) {
   };
 }
 
-export const SignSubmit = ({ claims, approvedIds, onGoToReview, onSubmitAll }: SignSubmitProps) => {
+export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGoToReview, onSubmitAll }: SignSubmitProps) => {
   const [signature, setSignature] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -105,7 +109,9 @@ export const SignSubmit = ({ claims, approvedIds, onGoToReview, onSubmitAll }: S
       const dateStr = new Date().toISOString().slice(0, 10);
       const pdfPromises = approvedClaims.map(async (claim, idx) => {
         const form = buildFormForClaim(claim, idx);
-        const blob = await buildSOAPPdfBlob({ claim, form, narrative: "Auto-generated SOAP addendum", signatureDataUrl: signature });
+        // F-07 Phase 3 — use the user-edited narrative for this claim; fall back to a sane default only if no narrative was attached.
+        const narrative = narrativesByClaimId[claim.id] || "Auto-generated SOAP addendum";
+        const blob = await buildSOAPPdfBlob({ claim, form, narrative, signatureDataUrl: signature });
         zip.file(`SOAP_Note_${claim.patientId}_${dateStr}.pdf`, blob);
       });
       await Promise.all(pdfPromises);

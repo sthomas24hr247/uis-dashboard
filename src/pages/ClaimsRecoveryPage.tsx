@@ -348,7 +348,7 @@ function ClaimsTracker({ claims, onRecover, onRecoverAll }: { claims: DeniedClai
 function RecoveryWorkflow({ claims, preselected, onApprove, bulkQueue }: {
   claims: DeniedClaim[];
   preselected: DeniedClaim | null;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, narrative: string) => void;
   bulkQueue?: DeniedClaim[];
 }) {
   const [selected, setSelected] = useState<DeniedClaim | null>(preselected);
@@ -864,7 +864,7 @@ Resubmit with corrected documentation per ${isCanada ? "CDCP denial resolution g
             const queuePos = bulkQueue ? bulkQueue.findIndex(c => c.id === selected.id) : -1;
             const remaining = bulkQueue ? bulkQueue.length - queuePos - 1 : 0;
             return (
-              <button onClick={() => { onApprove(selected.id); setSelected(null); setCriteriaChecked({}); setNarrativeSections({ S: '', O: '', A: '', P: '' }); }}
+              <button onClick={() => { onApprove(selected.id, serializeSOAP(narrativeSections)); setSelected(null); setCriteriaChecked({}); setNarrativeSections({ S: '', O: '', A: '', P: '' }); }}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 {isLastInQueue
@@ -1106,6 +1106,8 @@ export default function ClaimsRecoveryPage() {
     setActiveTab('tracker');
   }, [isCanada]);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  // F-07 Phase 3 — store user-edited narrative per claim so SignSubmit can pass real content to PDF generation
+  const [narrativesByClaimId, setNarrativesByClaimId] = useState<Record<string, string>>({});
   const [preselected, setPreselected] = useState<DeniedClaim | null>(null);
   const [bulkQueue, setBulkQueue] = useState<DeniedClaim[]>([]);
   // CSV approved narratives routed to Sign & Submit
@@ -1115,8 +1117,9 @@ export default function ClaimsRecoveryPage() {
   const atRisk = denied.reduce((s, c) => s + c.billedAmt, 0);
 
   const handleRecover = (c: DeniedClaim) => { setPreselected(c); setActiveTab("recovery"); };
-  const handleApprove = (id: string) => {
+  const handleApprove = (id: string, narrative: string) => {
     setPendingIds(prev => new Set([...prev, id]));
+    setNarrativesByClaimId(prev => ({ ...prev, [id]: narrative }));
     // If bulk queue active, advance to next claim
     if (bulkQueue.length > 0) {
       const currentIndex = bulkQueue.findIndex(c => c.id === id);
@@ -1137,6 +1140,7 @@ export default function ClaimsRecoveryPage() {
   const handleSubmit = () => {
     setClaims(prev => prev.map(c => pendingIds.has(c.id) ? { ...c, status: "submitted" as const } : c));
     setPendingIds(new Set());
+    setNarrativesByClaimId({});
     // Stay on sign tab — SignSubmit shows its own success screen with download button
     // User navigates away via the tracker button after downloading
   };
@@ -1222,6 +1226,7 @@ export default function ClaimsRecoveryPage() {
           <SignSubmit
             claims={claims as any}
             approvedIds={pendingIds}
+              narrativesByClaimId={narrativesByClaimId}
             onGoToReview={() => setActiveTab("tracker")}
             onSubmitAll={(signatureData) => {
               handleSubmit();
