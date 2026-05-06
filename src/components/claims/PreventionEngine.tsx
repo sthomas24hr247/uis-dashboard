@@ -150,6 +150,28 @@ const VALIDATION_RULES: ValidationRule[] = [
       return { pass: !eobMissing, detail: eobMissing ? "Secondary claim missing EOB from primary carrier" : "EOB from primary carrier attached" };
     },
   },
+  {
+    id: "V012",
+    name: "TAR Obtained Prior to Service",
+    category: "compliance",
+    severity: "high",
+    description: "Treatment Authorization Request must be obtained before service date",
+    check: (c) => {
+      const fail = c.issues.some((i) => /tar not obtained|no tar|authorization/i.test(i));
+      return { pass: !fail, detail: fail ? "TAR not obtained before service date — attach approved TAR or emergency certification" : "TAR obtained prior to service" };
+    },
+  },
+  {
+    id: "V013",
+    name: "Anesthesia Units Match Time",
+    category: "billing",
+    severity: "high",
+    description: "D9222+D9223 units must correspond to documented anesthesia time in 15-min increments",
+    check: (c) => {
+      const fail = c.issues.some((i) => /anesthesia time|units.*time/i.test(i));
+      return { pass: !fail, detail: fail ? "Anesthesia units do not match documented time — verify (end-start)/15 = total units billed" : "Anesthesia units match documented time" };
+    },
+  },
 ];
 
 const CATEGORY_META: Record<string, { label: string; color: string }> = {
@@ -285,7 +307,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
             <span className="text-xl">🛡️</span> Prevention Engine
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Pre-flight validation checks V001–V011 • Catch denial triggers before submission
+            Pre-flight validation checks V001–V013 • Catch denial triggers before submission
           </p>
         </div>
         <button
@@ -315,7 +337,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
           <div className="text-5xl mb-4">🛡️</div>
           <h3 className="text-base font-bold text-secondary-foreground mb-2">Pre-Flight Claim Validation</h3>
           <p className="text-xs text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            Run the Prevention Engine to scan all denied claims against 11 validation checks (V001–V011)
+            Run the Prevention Engine to scan all denied claims against 13 validation checks (V001–V013)
             covering documentation, coding, compliance, and billing requirements. Catch denial triggers
             before resubmission.
           </p>
@@ -397,7 +419,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
           {/* Validation Rules Legend */}
           <div className="bg-card border border-border rounded-2xl p-4 mb-5">
             <div className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground mb-3">
-              Validation Checks — V001 through V011
+              Validation Checks — V001 through V013
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {VALIDATION_RULES.map((rule) => {
@@ -454,7 +476,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
                           style={{ width: `${v.score}%` }}
                         />
                       </div>
-                      <span className="text-[9px] font-bold text-muted-foreground">{v.passCount}/{VALIDATION_RULES.length}</span>
+                      <span className="text-[9px] font-bold text-muted-foreground">{v.passCount}/{v.results.length || VALIDATION_RULES.length}</span>
                     </div>
                     {v.failCount > 0 && (
                       <div className="flex gap-1 mt-2 flex-wrap">
