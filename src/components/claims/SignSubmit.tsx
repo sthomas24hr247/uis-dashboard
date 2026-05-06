@@ -132,19 +132,11 @@ export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGo
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   const progress = ((CONFIRM_SECONDS - countdown) / CONFIRM_SECONDS) * 100;
 
-  if (approvedClaims.length === 0) {
-    return (
-      <div className="max-w-lg mx-auto text-center py-12">
-        <div className="text-5xl mb-4">📋</div>
-        <h3 className="text-base font-bold text-stone-700 dark:text-slate-300 mb-2">No approved claims yet</h3>
-        <p className="text-xs text-stone-400 dark:text-slate-400 mb-4">Approve claims in the Review tab first.</p>
-        <button onClick={onGoToReview} className="px-6 py-2.5 bg-teal-600 hover:bg-teal-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/40">
-          Go to Review →
-        </button>
-      </div>
-    );
-  }
-
+  // F-07 — Check `submitted` BEFORE the empty-state check. Parent's handleSubmit
+  // clears pendingIds (which is what approvedClaims is derived from), so after
+  // submission approvedClaims.length === 0. If the empty-state check ran first,
+  // the success screen with the Download button would never render — user would
+  // see "No approved claims yet" instead of the Submitted! screen with download.
   if (submitted) {
     return (
       <div className="max-w-lg mx-auto text-center py-12">
@@ -155,6 +147,19 @@ export const SignSubmit = ({ claims, approvedIds, narrativesByClaimId = {}, onGo
         </p>
         <button onClick={handleDownloadZip} disabled={downloading} className="mt-2 px-6 py-2.5 bg-teal-600 hover:bg-teal-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/40">
           {downloading ? "Generating…" : `Download All ${approvedClaims.length} PDFs (.zip)`}
+        </button>
+      </div>
+    );
+  }
+
+  if (approvedClaims.length === 0) {
+    return (
+      <div className="max-w-lg mx-auto text-center py-12">
+        <div className="text-5xl mb-4">📋</div>
+        <h3 className="text-base font-bold text-stone-700 dark:text-slate-300 mb-2">No approved claims yet</h3>
+        <p className="text-xs text-stone-400 dark:text-slate-400 mb-4">Approve claims in the Review tab first.</p>
+        <button onClick={onGoToReview} className="px-6 py-2.5 bg-teal-600 hover:bg-teal-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/40">
+          Go to Review →
         </button>
       </div>
     );
