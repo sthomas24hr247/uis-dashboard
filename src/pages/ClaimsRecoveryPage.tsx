@@ -401,7 +401,7 @@ function RecoveryWorkflow({ claims, preselected, onApprove, bulkQueue }: {
       preauth_med: isCanada ? CDCP_NARRATIVE_TEMPLATES.preauth_medical : NARRATIVE_TEMPLATES.preauth_medical_condition,
       emergency_inf: isCanada ? CDCP_NARRATIVE_TEMPLATES.emergency_acute : NARRATIVE_TEMPLATES.emergency_infection,
     };
-    const claim = preselected ?? null;
+    const claim = preselected ?? selected ?? null;
     const raw = templates[narrativeMode];
 
     if (claim) {
