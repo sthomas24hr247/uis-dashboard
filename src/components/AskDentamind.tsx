@@ -295,40 +295,66 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
     const text = directText || input;
     if (!text.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: text.trim() };
+    const userMessage: Message = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    if (!directText) setInput('');
-    else setInput('');
+    setMessages([...updatedMessages, { role: "assistant", content: "" }]);
+    if (!directText) setInput("");
+    else setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.uishealth.com/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("https://api.uishealth.com/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
           system: fullPrompt,
-          messages: updatedMessages.map(m => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
-      const data = await response.json();
-      const assistantText = data.content
-        ?.map((item: any) => (item.type === 'text' ? item.text : ''))
-        .filter(Boolean)
-        .join('\n') || 'I apologize, I was unable to process that request.';
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No stream reader");
+      const decoder = new TextDecoder();
+      let accumulated = "";
 
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantText }]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          try {
+            const evt = JSON.parse(payload);
+            if (evt.type === "content_block_delta" && evt.delta?.text) {
+              accumulated += evt.delta.text;
+              setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: "assistant", content: accumulated };
+                return updated;
+              });
+            }
+          } catch {}
+        }
+      }
+
+      if (!accumulated) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: "I apologize, I was unable to process that request." };
+          return updated;
+        });
+      }
     } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: 'Connection error. Please check your network and try again.' },
-      ]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "assistant", content: "Connection error. Please check your network and try again." };
+        return updated;
+      });
     } finally {
       setIsLoading(false);
     }
