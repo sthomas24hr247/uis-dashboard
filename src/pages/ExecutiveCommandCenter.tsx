@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useJurisdiction } from "../context/JurisdictionContext";
 import {
   Building2, TrendingUp, TrendingDown, Users, DollarSign, Target,
   ChevronRight, ArrowUpRight, ArrowDownRight, Minus, BarChart3,
@@ -113,6 +114,7 @@ export default function ExecutiveCommandCenter() {
   const [showPriorities, setShowPriorities] = useState(false);
   const [selectedOffice, setSelectedOffice] = useState<string | null>(null);
 
+  const { isCanada } = useJurisdiction();
   // Fetch live practice summary from /api/dashboard/practice-summary.
   // Falls back to demoOffices if the API is unreachable so the dashboard
   // never goes blank during demos.
@@ -198,6 +200,7 @@ export default function ExecutiveCommandCenter() {
         <p className="text-slate-500 dark:text-slate-400 mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           <span className="ml-3 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium">{offices.length} offices</span>
+          {isCanada && <span className="ml-2 text-xs bg-red-700/10 border border-red-700/20 text-red-400 px-2 py-0.5 rounded-full font-bold">&#127809; CANADIAN PRACTICE · CDCP · ODA · CAD</span>}
         </p>
       </div>
 
