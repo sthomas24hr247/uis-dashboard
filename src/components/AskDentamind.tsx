@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import { useAuth } from "../context/AuthContext";
+import { CA_MOCK_CLAIMS, CDCP_DENIAL_CODES } from "../data/canadian-claims-data";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -182,6 +183,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   const processedQuestionRef = useRef<string | null>(null);
   const [patientIntel, setPatientIntel] = useState<string>('');
 
+  const [selfFetchedData, setSelfFetchedData] = useState<PracticeData | null>(null);
   useEffect(() => {
     const API = 'https://api.uishealth.com';
     Promise.all([
@@ -208,12 +210,35 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
         ).join('\n');
         sections.push(`## Active AI Recommendations (${recData.count || recData.recommendations.length})\n${lines}`);
       }
+      // Add denied claims data for Claims Recovery context
+      const deniedClaims = CA_MOCK_CLAIMS.filter((c: any) => c.status === "denied" || c.status === "ai_scanned" || c.status === "addendum_generated");
+      if (deniedClaims.length > 0) {
+        const claimLines = deniedClaims.map((c: any) =>
+          `  - ${c.patientName} (Age ${c.patientAge}): ${c.procedure} | Billed $${c.billedAmt} | Denial: ${c.denialCode} — ${c.denialReason} | Status: ${c.status} | ${c.daysOld}d old | Clinic: ${c.clinic} | Issues: ${c.issues.join("; ")}`
+        ).join("\n");
+        const totalAtRisk = deniedClaims.reduce((s: number, c: any) => s + c.billedAmt, 0);
+        sections.push(`## Denied Claims Recovery (${deniedClaims.length} claims, $${totalAtRisk.toLocaleString()} at risk)\n${claimLines}`);
+      }
       setPatientIntel(sections.join('\n\n'));
     }).catch(() => {});
   }, []);
 
-  const systemPrompt = practiceData
-    ? `${BASE_SYSTEM_PROMPT}\n\n--- LIVE PRACTICE DATA ---\n\n${buildDataContext(practiceData)}\n\n--- END LIVE DATA ---`
+  // Self-fetch DSO context when practiceData prop is not provided (floating widget)
+  useEffect(() => {
+    if (practiceData) return;
+    const API = "https://api.uishealth.com";
+    fetch(`${API}/api/dashboard/practice-summary`, { headers: { "Content-Type": "application/json" } })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.dsoContext) {
+          setSelfFetchedData({ dsoContext: d.dsoContext } as PracticeData);
+        }
+      }).catch(() => {});
+  }, [practiceData]);
+
+  const effectiveData = practiceData || selfFetchedData;
+  const systemPrompt = effectiveData
+    ? `${BASE_SYSTEM_PROMPT}\n\n--- LIVE PRACTICE DATA ---\n\n${buildDataContext(effectiveData)}\n\n--- END LIVE DATA ---`
     : BASE_SYSTEM_PROMPT;
   const fullPrompt = systemPrompt + (patientIntel ? `\n\n--- PATIENT INTELLIGENCE DATA ---\n\n${patientIntel}\n\n--- END PATIENT INTEL ---` : '');
 
