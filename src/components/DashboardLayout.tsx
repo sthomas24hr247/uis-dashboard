@@ -1,4 +1,5 @@
 import AlertBell from "./AlertBell";
+import AskDentamind from "./AskDentamind";
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -31,7 +32,7 @@ import { FileText,
   ChevronRight,
   Moon,
   Sun,
-  Monitor, Layers} from 'lucide-react';
+  Monitor, Layers, MessageCircle, X} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -136,6 +137,7 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [chatOpen, setChatOpen] = useState(false);
 
   const userRole = user?.role || 'admin';
   const isManager = userRole === 'manager';
@@ -380,6 +382,33 @@ export default function DashboardLayout() {
           )}
           <Outlet />
         </main>
+
+        {/* Floating Dentamind Chat Widget */}
+        {chatOpen && (
+          <div className="fixed bottom-6 right-6 z-50 w-[420px] h-[560px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5" />
+                <span className="text-sm font-bold">Ask Dentamind</span>
+              </div>
+              <button onClick={() => setChatOpen(false)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <AskDentamind practiceData={null} />
+            </div>
+          </div>
+        )}
+        {!chatOpen && (
+          <button
+            onClick={() => setChatOpen(true)}
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-700 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+            title="Ask Dentamind"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button>
+        )}
       </div>
     </div>
   );
