@@ -1209,16 +1209,11 @@ export default function ClaimsRecoveryPage() {
 
       <div>
         {activeTab === "tracker"    && <ClaimsTracker claims={claims} onRecover={handleRecover} onRecoverAll={() => {
-                      const gaQueue = claims.filter(c =>
-                        c.status === "denied" &&
-                        ["D9222","D9223","D9239","D9243","D9230","D9248"].includes(c.cdtCode)
-                      );
-                      if (gaQueue.length > 0) {
-                        // Approve all at once and go straight to Sign & Submit
-                        setPendingIds(new Set(gaQueue.map(c => c.id)));
-                        setBulkQueue([]);
-                        setPreselected(null);
-                        setActiveTab("sign");
+                      const allDenied = claims.filter(c => c.status === "denied");
+                      if (allDenied.length > 0) {
+                        setBulkQueue(allDenied);
+                        setPreselected(allDenied[0]);
+                        setActiveTab("recovery");
                       }
                     }} />}
         {activeTab === "recovery"   && <RecoveryWorkflow claims={claims} preselected={preselected} onApprove={handleApprove} bulkQueue={bulkQueue} />}
