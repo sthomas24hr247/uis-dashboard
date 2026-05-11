@@ -464,7 +464,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-mono text-sm font-bold text-teal-light">{v.claim.patientId}</span>
-                      <ScoreBadge score={v.score} />
+                      <ScoreBadge score={v.score} passCount={v.passCount} total={v.results.length || VALIDATION_RULES.length} />
                     </div>
                     <div className="text-[10px] text-muted-foreground">{v.claim.clinic} • {v.claim.claimDate}</div>
                     <div className="flex items-center gap-2 mt-2">
@@ -629,11 +629,12 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
   );
 };
 
-function ScoreBadge({ score, large = false }: { score: number; large?: boolean }) {
+function ScoreBadge({ score, large = false, passCount, total }: { score: number; large?: boolean; passCount?: number; total?: number }) {
   const color = score === 100 ? "text-emerald-400 bg-emerald-500/15" : score >= 70 ? "text-amber-400 bg-amber-500/15" : "text-destructive bg-destructive/15";
+  const label = passCount !== undefined && total ? `${passCount}/${total}` : `${score}%`;
   return (
     <span className={`${color} font-mono font-black rounded-lg ${large ? "text-sm px-3 py-1" : "text-[10px] px-2 py-0.5"}`}>
-      {score}%
+      {label}
     </span>
   );
 }
