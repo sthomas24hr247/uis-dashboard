@@ -202,7 +202,7 @@ export default function WaitlistPage() {
   const waitlistActions = (actionsData?.actionQueue || []).filter((a: any) => a.workflowType === 'waitlist_notify');
 
   // Use demo entries for now (PMS integration will replace)
-  const entries = demoWaitlistEntries;
+  const entries: typeof demoWaitlistEntries = [];
 
   const filteredEntries = entries.filter((e) => {
     const matchSearch = searchQuery === '' || e.patientName.toLowerCase().includes(searchQuery.toLowerCase());

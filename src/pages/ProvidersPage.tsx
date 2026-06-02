@@ -66,7 +66,7 @@ const mockProviders = [
 
 export default function ProvidersPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [providers] = useState(mockProviders);
+  const [providers] = useState<typeof mockProviders>([]);
 
   const filteredProviders = providers.filter((p) =>
     `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||

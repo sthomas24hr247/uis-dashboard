@@ -11,75 +11,31 @@ import {
 const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
 
 // Demo multi-office data (transitions to real API data once multiple practices are connected)
-const demoOffices = [
+type BenchmarkStatus = "above" | "at" | "below";
+type DimInfo = { score: number; benchmark: number; status: BenchmarkStatus };
+const demoOffices: { id: string; name: string; location: string; providers: number; activePatients: number; monthlyRevenue: number; prevMonthRevenue: number; qciScore: number; qciGrade: string; noShowRate: number; outcomeGapLeakage: number; benchmarkStatus: BenchmarkStatus; dimensions: Record<string, DimInfo>; reason: string }[] = [
   {
-    id: "82D32761-3ADF-4F9D-9EE1-0DEDD9288B27",
-    name: "Bright Smiles Dental - Main",
-    location: "Phoenix, AZ",
-    providers: 4,
-    activePatients: 847,
-    monthlyRevenue: 142500,
-    prevMonthRevenue: 135200,
-    qciScore: 60.2,
-    qciGrade: "C",
-    noShowRate: 12.3,
-    outcomeGapLeakage: 2600,
-    benchmarkStatus: "below" as const,
-    dimensions: {
-      treatment_completion: { score: 65, benchmark: 65, status: "at" as const },
-      recall_compliance: { score: 58, benchmark: 58, status: "at" as const },
-      outcome_gap_closure: { score: 45, benchmark: 45, status: "at" as const },
-      no_show_prevention: { score: 79, benchmark: 72, status: "above" as const },
-      patient_retention: { score: 45, benchmark: 60, status: "below" as const },
-      revenue_capture: { score: 70, benchmark: 70, status: "at" as const },
-    },
-    reason: "Patient retention significantly below industry benchmark (45% vs 60%). Strong no-show prevention offsets some risk.",
-  },
-  {
-    id: "OFFICE-002",
-    name: "Bright Smiles Dental - East",
-    location: "Scottsdale, AZ",
-    providers: 3,
-    activePatients: 623,
-    monthlyRevenue: 118900,
-    prevMonthRevenue: 121400,
-    qciScore: 74.8,
+    id: "65f84018-7f64-423a-82ce-805384130a66",
+    name: "PoshPearl Family Dental Studio",
+    location: "Yucaipa, CA",
+    providers: 2,
+    activePatients: 62,
+    monthlyRevenue: 48200,
+    prevMonthRevenue: 46800,
+    qciScore: 72.4,
     qciGrade: "B",
-    noShowRate: 8.1,
-    outcomeGapLeakage: 1200,
+    noShowRate: 9.2,
+    outcomeGapLeakage: 1400,
     benchmarkStatus: "above" as const,
     dimensions: {
-      treatment_completion: { score: 78, benchmark: 65, status: "above" as const },
-      recall_compliance: { score: 72, benchmark: 58, status: "above" as const },
-      outcome_gap_closure: { score: 62, benchmark: 45, status: "above" as const },
-      no_show_prevention: { score: 85, benchmark: 72, status: "above" as const },
-      patient_retention: { score: 68, benchmark: 60, status: "above" as const },
-      revenue_capture: { score: 76, benchmark: 70, status: "above" as const },
+      treatment_completion: { score: 74, benchmark: 65, status: "above" as const },
+      recall_compliance: { score: 68, benchmark: 58, status: "above" as const },
+      outcome_gap_closure: { score: 58, benchmark: 45, status: "above" as const },
+      no_show_prevention: { score: 78, benchmark: 72, status: "above" as const },
+      patient_retention: { score: 65, benchmark: 60, status: "above" as const },
+      revenue_capture: { score: 71, benchmark: 70, status: "at" as const },
     },
-    reason: "All dimensions above industry benchmarks. Strong team execution, consistent recall outreach, low no-show rates.",
-  },
-  {
-    id: "OFFICE-003",
-    name: "Bright Smiles Dental - West",
-    location: "Glendale, AZ",
-    providers: 2,
-    activePatients: 412,
-    monthlyRevenue: 87300,
-    prevMonthRevenue: 84100,
-    qciScore: 66.5,
-    qciGrade: "C",
-    noShowRate: 15.7,
-    outcomeGapLeakage: 3800,
-    benchmarkStatus: "at" as const,
-    dimensions: {
-      treatment_completion: { score: 70, benchmark: 65, status: "above" as const },
-      recall_compliance: { score: 55, benchmark: 58, status: "below" as const },
-      outcome_gap_closure: { score: 52, benchmark: 45, status: "above" as const },
-      no_show_prevention: { score: 65, benchmark: 72, status: "below" as const },
-      patient_retention: { score: 62, benchmark: 60, status: "at" as const },
-      revenue_capture: { score: 72, benchmark: 70, status: "at" as const },
-    },
-    reason: "No-show rate highest across offices (15.7%). Recall compliance below benchmark. Treatment acceptance is a strength.",
+    reason: "Strong patient retention and recall compliance. No-show prevention above benchmark. Single-location practice with consistent care delivery.",
   },
 ];
 
@@ -199,8 +155,7 @@ export default function ExecutiveCommandCenter() {
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          <span className="ml-3 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium">{offices.length} offices</span>
-          {isCanada && <span className="ml-2 text-xs bg-red-700/10 border border-red-700/20 text-red-400 px-2 py-0.5 rounded-full font-bold">&#127809; CANADIAN PRACTICE · CDCP · ODA · CAD</span>}
+          <span className="ml-3 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium">{offices.length} office{offices.length !== 1 ? "s" : ""}</span>
         </p>
       </div>
 
