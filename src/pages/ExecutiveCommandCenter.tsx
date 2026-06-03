@@ -74,8 +74,8 @@ export default function ExecutiveCommandCenter() {
   // Fetch live practice summary from /api/dashboard/practice-summary.
   // Falls back to demoOffices if the API is unreachable so the dashboard
   // never goes blank during demos.
-  const [offices, setOffices] = useState<typeof demoOffices>(demoOffices);
-  const [isLoading, setIsLoading] = useState(false);
+  const [offices, setOffices] = useState<typeof demoOffices>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -90,10 +90,12 @@ export default function ExecutiveCommandCenter() {
         if (data.offices && data.offices.length > 0) {
           setOffices(data.offices);
         } else {
-          console.warn('[ExecutiveCommandCenter] API returned no offices, keeping demo data');
+          console.warn('[ExecutiveCommandCenter] API returned no offices, using demo data');
+          setOffices(demoOffices);
         }
       } catch (err: any) {
         console.error('[ExecutiveCommandCenter] Failed to fetch practice summary:', err);
+        setOffices(demoOffices);
       } finally {
         setIsLoading(false);
       }
@@ -145,6 +147,14 @@ export default function ExecutiveCommandCenter() {
     { key: "benchmarks", label: "Benchmark Comparison" },
     { key: "alerts", label: "Alerts", count: officeAlerts.length },
   ];
+
+  if (isLoading && offices.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh] text-slate-400 text-sm">
+        Loading practice summary…
+      </div>
+    );
+  }
 
   return (
     <div className={`max-w-7xl mx-auto transition-all duration-500 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
