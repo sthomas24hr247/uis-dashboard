@@ -81,7 +81,7 @@ export default function ExecutiveCommandCenter() {
     const fetchSummary = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const token = localStorage.getItem('uis_token') || sessionStorage.getItem('uis_token');
         const response = await fetch(`${API_URL}/api/dashboard/practice-summary`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
