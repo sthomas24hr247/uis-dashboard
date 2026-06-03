@@ -158,6 +158,9 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'staff', phone: '', title: '' });
+  // Live PMS counts. Stays null until the API returns real numbers, so the
+  // tiles render "—" rather than a fabricated value if the fetch fails.
+  const [pmsStats, setPmsStats] = useState<{ patients: number; appointments: number } | null>(null);
 
   useEffect(() => {
     fetch(`${API_URL}/graphql`, {
@@ -165,6 +168,30 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer demo-token' },
       body: JSON.stringify({ query: '{ health { isHealthy latencyMs pmsConnected databaseConnected } }' }),
     }).then(r => r.json()).then(d => setHealthStatus(d.data?.health)).catch(() => {});
+
+    // Live patient/appointment counts for the PMS Connection card.
+    // NOTE: confirm these field names match the GraphQL schema. If they differ,
+    // the tiles fall back to "—" rather than showing a wrong number — adjust the
+    // query below once the correct counts field is confirmed.
+    fetch(`${API_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('uis_token') || 'demo-token'}`,
+      },
+      body: JSON.stringify({ query: '{ patientCount appointmentCount }' }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.data && (d.data.patientCount != null || d.data.appointmentCount != null)) {
+          setPmsStats({
+            patients: d.data.patientCount ?? 0,
+            appointments: d.data.appointmentCount ?? 0,
+          });
+        }
+      })
+      .catch(() => {});
+
     fetchUsers();
   }, []);
 
@@ -526,6 +553,21 @@ export default function SettingsPage() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // PMS connection display values, derived from real signals rather than hardcoded.
+  const pmsRaw = (user?.pmsType || '').toLowerCase();
+  const pmsLabel = pmsRaw.includes('dentrix')
+    ? 'Dentrix Ascend'
+    : pmsRaw.includes('cleardent')
+    ? 'ClearDent'
+    : pmsRaw.includes('open')
+    ? 'Open Dental FHIR'
+    : 'PMS Connected';
+  const pmsSyncMode = pmsRaw.includes('dentrix')
+    ? 'Dentrix API'
+    : pmsRaw.includes('cleardent')
+    ? 'ClearDent API'
+    : 'FHIR R4';
+
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
       {/* Header */}
@@ -577,11 +619,16 @@ export default function SettingsPage() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Cpu className="w-5 h-5 text-teal-500" /> PMS Connection</h3>
             <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-700/30 mb-4">
 
-              <div className="flex-1"><p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{user?.pmsType === 'dentrix_ascend' ? 'Dentrix Ascend' : user?.pmsType === 'cleardent' ? 'ClearDent' : 'Open Dental FHIR'}</p><p className="text-xs text-emerald-600 dark:text-emerald-500">Connected · Real-time sync</p></div>
+              <div className="flex-1"><p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{pmsLabel}</p><p className="text-xs text-emerald-600 dark:text-emerald-500">Connected · Auto-sync</p></div>
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[['Patients','13'],['Appointments','24'],['Sync Mode','FHIR R4'],['Status','Live']].map(([l,v],i) => (
+              {[
+                ['Patients', pmsStats ? String(pmsStats.patients) : '—'],
+                ['Appointments', pmsStats ? String(pmsStats.appointments) : '—'],
+                ['Sync Mode', pmsSyncMode],
+                ['Status', healthStatus?.pmsConnected ? 'Live' : '—'],
+              ].map(([l,v],i) => (
                 <div key={i} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
                   <p className="text-[10px] text-slate-400 uppercase tracking-wider">{l}</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{v}</p>
