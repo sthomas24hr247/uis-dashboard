@@ -305,8 +305,8 @@ export default function PatientIntelPage() {
         if (apiPatients.length) {
           setPatients(generatePatientProfiles(apiPatients));
         } else {
-          // Fallback demo data
-          const demo = Array.from({ length: 10 }, (_, i) => ({
+          // No fallback — wait for real data
+          const demo: any[] = []; if (false) Array.from({ length: 10 }, (_, i) => ({
             id: `demo-${i}`, firstName: ['Emily', 'Robert', 'Patricia', 'John', 'Maria', 'James', 'Jennifer', 'William', 'Linda', 'Michael'][i],
             lastName: ['Chen', 'Brown', 'Davis', 'Smith', 'Garcia', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Martinez'][i],
           }));

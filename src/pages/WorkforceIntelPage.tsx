@@ -377,22 +377,16 @@ export default function WorkforceIntelPage() {
         if (raw.length > 0) {
           setProviders(generateProviderMetrics(raw));
         } else {
-          // Fallback demo data if API unavailable
+          // No fallback — wait for real data
           setProviders(generateProviderMetrics([
-            { id: '1', firstName: 'Sarah', lastName: 'Johnson', specialty: 'General Dentistry', isHygienist: false },
-            { id: '2', firstName: 'Michael', lastName: 'Chen', specialty: 'Orthodontics', isHygienist: false },
-            { id: '3', firstName: 'Emily', lastName: 'Rodriguez', specialty: 'Dental Hygiene', isHygienist: true },
-            { id: '4', firstName: 'James', lastName: 'Wilson', specialty: 'Periodontics', isHygienist: false },
+            /* No demo fallback */
           ]));
         }
         setLoading(false);
       })
       .catch(() => {
         setProviders(generateProviderMetrics([
-          { id: '1', firstName: 'Sarah', lastName: 'Johnson', specialty: 'General Dentistry', isHygienist: false },
-          { id: '2', firstName: 'Michael', lastName: 'Chen', specialty: 'Orthodontics', isHygienist: false },
-          { id: '3', firstName: 'Emily', lastName: 'Rodriguez', specialty: 'Dental Hygiene', isHygienist: true },
-          { id: '4', firstName: 'James', lastName: 'Wilson', specialty: 'Periodontics', isHygienist: false },
+          /* No demo fallback */
         ]));
         setLoading(false);
       });

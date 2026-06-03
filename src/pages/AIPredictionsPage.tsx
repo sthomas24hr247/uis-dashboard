@@ -141,7 +141,7 @@ function getRiskBadge(category: string) {
 }
 
 export default function AIPredictionsPage() {
-  const { data, loading, refetch } = useQuery(GET_COMMAND_CENTER);
+  const { data, loading, error, refetch } = useQuery(GET_COMMAND_CENTER, { errorPolicy: 'all' });
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [dsoContext, setDsoContext] = useState<any>(null);
 
@@ -256,6 +256,19 @@ export default function AIPredictionsPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-teal-200 dark:border-teal-800 border-t-teal-500 rounded-full animate-spin" />
             <p className="text-slate-500 dark:text-slate-400">Loading intelligence...</p>
+          </div>
+        </div>
+      )}
+
+{/* Error or empty state */}
+      {(error || (!loading && !data)) && (
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">AI Intelligence Calibrating</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">The AI engine is processing your practice data. Predictions, risk scores, and intelligence will appear here within 24 hours of your initial connection.</p>
           </div>
         </div>
       )}

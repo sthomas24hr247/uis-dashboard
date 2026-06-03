@@ -77,7 +77,7 @@ interface FeedbackInsight {
 function generateFingerprints(): StaffFingerprint[] {
   return [
     {
-      staffId: '1', name: 'Dr. Sarah Johnson', role: 'Dentist',
+      /* Staff populated from database */ staffId: '0', name: 'No staff data yet', role: 'Pending sync',
       avgDecisionTimeMs: 4200, medianDecisionTimeMs: 3800, velocityCategory: 'fast',
       overallApprovalRate: 0.87,
       approvalByType: { scheduling: 0.92, treatment_plan: 0.78, billing: 0.85, compliance: 0.95, hygiene_protocol: 0.88 },
@@ -89,8 +89,8 @@ function generateFingerprints(): StaffFingerprint[] {
       complianceScore: 0.85, engagementScore: 0.88, confidenceLevel: 'high', totalDecisions: 147,
       trend30d: 0.03, trend60d: 0.05, momentumDirection: 'improving',
     },
-    {
-      staffId: '2', name: 'Michael Chen', role: 'Office Manager',
+    /* Staff 2 — populated from database */ {
+      staffId: '0', name: 'Pending', role: 'Pending sync',
       avgDecisionTimeMs: 8500, medianDecisionTimeMs: 7200, velocityCategory: 'moderate',
       overallApprovalRate: 0.72,
       approvalByType: { scheduling: 0.88, treatment_plan: 0.55, billing: 0.78, compliance: 0.82, staffing: 0.60 },
@@ -102,8 +102,8 @@ function generateFingerprints(): StaffFingerprint[] {
       complianceScore: 0.70, engagementScore: 0.65, confidenceLevel: 'medium', totalDecisions: 89,
       trend30d: -0.04, trend60d: -0.02, momentumDirection: 'declining',
     },
-    {
-      staffId: '3', name: 'Emily Rodriguez', role: 'Hygienist',
+    /* Staff 3 — populated from database */ {
+      staffId: '0', name: 'Pending', role: 'Pending sync',
       avgDecisionTimeMs: 2800, medianDecisionTimeMs: 2400, velocityCategory: 'fast',
       overallApprovalRate: 0.94,
       approvalByType: { scheduling: 0.96, hygiene_protocol: 0.95, patient_communication: 0.92, compliance: 0.98 },
@@ -120,14 +120,14 @@ function generateFingerprints(): StaffFingerprint[] {
 
 function generateFollowThroughs(): FollowThroughItem[] {
   return [
-    { recId: '1', title: 'Present crown option to Emily Chen', type: 'treatment_plan', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-11', status: 'pending', daysElapsed: 12, revenue: 1250 },
-    { recId: '2', title: 'Schedule Robert Brown for accepted filling', type: 'scheduling', approvedBy: 'Michael Chen', approvedAt: '2026-02-18', status: 'verified', verifiedAt: '2026-02-20', daysElapsed: 5, revenue: 195 },
-    { recId: '3', title: 'Complete 3 incomplete clinical notes', type: 'compliance', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-15', status: 'verified', verifiedAt: '2026-02-16', daysElapsed: 8, revenue: 0 },
-    { recId: '4', title: 'Verify benefits for 8 patients', type: 'billing', approvedBy: 'Michael Chen', approvedAt: '2026-02-10', status: 'failed', daysElapsed: 13, revenue: 3200 },
-    { recId: '5', title: 'Recall overdue hygiene patients', type: 'scheduling', approvedBy: 'Emily Rodriguez', approvedAt: '2026-02-19', status: 'verified', verifiedAt: '2026-02-21', daysElapsed: 4, revenue: 420 },
-    { recId: '6', title: 'Update emergency protocols', type: 'compliance', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-08', status: 'expired', daysElapsed: 15, revenue: 0 },
-    { recId: '7', title: 'Reschedule Maria Garcia perio SRP', type: 'treatment_plan', approvedBy: 'Emily Rodriguez', approvedAt: '2026-02-20', status: 'pending', daysElapsed: 3, revenue: 285 },
-    { recId: '8', title: 'Send payment reminders for overdue accounts', type: 'billing', approvedBy: 'Michael Chen', approvedAt: '2026-02-17', status: 'verified', verifiedAt: '2026-02-19', daysElapsed: 6, revenue: 1800 },
+    /* Populated from database */ { recId: '0', title: 'No recommendations yet', type: 'treatment_plan', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-11', status: 'pending', daysElapsed: 12, revenue: 1250 },
+    { recId: '0', title: 'Schedule Robert Brown for accepted filling', type: 'scheduling', approvedBy: 'Michael Chen', approvedAt: '2026-02-18', status: 'verified', verifiedAt: '2026-02-20', daysElapsed: 5, revenue: 195 },
+    { recId: '0', title: 'Complete 3 incomplete clinical notes', type: 'compliance', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-15', status: 'verified', verifiedAt: '2026-02-16', daysElapsed: 8, revenue: 0 },
+    { recId: '0', title: 'Verify benefits for 8 patients', type: 'billing', approvedBy: 'Michael Chen', approvedAt: '2026-02-10', status: 'failed', daysElapsed: 13, revenue: 3200 },
+    { recId: '0', title: 'Recall overdue hygiene patients', type: 'scheduling', approvedBy: 'Emily Rodriguez', approvedAt: '2026-02-19', status: 'verified', verifiedAt: '2026-02-21', daysElapsed: 4, revenue: 420 },
+    { recId: '0', title: 'Update emergency protocols', type: 'compliance', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-08', status: 'expired', daysElapsed: 15, revenue: 0 },
+    { recId: '0', title: 'Reschedule Maria Garcia perio SRP', type: 'treatment_plan', approvedBy: 'Emily Rodriguez', approvedAt: '2026-02-20', status: 'pending', daysElapsed: 3, revenue: 285 },
+    { recId: '0', title: 'Send payment reminders for overdue accounts', type: 'billing', approvedBy: 'Michael Chen', approvedAt: '2026-02-17', status: 'verified', verifiedAt: '2026-02-19', daysElapsed: 6, revenue: 1800 },
   ];
 }
 

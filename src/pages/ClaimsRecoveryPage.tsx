@@ -1099,9 +1099,9 @@ export default function ClaimsRecoveryPage() {
   const { isCanada } = useJurisdiction();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"tracker" | "recovery" | "sign" | "prevention" | "bulk" | "documents">("tracker");
-  const [claims, setClaims] = useState<DeniedClaim[]>(isCanada ? CA_MOCK_CLAIMS as any : MOCK_CLAIMS);
+  const [claims, setClaims] = useState<DeniedClaim[]>([]);
   useEffect(() => {
-    setClaims(isCanada ? CA_MOCK_CLAIMS as any : MOCK_CLAIMS);
+    setClaims([]);
     setPreselected(null);
     setActiveTab('tracker');
   }, [isCanada]);

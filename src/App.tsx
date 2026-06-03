@@ -10,6 +10,7 @@ import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import HomePage from './pages/HomePage';
 import AIPredictionsPage from './pages/AIPredictionsPage';
+import { PageErrorBoundary } from './components/ErrorBoundary';
 import MARVAPage from './pages/MARVAPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
@@ -81,17 +82,17 @@ function App() {
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:patientId" element={<PatientDetailPage />} />
         <Route path="providers" element={<ProvidersPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="ai-predictions" element={<AIPredictionsPage />} />
+        <Route path="analytics" element={<PageErrorBoundary pageName="Practice Performance"><AnalyticsPage /></PageErrorBoundary>} />
+        <Route path="ai-predictions" element={<PageErrorBoundary pageName="AI Predictions"><AIPredictionsPage /></PageErrorBoundary>} />
         <Route path="marva" element={<MARVAPage />} />
         <Route path="recommendations" element={<RecommendationsPage />} />
-        <Route path="patient-intel" element={<PatientIntelPage />} />
-        <Route path="bil" element={<BILDashboardPage />} />
-        <Route path="insurance" element={<InsuranceVerificationPage />} />
+        <Route path="patient-intel" element={<PageErrorBoundary pageName="Patient Intel"><PatientIntelPage /></PageErrorBoundary>} />
+        <Route path="bil" element={<PageErrorBoundary pageName="Fingerprinting"><BILDashboardPage /></PageErrorBoundary>} />
+        <Route path="insurance" element={<PageErrorBoundary pageName="Insurance"><InsuranceVerificationPage /></PageErrorBoundary>} />
         <Route path="outcome-gap" element={<OutcomeGapPage />} />
         <Route path="outcome-gap/classified" element={<OutcomeGapClassifiedPage />} />
-        <Route path="quality-of-care" element={<QualityOfCarePage />} />
-        <Route path="workforce" element={<WorkforceIntelPage />} />
+        <Route path="quality-of-care" element={<PageErrorBoundary pageName="Quality of Care"><QualityOfCarePage /></PageErrorBoundary>} />
+        <Route path="workforce" element={<PageErrorBoundary pageName="Workforce Intel"><WorkforceIntelPage /></PageErrorBoundary>} />
         <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
             <Route path="admin" element={<AdminPage />} />
