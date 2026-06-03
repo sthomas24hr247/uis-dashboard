@@ -13,7 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https:
 // Demo multi-office data (transitions to real API data once multiple practices are connected)
 type BenchmarkStatus = "above" | "at" | "below";
 type DimInfo = { score: number; benchmark: number; status: BenchmarkStatus };
-const demoOffices: { id: string; name: string; location: string; providers: number; activePatients: number; monthlyRevenue: number; prevMonthRevenue: number; qciScore: number; qciGrade: string; noShowRate: number; outcomeGapLeakage: number; benchmarkStatus: BenchmarkStatus; dimensions: Record<string, DimInfo>; reason: string }[] = [
+const demoOffices: { id: string; name: string; location: string; providers: number; activePatients: number; monthlyRevenue: number | null; prevMonthRevenue: number | null; qciScore: number; qciGrade: string; noShowRate: number; outcomeGapLeakage: number; benchmarkStatus: BenchmarkStatus; dimensions: Record<string, DimInfo>; reason: string }[] = [
   {
     id: "65f84018-7f64-423a-82ce-805384130a66",
     name: "PoshPearl Family Dental Studio",
@@ -49,8 +49,8 @@ const statusLabels = { above: "Above Benchmark", at: "At Benchmark", below: "Bel
 
 // "Newly Onboarded" — practice exists with assigned revenue but no patient data has flowed in yet.
 // Distinguishes ramp-up state from broken/dormant practices (which have $0 revenue).
-const isNewlyOnboarded = (o: { activePatients: number; monthlyRevenue: number }): boolean =>
-  o.activePatients === 0 && o.monthlyRevenue > 0;
+const isNewlyOnboarded = (o: { activePatients: number; monthlyRevenue: number | null }): boolean =>
+  o.activePatients === 0 && (o.monthlyRevenue ?? 0) > 0;
 
 const dimensionLabels: Record<string, string> = {
   treatment_completion: "Treatment Completion",
@@ -125,9 +125,11 @@ export default function ExecutiveCommandCenter() {
   const userName = user?.displayName || user?.firstName || user?.email?.split("@")[0] || "Executive";
 
   // Aggregate stats across all offices
-  const totalRevenue = offices.reduce((s, o) => s + o.monthlyRevenue, 0);
-  const totalPrevRevenue = offices.reduce((s, o) => s + o.prevMonthRevenue, 0);
-  const revenueChange = ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100);
+  const revenueOffices = offices.filter((o) => o.monthlyRevenue != null);
+  const hasRevenue = revenueOffices.length > 0;
+  const totalRevenue = revenueOffices.reduce((s, o) => s + (o.monthlyRevenue ?? 0), 0);
+  const totalPrevRevenue = revenueOffices.reduce((s, o) => s + (o.prevMonthRevenue ?? 0), 0);
+  const revenueChange = hasRevenue && totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100) : null;
   const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
   const avgQCI = offices.reduce((s, o) => s + o.qciScore, 0) / offices.length;
   const totalLeakage = offices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
@@ -176,11 +178,13 @@ export default function ExecutiveCommandCenter() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenue (MTD)</p>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">${(totalRevenue / 1000).toFixed(1)}K</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{hasRevenue ? `$${(totalRevenue / 1000).toFixed(1)}K` : '—'}</p>
+          {revenueChange != null && (
           <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${revenueChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {revenueChange >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {Math.abs(revenueChange).toFixed(1)}% vs last month
           </div>
+          )}
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
@@ -280,7 +284,7 @@ export default function ExecutiveCommandCenter() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {offices.map((office) => {
             const sc = statusColors[office.benchmarkStatus];
-            const revChange = ((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100);
+            const revChange = (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? ((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100) : null;
             return (
               <div
                 key={office.id}
@@ -309,10 +313,12 @@ export default function ExecutiveCommandCenter() {
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider">Revenue</p>
-                    <p className="text-lg font-bold text-slate-900 dark:text-white">${(office.monthlyRevenue / 1000).toFixed(1)}K</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{office.monthlyRevenue != null ? `$${(office.monthlyRevenue / 1000).toFixed(1)}K` : '—'}</p>
+                    {revChange != null && (
                     <span className={`text-[10px] font-medium ${revChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {revChange >= 0 ? '↑' : '↓'} {Math.abs(revChange).toFixed(1)}%
                     </span>
+                    )}
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider">QCI Score</p>
@@ -523,7 +529,7 @@ function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof
           {/* KPI strip */}
           <div className="grid grid-cols-5 gap-3">
             {[
-              { label: 'Monthly Revenue', value: `$${(office.monthlyRevenue/1000).toFixed(0)}K`, sub: `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs last mo`, color: 'text-teal-400' },
+              { label: 'Monthly Revenue', value: office.monthlyRevenue != null ? `$${(office.monthlyRevenue/1000).toFixed(0)}K` : '—', sub: (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs last mo` : 'No revenue data', color: 'text-teal-400' },
               { label: 'QCI Score', value: `${office.qciScore}`, sub: office.qciGrade + ' grade', color: office.qciGrade === 'B' ? 'text-blue-400' : 'text-amber-400' },
               { label: 'No-Show Rate', value: `${office.noShowRate}%`, sub: office.noShowRate > 10 ? 'Above threshold' : 'On target', color: office.noShowRate > 10 ? 'text-red-400' : 'text-teal-400' },
               { label: 'Gap Leakage', value: `$${(office.outcomeGapLeakage/1000).toFixed(1)}K`, sub: 'This month', color: 'text-pink-400' },
