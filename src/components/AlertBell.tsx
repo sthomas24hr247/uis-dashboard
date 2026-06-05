@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, AlertTriangle, Clock, Phone, Calendar, Send, FileText, DollarSign, X, ChevronRight } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 interface Alert {
   id: string;
@@ -33,8 +34,6 @@ export default function AlertBell() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
-
   // Fetch alert count on mount and every 60 seconds
   useEffect(() => {
     fetchAlertCount();
@@ -53,7 +52,7 @@ export default function AlertBell() {
 
   const fetchAlertCount = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/outcome-gap/alerts/count`);
+      const res = await apiFetch('/api/outcome-gap/alerts/count');
       if (res.ok) {
         const data = await res.json();
         setSummary(prev => ({ ...prev, ...data }));
@@ -64,7 +63,7 @@ export default function AlertBell() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/outcome-gap/alerts?limit=20`);
+      const res = await apiFetch('/api/outcome-gap/alerts?limit=20');
       if (res.ok) {
         const data = await res.json();
         setAlerts(data.alerts || []);
