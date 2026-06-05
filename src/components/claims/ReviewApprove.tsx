@@ -6,6 +6,7 @@ import { fmtCurrency, ARC_RESOLUTION, SOAP_OPTIONS, type DeniedClaim } from "@/d
 import { generateSOAPPdf } from "@/lib/generate-soap-pdf";
 import { supabase } from "@/integrations/supabase/client";
 import type { SoapAddendumRow } from "@/hooks/use-denied-claims";
+import { apiFetch, getPracticeId } from "@/lib/api";
 
 interface ReviewApproveProps {
   claims: DeniedClaim[];
@@ -192,7 +193,7 @@ export const ReviewApprove = ({ claims, approvedIds, pendingIds, onApprove, onBu
   // ── Save narrative to Azure Blob via API ──────────────────────────────────
   const saveToVault = async (claim: DeniedClaim, htmlContent: string) => {
     try {
-      const res = await fetch('https://api.uishealth.com/api/claims/documents/save', {
+     const res = await apiFetch('/api/claims/documents/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,10 +206,10 @@ export const ReviewApprove = ({ claims, approvedIds, pendingIds, onApprove, onBu
           providerName:     claim.dentist,
           denialCode:       (claim.row as any)?.DenialCode || '',
           narrativeSummary: htmlContent.replace(/<[^>]*>/g, '').substring(0, 500),
-          practiceId:       'default',
+          practiceId:       getPracticeId(),
           createdBy:        'Staff',
         }),
-      });
+      }); 
       if (!res.ok) throw new Error('Save failed');
       alert('✅ Document saved to vault successfully!');
     } catch (err) {

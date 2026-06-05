@@ -7,9 +7,7 @@ import {
   AlertTriangle, Activity, Star, Lightbulb, Target, TrendingUp,
   DollarSign, Clock, Zap,
 } from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
-const PRACTICE_ID = '00000000-0000-0000-0000-000000000001';
+import { apiFetch, getPracticeId } from "@/lib/api";
 
 const GET_DASHBOARD_STATS = gql`
   query DashboardStats {
@@ -40,10 +38,11 @@ export default function HomePage() {
   useEffect(() => {
     setLoaded(true);
     // Fetch live data from new APIs
+    const practiceId = getPracticeId();
     Promise.all([
-      fetch(`${API_URL}/api/recommendations/active?practice_id=${PRACTICE_ID}&limit=3`).then(r => r.json()),
-      fetch(`${API_URL}/api/bil/summary`).then(r => r.json()),
-      fetch(`${API_URL}/api/outcome-gap/funnel?practice_id=${PRACTICE_ID}`).then(r => r.json()),
+      apiFetch(`/api/recommendations/active?practice_id=${practiceId}&limit=3`).then(r => r.json()),
+      apiFetch(`/api/bil/summary`).then(r => r.json()),
+      apiFetch(`/api/outcome-gap/funnel?practice_id=${practiceId}`).then(r => r.json()),
     ]).then(([recsData, bilData, funnelData]) => {
       setTopRecs(recsData.recommendations || []);
       setRecCount(recsData.count || 0);

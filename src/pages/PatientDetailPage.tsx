@@ -16,6 +16,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { format, parseISO, differenceInYears } from 'date-fns';
+import { apiFetch, getPracticeId } from '@/lib/api';
 
 const GET_PATIENT = gql`
   query GetPatient($patientId: ID!) {
@@ -44,14 +45,14 @@ export default function PatientDetailPage() {
   });
   const patient = data?.dentamindPatient;
 
-  const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
   const [prediction, setPrediction] = useState<any>(null);
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [patientRecs, setPatientRecs] = useState<any[]>([]);
 
   useEffect(() => {
     if (!patient) return;
-    fetch(`${API_URL}/api/predictions/patients`)
+    const practiceId = getPracticeId();
+    apiFetch(`/api/predictions/patients`)
       .then(r => r.json())
       .then(d => {
         const match = d.predictions?.find((p: any) =>
@@ -60,8 +61,8 @@ export default function PatientDetailPage() {
         );
         if (match) setPrediction(match);
       }).catch(() => {});
-    fetch(`${API_URL}/api/recommendations/active?practice_id=00000000-0000-0000-0000-000000000001`).then(r => r.json()).then(d => { const recs = (d.recommendations || []).filter((r: any) => r.patient_name?.toLowerCase().includes(patient.firstName?.toLowerCase())); setPatientRecs(recs); }).catch(() => {});
-    fetch(`${API_URL}/api/outcome-gap/stalled?min_days=0`)
+    apiFetch(`/api/recommendations/active?practice_id=${practiceId}`).then(r => r.json()).then(d => { const recs = (d.recommendations || []).filter((r: any) => r.patient_name?.toLowerCase().includes(patient.firstName?.toLowerCase())); setPatientRecs(recs); }).catch(() => {});
+    apiFetch(`/api/outcome-gap/stalled?min_days=0`)
       .then(r => r.json())
       .then(d => {
         const patientEps = d.stalled_episodes?.filter((e: any) =>
@@ -70,7 +71,7 @@ export default function PatientDetailPage() {
         ) || [];
         setEpisodes(patientEps);
       }).catch(() => {});
-    fetch(`${API_URL}/api/recommendations/active?practice_id=00000000-0000-0000-0000-000000000001`).then(r => r.json()).then(d => { const recs = (d.recommendations || []).filter((r: any) => r.patient_name?.toLowerCase().includes(patient.firstName?.toLowerCase())); setPatientRecs(recs); }).catch(() => {});
+    apiFetch(`/api/recommendations/active?practice_id=${practiceId}`).then(r => r.json()).then(d => { const recs = (d.recommendations || []).filter((r: any) => r.patient_name?.toLowerCase().includes(patient.firstName?.toLowerCase())); setPatientRecs(recs); }).catch(() => {});
   }, [patient]);
 
   const calculateAge = (dob: string) => { try { return differenceInYears(new Date(), parseISO(dob)); } catch { return null; } };

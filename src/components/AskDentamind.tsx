@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import { useAuth } from "../context/AuthContext";
 import { CA_MOCK_CLAIMS, CDCP_DENIAL_CODES } from "../data/canadian-claims-data";
+import { apiGet, apiFetch } from "../lib/api";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -185,11 +186,10 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
 
   const [selfFetchedData, setSelfFetchedData] = useState<PracticeData | null>(null);
   useEffect(() => {
-    const API = 'https://api.uishealth.com';
     Promise.all([
-      fetch(`${API}/api/predictions/patients`).then(r => r.json()),
-      fetch(`${API}/api/outcome-gap/stalled?min_days=0`).then(r => r.json()),
-      fetch(`${API}/api/recommendations/active?limit=20`).then(r => r.json()),
+      apiGet('/api/predictions/patients'),
+      apiGet('/api/outcome-gap/stalled?min_days=0'),
+      apiGet('/api/recommendations/active?limit=20'),
     ]).then(([predData, gapData, recData]) => {
       const sections: string[] = [];
       if (predData.predictions?.length) {
@@ -226,9 +226,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   // Self-fetch DSO context when practiceData prop is not provided (floating widget)
   useEffect(() => {
     if (practiceData) return;
-    const API = "https://api.uishealth.com";
-    fetch(`${API}/api/dashboard/practice-summary`, { headers: { "Content-Type": "application/json" } })
-      .then(r => r.json())
+    apiGet('/api/dashboard/practice-summary')
       .then(d => {
         if (d?.dsoContext) {
           setSelfFetchedData({ dsoContext: d.dsoContext } as PracticeData);
@@ -260,7 +258,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       setMessages([userMsg]);
       setIsLoading(true);
 
-      fetch('https://api.uishealth.com/api/chat', {
+      apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -303,7 +301,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://api.uishealth.com/api/chat", {
+      const response = await apiFetch('/api/chat', {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
         body: JSON.stringify({
@@ -376,7 +374,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   const handleQuickQuestion = (q: string) => {
     setMessages([{ role: 'user', content: q }]);
     setIsLoading(true);
-    fetch('https://api.uishealth.com/api/chat', {
+    apiFetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

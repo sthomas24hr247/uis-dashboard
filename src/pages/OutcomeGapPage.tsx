@@ -3,9 +3,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, AlertTriangle, Target, Percent,
   Phone, CalendarPlus, Mail, ChevronRight, Activity, Loader2, RefreshCw,
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
-const PRACTICE_ID = '00000000-0000-0000-0000-000000000001';
+import { apiFetch, getPracticeId } from '@/lib/api';
 
 interface FunnelStage { stage: string; count: number; value?: number; }
 interface FunnelData { funnel: FunnelStage[]; total_episodes: number; total_plan_value: number; total_collected: number; total_leaked: number; overall_gap_pct: string; }
@@ -23,10 +21,11 @@ function useOutcomeGapData() {
     setLoading(true);
     setError(null);
     try {
+      const practiceId = getPracticeId();
       const [funnelRes, leakageRes, stalledRes] = await Promise.all([
-        fetch(`${API_URL}/api/outcome-gap/funnel?practice_id=${PRACTICE_ID}`),
-        fetch(`${API_URL}/api/outcome-gap/leakage?practice_id=${PRACTICE_ID}`),
-        fetch(`${API_URL}/api/outcome-gap/stalled?practice_id=${PRACTICE_ID}&min_days=1`),
+        apiFetch(`/api/outcome-gap/funnel?practice_id=${practiceId}`),
+        apiFetch(`/api/outcome-gap/leakage?practice_id=${practiceId}`),
+        apiFetch(`/api/outcome-gap/stalled?practice_id=${practiceId}&min_days=1`),
       ]);
       setFunnelData(await funnelRes.json());
       setLeakageData((await leakageRes.json()).leakage || []);

@@ -7,8 +7,8 @@ import {
   ChevronRight, ArrowUpRight, ArrowDownRight, Minus, BarChart3,
   AlertTriangle, CheckCircle2, Eye, EyeOff, Filter,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
 
 // Demo multi-office data (transitions to real API data once multiple practices are connected)
 type BenchmarkStatus = "above" | "at" | "below";
@@ -80,11 +80,8 @@ export default function ExecutiveCommandCenter() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        setIsLoading(true);
-        const token = localStorage.getItem('uis_token') || sessionStorage.getItem('uis_token');
-        const response = await fetch(`${API_URL}/api/dashboard/practice-summary`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+     setIsLoading(true);
+        const response = await apiFetch(`/api/dashboard/practice-summary`);   
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.offices && data.offices.length > 0) {
@@ -109,7 +106,7 @@ export default function ExecutiveCommandCenter() {
 
   const [missingContact, setMissingContact] = useState<{ episode_count: number; total_dollars: number; affected_patients: number } | null>(null);
   useEffect(() => {
-    fetch(`${API_URL}/api/outcome-gap/missing-contact`)
+    apiFetch(`/api/outcome-gap/missing-contact`)
       .then(r => r.json())
       .then(d => setMissingContact(d))
       .catch(() => {});

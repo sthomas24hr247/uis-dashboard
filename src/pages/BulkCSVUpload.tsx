@@ -4,6 +4,7 @@ import {
   Copy, Printer, FileDown, Edit3, RefreshCw, FileText,
   CheckSquare, FolderOpen, X, Brain, AlertCircle, ArrowRight
 } from "lucide-react";
+import { apiFetch, getPracticeId } from "@/lib/api";
 
 // ── Field definitions — what we need to generate the SOAP PDF ────────────────
 export const REQUIRED_FIELDS = [
@@ -473,7 +474,7 @@ async function saveNarrativeToVaultSilent(row: MappedRow, narrative: string, sig
     const name = [row.patient_first_name, row.patient_last_name].filter(Boolean).join(' ') || row.patient_id || 'Unknown Patient';
     const cdtCode = row.cdt_code || row.procedure_code || row.treatment_plan_ada_codes || 'D9222';
     const htmlContent = generatePDF(row, signatureDataUrl) || `<html><body><p>Patient: ${name}</p></body></html>`;
-    const res = await fetch('https://api.uishealth.com/api/claims/documents/save', {
+    const res = await apiFetch('/api/claims/documents/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -486,7 +487,7 @@ async function saveNarrativeToVaultSilent(row: MappedRow, narrative: string, sig
         providerName: row.provider_name || '',
         denialCode: row.denial_code || row.arc_code || '',
         narrativeSummary: narrative.substring(0, 500),
-        practiceId: 'default',
+        practiceId: getPracticeId(),
         createdBy: 'Staff',
       }),
     });
@@ -500,7 +501,7 @@ async function saveNarrativeToVault(row: MappedRow, narrative: string, signature
     const cdtCode = row.cdt_code || row.procedure_code || row.treatment_plan_ada_codes || 'D9222';
     const htmlContent = generatePDF(row, signatureDataUrl) || `<html><body><p>Patient: ${name}</p><p>DOS: ${row.exam_date}</p><p>Provider: ${row.provider_name}</p></body></html>`;
     console.log('[SaveToVault] Saving:', name, cdtCode);
-    const res = await fetch('https://api.uishealth.com/api/claims/documents/save', {
+    const res = await apiFetch('/api/claims/documents/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -513,7 +514,7 @@ async function saveNarrativeToVault(row: MappedRow, narrative: string, signature
         providerName:     row.provider_name || '',
         denialCode:       row.denial_code || row.arc_code || '',
         narrativeSummary: narrative.substring(0, 500),
-        practiceId:       'default',
+        practiceId:       getPracticeId(),
         createdBy:        'Staff',
       }),
     });
@@ -895,14 +896,14 @@ function BatchGroup({ batch, onUpdate, onRemove, onRouteToSign }: {
 // ── Persist batch to API for cross-session survival ──────────────────────────
 async function saveBatchToAPI(batch: CSVBatch): Promise<void> {
   try {
-    await fetch('https://api.uishealth.com/api/claims/batches/save', {
+    await apiFetch('/api/claims/batches/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         batchId:    batch.id,
         fileName:   batch.fileName,
         uploadedAt: batch.uploadedAt,
-        practiceId: 'default',
+        practiceId: getPracticeId(),
         narratives: batch.narratives.map(n => ({
           row:      n.row,
           narrative: n.narrative,
@@ -917,7 +918,7 @@ async function saveBatchToAPI(batch: CSVBatch): Promise<void> {
 
 async function loadBatchesFromAPI(): Promise<CSVBatch[]> {
   try {
-    const res = await fetch('https://api.uishealth.com/api/claims/batches?practiceId=default');
+    const res = await apiFetch(`/api/claims/batches?practiceId=${getPracticeId()}`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.batches || [];
@@ -1048,7 +1049,7 @@ export default function BulkCSVUpload({ onRouteToSign }: BulkCSVUploadProps) {
   };
   const removeBatch = (id: string) => {
     setBatches(prev => prev.filter(b => b.id !== id));
-    fetch(`https://api.uishealth.com/api/claims/batches/${id}`, { method: 'DELETE' }).catch(console.error);
+    apiFetch(`/api/claims/batches/${id}`, { method: 'DELETE' }).catch(console.error);
   };
 
   const totalClaims = batches.reduce((s, b) => s + b.narratives.length, 0);

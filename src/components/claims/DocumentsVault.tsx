@@ -1,9 +1,11 @@
 // src/components/claims/DocumentsVault.tsx
 // Drop-in Documents tab for ClaimsRecoveryPage and any other claims page
-// Props: practiceId (string) — pass your tenant/practice identifier
+// Practice scope is derived from the logged-in session (see getPracticeId);
+// the optional practiceId prop is retained for compatibility but ignored.
 
 import { useEffect, useState, useCallback } from 'react';
 import { FileText, Download, Trash2, Search, Filter, RefreshCw, FolderOpen } from 'lucide-react';
+import { apiFetch, getPracticeId } from '@/lib/api';
 
 interface ClaimsDocument {
   documentId: string;
@@ -25,9 +27,8 @@ interface DocumentsVaultProps {
   practiceId?: string;
 }
 
-const API_BASE = 'https://api.uishealth.com';
-
-export default function DocumentsVault({ practiceId = 'default' }: DocumentsVaultProps) {
+export default function DocumentsVault(_props: DocumentsVaultProps) {
+  const practiceId = getPracticeId();
   const [documents, setDocuments] = useState<ClaimsDocument[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ export default function DocumentsVault({ practiceId = 'default' }: DocumentsVaul
       if (filterFrom)   params.set('from',       filterFrom);
       if (filterTo)     params.set('to',         filterTo);
 
-      const res = await fetch(`${API_BASE}/api/claims/documents?${params}`);
+      const res = await apiFetch(`/api/claims/documents?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setDocuments(data.documents || []);
@@ -71,7 +72,7 @@ export default function DocumentsVault({ practiceId = 'default' }: DocumentsVaul
     if (!confirm('Delete this document? This cannot be undone.')) return;
     setDeleting(documentId);
     try {
-      await fetch(`${API_BASE}/api/claims/documents/${documentId}`, { method: 'DELETE' });
+      await apiFetch(`/api/claims/documents/${documentId}`, { method: 'DELETE' });
       setDocuments(prev => prev.filter(d => d.documentId !== documentId));
       setTotal(prev => prev - 1);
     } catch {
@@ -83,7 +84,7 @@ export default function DocumentsVault({ practiceId = 'default' }: DocumentsVaul
 
   const handleDownload = async (doc: ClaimsDocument) => {
     try {
-      const res = await fetch(`${API_BASE}/api/claims/documents/${doc.documentId}/download`);
+      const res = await apiFetch(`/api/claims/documents/${doc.documentId}/download`);
       if (!res.ok) throw new Error('Failed to get download URL');
       const { url } = await res.json();
       window.open(url, '_blank');
@@ -109,7 +110,7 @@ export default function DocumentsVault({ practiceId = 'default' }: DocumentsVaul
     setDeletingAll(true);
     for (const id of Array.from(selected)) {
       try {
-        await fetch(`https://api.uishealth.com/api/claims/documents/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/claims/documents/${id}`, { method: 'DELETE' });
         setDocuments(prev => prev.filter(d => d.documentId !== id));
         setTotal(prev => prev - 1);
       } catch { /* continue */ }
@@ -123,7 +124,7 @@ export default function DocumentsVault({ practiceId = 'default' }: DocumentsVaul
     setDeletingAll(true);
     for (const doc of filtered) {
       try {
-        await fetch(`https://api.uishealth.com/api/claims/documents/${doc.documentId}`, { method: 'DELETE' });
+        await apiFetch(`/api/claims/documents/${doc.documentId}`, { method: 'DELETE' });
       } catch { /* continue */ }
     }
     setDocuments([]);

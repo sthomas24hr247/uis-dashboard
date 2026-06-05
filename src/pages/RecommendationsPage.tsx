@@ -4,9 +4,7 @@ import {
   Loader2, AlertTriangle, DollarSign, Timer, Shield, TrendingUp,
   Sparkles, Zap, Target, Users,
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
-const PRACTICE_ID = '00000000-0000-0000-0000-000000000001';
+import { apiFetch, getPracticeId } from '@/lib/api';
 
 interface Recommendation {
   id: string;
@@ -77,9 +75,10 @@ function useRecommendationsData() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const practiceId = getPracticeId();
       const [recsRes, bilRes] = await Promise.all([
-        fetch(`${API_URL}/api/recommendations/active?practice_id=${PRACTICE_ID}`),
-        fetch(`${API_URL}/api/bil/summary`),
+        apiFetch(`/api/recommendations/active?practice_id=${practiceId}`),
+        apiFetch(`/api/bil/summary`),
       ]);
       const recsData = await recsRes.json();
       const bilData = await bilRes.json();
@@ -106,13 +105,14 @@ function useDecisionState() {
     const now = new Date().toISOString();
     try {
       const staffUser = JSON.parse(localStorage.getItem('uis_user') || '{}');
-      await fetch(`${API_URL}/api/bil/decision-events`, {
+      const practiceId = getPracticeId();
+      await apiFetch(`/api/bil/decision-events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recommendation_id: rec.id,
-          practice_id: PRACTICE_ID,
-          staff_member_id: staffUser.userId || 'A383D78B-677B-4C1F-9C9C-77918895CB22',
+          practice_id: practiceId,
+          staff_member_id: staffUser.userId || '',
           decision,
           presented_at: rec.generated_at,
           decision_at: now,
@@ -127,7 +127,7 @@ function useDecisionState() {
       });
       // Update recommendation status in DB
       const newStatus = decision === "approved" ? "approved" : decision === "rejected" ? "dismissed" : "snoozed";
-      await fetch(`${API_URL}/api/recommendations/${rec.id}`, {
+      await apiFetch(`/api/recommendations/${rec.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),

@@ -5,6 +5,7 @@ import {
   Fingerprint, TrendingUp, TrendingDown, Users, XCircle, AlertTriangle,
   ChevronRight, Zap, RefreshCw, Target, Shield, Eye,
 } from 'lucide-react';
+import { apiFetch, getPracticeId } from '@/lib/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENHANCED BIL DASHBOARD
@@ -16,7 +17,7 @@ import {
 //   - BIL Basic Dashboard (Team 1, P1) ✅ Already live — enhanced
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.uishealth.com';
+
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -318,7 +319,8 @@ export default function BILDashboardPage() {
 
   useEffect(() => {
     // Fetch real BIL stats from API
-    fetch(`${API_BASE}/api/bil/stats?practice_id=00000000-0000-0000-0000-000000000001`)
+    const practiceId = getPracticeId();
+    apiFetch(`/api/bil/stats?practice_id=${practiceId}`)
       .then(r => r.json()).then(d => setBilStats(d)).catch(() => {});
 
     // Generate enhanced data
