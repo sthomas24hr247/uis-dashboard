@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { apiFetch } from '../lib/api';
 
 // Using Dentamind query (works without auth)
 const GET_PATIENTS = gql`
@@ -53,7 +54,7 @@ export default function PatientsPage() {
 
   const [predictions, setPredictions] = useState<any[]>([]);
   useEffect(() => {
-    fetch("https://api.uishealth.com/api/predictions/patients")
+    apiFetch("/api/predictions/patients")
       .then(r => r.json())
       .then(d => setPredictions(d.predictions || []))
       .catch(() => {});

@@ -6,6 +6,7 @@ import {
   ChevronRight, Building2,
 } from 'lucide-react';
 import AskDentamind from '../components/AskDentamind';
+import { apiFetch } from '../lib/api';
 
 const GET_COMMAND_CENTER = gql`
   query GetCommandCenter {
@@ -144,13 +145,8 @@ export default function AIPredictionsPage() {
   const { data, loading, error, refetch } = useQuery(GET_COMMAND_CENTER, { errorPolicy: 'all' });
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [dsoContext, setDsoContext] = useState<any>(null);
-
   useEffect(() => {
-    const API = 'https://api.uishealth.com';
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    fetch(`${API}/api/dashboard/practice-summary`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    apiFetch('/api/dashboard/practice-summary')
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.dsoContext) setDsoContext(d.dsoContext); })
       .catch(() => {});

@@ -8,6 +8,7 @@ import {
   Target, Clock, Share2, ArrowUpRight, ArrowDownRight,
   Minus, Shield, Lightbulb
 } from 'lucide-react';
+import { apiFetch } from '../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface MarvaConfig {
@@ -589,7 +590,7 @@ export default function MARVAPage() {
   const apiBase = 'https://api.uishealth.com';
 
   useEffect(() => {
-    fetch('https://api.uishealth.com/api/outcome-gap/missing-contact')
+    apiFetch('/api/outcome-gap/missing-contact')
       .then(r => r.json())
       .then(d => setMissingContact(d))
       .catch(() => {});

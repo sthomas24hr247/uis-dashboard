@@ -4,6 +4,7 @@ import {
   Award, Users, DollarSign, ChevronRight, Target, BarChart3,
   CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react';
+import { apiFetch } from '../lib/api';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
 
@@ -337,8 +338,8 @@ export default function QualityOfCarePage() {
     setLoading(true);
     try {
       const [provRes, practiceRes] = await Promise.all([
-        fetch(`${API_URL}/api/qci/providers`).then(r => r.json()),
-        fetch(`${API_URL}/api/qci/practice`).then(r => r.json()),
+        apiFetch('/api/qci/providers').then(r => r.json()),
+        apiFetch('/api/qci/practice').then(r => r.json()),
       ]);
       setProviders(provRes.providers || []);
       setPractice(practiceRes);
