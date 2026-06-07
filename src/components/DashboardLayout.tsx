@@ -101,10 +101,12 @@ const allNavGroups: NavGroup[] = [
     icon: HeartPulse,
     roles: ['admin', 'manager'],
     items: [
-      { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
+      // Hidden until Option 2 provider backfill calibrates QCI dimensions — re-enable then.
+      // { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
       { to: '/claims-recovery', icon: FileText, label: 'Claims Recovery' },
-      { to: '/education', icon: BookOpen, label: 'Educational Resources' },
+      // Hidden for now — re-add when educational resources are ready.
+      // { to: '/education', icon: BookOpen, label: 'Educational Resources' },
     ],
   },
   {
