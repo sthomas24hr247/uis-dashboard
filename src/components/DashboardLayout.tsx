@@ -93,7 +93,7 @@ const allNavGroups: NavGroup[] = [
       { to: '/outcome-gap', icon: TrendingDown, label: 'Outcome Gap' },
       { to: '/outcome-gap/classified', icon: Layers, label: 'Revenue Recovery' },
       { to: '/analytics', icon: FileBarChart, label: 'Practice Performance' },
-      { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' },
+      // { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' }, // HIDDEN for go-live: page is hardcoded mock; rebuild on real procedure/episode data (fast-follow)
     ],
   },
   {
