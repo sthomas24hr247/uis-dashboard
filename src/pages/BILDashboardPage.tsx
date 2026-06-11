@@ -343,6 +343,20 @@ export default function BILDashboardPage() {
     return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><FingerprintDetail fp={selectedFP} onBack={() => setSelectedFP(null)} /></div>;
   }
 
+  // PREVIEW GATE — BIL renders synthetic fingerprints today and isn't wired to the real
+  // decision_events / staff_fingerprints backend yet. Show an honest preview until it is.
+  // Delete this block to restore the full dashboard once wired.
+  return (
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
+      <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 mb-4">&larr; Back to Dashboard</button>
+      <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-10 text-center">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Behavioral Intelligence Layer</h1>
+        <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">Decision analytics and staff behavioral fingerprints build from real decisions logged in the platform over time. This module stays in preview until that decision history accumulates, so nothing shown is mistaken for live insight about your team.</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}

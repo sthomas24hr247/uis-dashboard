@@ -414,6 +414,20 @@ export default function WorkforceIntelPage() {
     );
   }
 
+  // PREVIEW GATE — Workforce Intel is not yet wired to live provider metrics. Until
+  // production, utilization, and acceptance flow from the PMS, show an honest preview
+  // instead of illustrative numbers attributed to real staff. Delete this block to restore.
+  return (
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
+      <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 mb-4">&larr; Back to Dashboard</button>
+      <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-10 text-center">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Workforce Intelligence</h1>
+        <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">This module is being connected to live provider data. Production, utilization, treatment acceptance, and retention insights will appear here once provider attribution is flowing from your practice management system. Until then it stays in preview so nothing shown is mistaken for live data about your team.</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-6 lg:p-8 max-w-[1200px] mx-auto space-y-6">
       {/* Header */}
