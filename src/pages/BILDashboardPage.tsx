@@ -375,19 +375,40 @@ export default function BILDashboardPage() {
     return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><FingerprintDetail fp={selectedFP} onBack={() => setSelectedFP(null)} /></div>;
   }
 
-  // DATA-DRIVEN GATE — each staff fingerprint unlocks at 20+ logged decisions. Until at least
-  // one team member qualifies, show an honest calibrating state with the real running counts.
+  // EARLY-PROFILE GATE — full analytics (trends, nudge response, fatigue, verification, feedback)
+  // unlock at 20+ decisions per person. Below that we still surface each staff member's real,
+  // early profile with an honest low-confidence badge so the team can see where they stand today.
   const qualifying = fingerprints.filter(f => f.totalDecisions >= 20);
   if (qualifying.length === 0) {
+    const pct = (v: number) => `${Math.round((v || 0) * 100)}%`;
     return (
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
         <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 mb-4">&larr; Back to Dashboard</button>
-        <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-10 text-center">
+        <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-8 text-center">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Behavioral Intelligence Layer</h1>
           <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
-          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">Decision analytics and staff behavioral fingerprints build from real decisions logged in the platform over time. Each profile unlocks once that team member has logged at least 20 decisions.</p>
-          <div className="mt-6 text-sm font-medium text-slate-600 dark:text-slate-300">{fingerprints.length} team {fingerprints.length === 1 ? 'member' : 'members'} tracked &middot; {totalDecisions} decision{totalDecisions === 1 ? '' : 's'} logged so far</div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">These profiles build from real decisions logged in the platform. Full analytics &mdash; trends, decision-fatigue, and nudge response &mdash; unlock once each team member has logged at least 20 decisions.</p>
+          <div className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-300">{fingerprints.length} team {fingerprints.length === 1 ? 'member' : 'members'} tracked &middot; {totalDecisions} decision{totalDecisions === 1 ? '' : 's'} logged so far</div>
         </div>
+        {fingerprints.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <p className="text-xs uppercase tracking-wider font-semibold text-slate-400 px-1">Early profiles</p>
+            {fingerprints.map(fp => (
+              <div key={fp.staffId} className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{fp.name}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{fp.role}</p>
+                </div>
+                <div className="flex items-center gap-4 text-center shrink-0">
+                  <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100">{fp.totalDecisions}</p><p className="text-[10px] text-slate-400">decisions</p></div>
+                  <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100">{pct(fp.overallApprovalRate)}</p><p className="text-[10px] text-slate-400">approval</p></div>
+                  <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize">{fp.velocityCategory}</p><p className="text-[10px] text-slate-400">velocity</p></div>
+                  <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-2 py-0.5">Low confidence</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
