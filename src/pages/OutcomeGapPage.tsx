@@ -274,6 +274,26 @@ export default function OutcomeGapPage() {
   const stalledCount = stalledData.length;
   const collectionRate = totalPlan > 0 ? ((totalCollected / totalPlan) * 100).toFixed(0) : '0';
 
+  if (totalEpisodes === 0) {
+    return (
+      <div className="space-y-6 animate-in">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center shadow-lg shadow-rose-500/20 dark:shadow-rose-500/10">
+            <Activity className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Outcome Gap Dashboard</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Track every dollar from AI detection to collection</p>
+          </div>
+        </div>
+        <div className="p-10 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-center">
+          <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">Outcome gap tracking activates once treatment-plan data is flowing from your practice management system. As findings move from detection through scheduling, completion, and collection, the funnel, leakage, and recovery actions populate here with live figures.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in">
       <div className="flex items-start justify-between">
