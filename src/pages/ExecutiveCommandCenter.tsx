@@ -486,66 +486,33 @@ export default function ExecutiveCommandCenter() {
 
 // ── Practice Drill-Down Panel ────────────────────────────────────────────────
 function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof demoOffices[0]; onClose: () => void; missingContact: { episode_count: number; total_dollars: number; affected_patients: number } | null }) {
-  const worklistItems = [
-    { patient: 'P. Alvarez', age: 52, action: 'Reschedule crown — insurance resets in 47 days', value: 1840, tier: 'HIGH', stage: 'Accepted → Not Scheduled' },
-    { patient: 'M. Chen', age: 38, action: 'Recall overdue 94 days — high compliance history', value: 312, tier: 'HIGH', stage: 'Completed → Recall Gap' },
-    { patient: 'T. Washington', age: 44, action: 'Tomorrow 2pm — elevated no-show risk', value: 485, tier: 'MEDIUM', stage: 'Scheduled → At Risk' },
-    { patient: 'R. Okonkwo', age: 61, action: 'Perio maintenance dropped to prophy', value: 228, tier: 'MEDIUM', stage: 'Completed → Coding Gap' },
-    { patient: 'J. Patel', age: 29, action: 'Treatment plan presented 6 days ago — follow-up window open', value: 3200, tier: 'LOW', stage: 'Presented → Pending' },
-  ];
+  const qciCalibrating = !office.qciScore;
+  const contactReady = !!missingContact && missingContact.episode_count > 0;
 
-  const tierColor = (t: string) =>
-    t === 'HIGH' ? 'text-pink-400 bg-pink-500/10 border-pink-500/20' :
-    t === 'MEDIUM' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-    'text-slate-400 bg-slate-500/10 border-slate-500/20';
-
-  const outcomeGap = [
-    { label: 'Actionable now', value: 7285, color: '#2DD4BF', pct: 5 },
-    { label: 'Queued', value: 38000, color: '#A855F7', pct: 24 },
-    { label: 'Structural', value: 68000, color: '#F59E0B', pct: 43 },
-    { label: 'Unrecoverable', value: 44000, color: '#6B6A7D', pct: 28 },
+  const kpis = [
+    { label: 'Monthly Revenue', value: office.monthlyRevenue != null ? `$${(office.monthlyRevenue / 1000).toFixed(0)}K` : '\u2014', sub: (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs last mo` : 'No revenue data', color: 'text-teal-400' },
+    { label: 'QCI Score', value: qciCalibrating ? 'Calibrating' : `${office.qciScore}`, sub: qciCalibrating ? 'clinical scoring in progress' : office.qciGrade + ' grade', color: qciCalibrating ? 'text-amber-400' : (office.qciGrade === 'B' ? 'text-blue-400' : 'text-amber-400') },
+    { label: 'No-Show Rate', value: `${office.noShowRate}%`, sub: office.noShowRate > 10 ? 'Above threshold' : 'On target', color: office.noShowRate > 10 ? 'text-red-400' : 'text-teal-400' },
+    { label: 'Gap Leakage', value: office.outcomeGapLeakage ? `$${(office.outcomeGapLeakage / 1000).toFixed(1)}K` : 'Calibrating', sub: office.outcomeGapLeakage ? 'This month' : 'activates with PMS data', color: 'text-pink-400' },
+    { label: 'Missing Contact', value: contactReady ? `$${(missingContact!.total_dollars / 1000).toFixed(1)}K` : 'Calibrating', sub: contactReady ? `${missingContact!.episode_count} episodes` : 'activates with PMS data', color: 'text-orange-400' },
   ];
 
   return (
     <>
-      {/* Overlay */}
       <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Panel */}
       <div className="fixed right-0 top-0 h-full w-full max-w-3xl z-50 bg-[#0A0A14] border-l border-purple-500/20 overflow-y-auto shadow-2xl">
-        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-8 py-5 bg-[#0A0A14]/95 backdrop-blur border-b border-purple-500/10">
           <div>
             <div className="text-[10px] tracking-[0.25em] uppercase text-pink-400 mb-1">Practice Intelligence</div>
             <h2 className="text-xl font-semibold text-white">{office.name}</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{office.location} · {office.providers} providers · {office.activePatients.toLocaleString()} patients</p>
+            <p className="text-sm text-slate-400 mt-0.5">{office.location} \u00b7 {office.providers} providers \u00b7 {office.activePatients.toLocaleString()} patients</p>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 flex items-center justify-center transition-all text-lg">×</button>
+          <button onClick={onClose} className="w-9 h-9 rounded-full border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 flex items-center justify-center transition-all text-lg">\u00d7</button>
         </div>
 
         <div className="px-8 py-6 space-y-6">
-          {/* 60-second briefing */}
-          <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0b2e 0%, #0F0820 100%)', border: '1px solid rgba(168,85,247,0.2)' }}>
-            <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #A855F7, transparent)' }} />
-            <div className="relative">
-              <div className="text-[10px] tracking-[0.25em] uppercase text-pink-400 mb-3">The 60-second briefing</div>
-              <p className="text-base leading-relaxed text-slate-200" style={{ fontStyle: 'italic' }}>
-                This month, <span className="text-red-400">$157K flowed out</span> of your pipeline.{' '}
-                <span className="text-teal-400">$7,285 is immediately recoverable</span> from five actions today.
-                P. Alvarez and M. Chen need attention first.
-              </p>
-            </div>
-          </div>
-
-          {/* KPI strip */}
           <div className="grid grid-cols-5 gap-3">
-            {[
-              { label: 'Monthly Revenue', value: office.monthlyRevenue != null ? `$${(office.monthlyRevenue/1000).toFixed(0)}K` : '—', sub: (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs last mo` : 'No revenue data', color: 'text-teal-400' },
-              { label: 'QCI Score', value: `${office.qciScore}`, sub: office.qciGrade + ' grade', color: office.qciGrade === 'B' ? 'text-blue-400' : 'text-amber-400' },
-              { label: 'No-Show Rate', value: `${office.noShowRate}%`, sub: office.noShowRate > 10 ? 'Above threshold' : 'On target', color: office.noShowRate > 10 ? 'text-red-400' : 'text-teal-400' },
-              { label: 'Gap Leakage', value: `$${(office.outcomeGapLeakage/1000).toFixed(1)}K`, sub: 'This month', color: 'text-pink-400' },
-              { label: 'Missing Contact', value: missingContact ? `$${(missingContact.total_dollars/1000).toFixed(1)}K` : '—', sub: missingContact ? `${missingContact.episode_count} episodes` : 'Loading...', color: 'text-orange-400' },
-            ].map((k, i) => (
+            {kpis.map((k, i) => (
               <div key={i} className="rounded-xl p-4" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
                 <div className="text-[10px] tracking-[0.15em] uppercase text-slate-500 mb-1">{k.label}</div>
                 <div className={`text-2xl font-semibold ${k.color}`}>{k.value}</div>
@@ -554,72 +521,38 @@ function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof
             ))}
           </div>
 
-          {/* Outcome gap breakdown */}
-          <div className="rounded-2xl p-5" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-slate-500 mb-4">Outcome Gap — $157K This Month</div>
-            <div className="flex h-2 rounded-full overflow-hidden mb-4">
-              {outcomeGap.map((s, i) => (
-                <div key={i} style={{ width: `${s.pct}%`, background: s.color }} />
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {outcomeGap.map((s, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                  <span className="text-xs text-slate-400">{s.label}</span>
-                  <span className="text-xs font-mono ml-auto" style={{ color: s.color }}>${(s.value/1000).toFixed(0)}K</span>
-                </div>
-              ))}
-            </div>
+          <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #1a0b2e 0%, #0F0820 100%)', border: '1px solid rgba(168,85,247,0.2)' }}>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-pink-400 mb-3">Recovery Intelligence</div>
+            <p className="text-base leading-relaxed text-slate-300">Outcome-gap recovery for {office.name} is calibrating. The dollar-flow briefing, gap breakdown, and patient worklist activate once treatment-plan data is flowing from the practice management system. The activity metrics above are live.</p>
           </div>
 
-          {/* Worklist */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px] tracking-[0.25em] uppercase text-slate-500">Today's Worklist</div>
-              <div className="text-[10px] text-pink-400 font-mono">{worklistItems.filter(i => i.tier === 'HIGH').length} HIGH PRIORITY</div>
-            </div>
-            <div className="space-y-2">
-              {worklistItems.map((item, i) => (
-                <div key={i} className="rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-purple-500/30 transition-all" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
-                  <div className={`text-[9px] font-bold px-2 py-1 rounded-full border flex-shrink-0 mt-0.5 ${tierColor(item.tier)}`}>{item.tier}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-medium text-white">{item.patient}</span>
-                      <span className="text-sm font-mono text-teal-400 flex-shrink-0">${item.value.toLocaleString()}</span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">{item.action}</p>
-                    <div className="text-[10px] text-slate-600 mt-1">{item.stage}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* QCI dimension breakdown */}
           <div className="rounded-2xl p-5" style={{ background: '#12121E', border: '1px solid rgba(168,85,247,0.12)' }}>
             <div className="text-[10px] tracking-[0.25em] uppercase text-slate-500 mb-4">QCI Dimension Breakdown</div>
-            <div className="space-y-3">
-              {Object.entries(office.dimensions).map(([key, dim]) => {
-                const label = key.replace(/_/g, ' ').replace(/\w/g, c => c.toUpperCase());
-                const isAbove = dim.status === 'above';
-                const isBelow = dim.status === 'below';
-                return (
-                  <div key={key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-slate-400">{label}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500">Benchmark: {dim.benchmark}%</span>
-                        <span className={`text-xs font-bold ${isAbove ? 'text-teal-400' : isBelow ? 'text-red-400' : 'text-slate-300'}`}>{dim.score}%</span>
+            {qciCalibrating ? (
+              <p className="text-sm text-slate-400">Per-dimension quality scoring is calibrating as clinical data syncs from the practice management system.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(office.dimensions).map(([key, dim]) => {
+                  const label = dimensionLabels[key] || key;
+                  const isAbove = dim.status === 'above';
+                  const isBelow = dim.status === 'below';
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-400">{label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Benchmark: {dim.benchmark}%</span>
+                          <span className={`text-xs font-bold ${isAbove ? 'text-teal-400' : isBelow ? 'text-red-400' : 'text-slate-300'}`}>{dim.score}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                        <div className={`h-full rounded-full ${isAbove ? 'bg-teal-500' : isBelow ? 'bg-red-500' : 'bg-slate-500'}`} style={{ width: `${dim.score}%` }} />
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                      <div className={`h-full rounded-full ${isAbove ? 'bg-teal-500' : isBelow ? 'bg-red-500' : 'bg-slate-500'}`} style={{ width: `${dim.score}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
