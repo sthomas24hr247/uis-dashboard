@@ -130,13 +130,16 @@ export default function ExecutiveCommandCenter() {
   const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
   const avgQCI = offices.reduce((s, o) => s + o.qciScore, 0) / offices.length;
   const totalLeakage = offices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
+  const allQciCalibrating = offices.length > 0 && offices.every(o => !o.qciScore);
+  const leakageCalibrating = totalLeakage === 0;
+  const contactCalibrating = !missingContact || missingContact.episode_count === 0;
 
   const officeAlerts = offices.flatMap(o => {
     const alerts: { office: string; message: string; severity: "high" | "medium" | "low" }[] = [];
     if (o.noShowRate > 14) alerts.push({ office: o.name, message: `No-show rate at ${o.noShowRate}% — above 14% threshold`, severity: "high" });
-    if (o.benchmarkStatus === "below") alerts.push({ office: o.name, message: `Overall QCI below benchmark (${o.qciScore})`, severity: "high" });
+    if (o.benchmarkStatus === "below" && o.qciScore) alerts.push({ office: o.name, message: `Overall QCI below benchmark (${o.qciScore})`, severity: "high" });
     Object.entries(o.dimensions).forEach(([key, dim]) => {
-      if (dim.status === "below") alerts.push({ office: o.name, message: `${dimensionLabels[key]} below benchmark (${dim.score}% vs ${dim.benchmark}%)`, severity: "medium" });
+      if (dim.status === "below" && o.qciScore) alerts.push({ office: o.name, message: `${dimensionLabels[key]} below benchmark (${dim.score}% vs ${dim.benchmark}%)`, severity: "medium" });
     });
     return alerts;
   });
@@ -198,8 +201,8 @@ export default function ExecutiveCommandCenter() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Avg QCI Score</p>
             <Target className="w-4 h-4 text-teal-500" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{avgQCI.toFixed(1)}</p>
-          <p className="text-xs text-slate-400 mt-1">Organization aggregate</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{allQciCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : avgQCI.toFixed(1)}</p>
+          <p className="text-xs text-slate-400 mt-1">{allQciCalibrating ? 'Clinical scoring in progress' : 'Organization aggregate'}</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
@@ -207,8 +210,8 @@ export default function ExecutiveCommandCenter() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Revenue Leakage</p>
             <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">${(totalLeakage / 1000).toFixed(1)}K</p>
-          <p className="text-xs text-slate-400 mt-1">Outcome gap monthly total</p>
+          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{leakageCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : `$${(totalLeakage / 1000).toFixed(1)}K`}</p>
+          <p className="text-xs text-slate-400 mt-1">{leakageCalibrating ? 'Activates with treatment-plan data' : 'Outcome gap monthly total'}</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 cursor-pointer hover:border-orange-400/50 transition-all" onClick={() => navigate('/outcome-gap')}>
@@ -217,10 +220,10 @@ export default function ExecutiveCommandCenter() {
             <Users className="w-4 h-4 text-orange-500" />
           </div>
           <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-            {missingContact ? `$${(missingContact.total_dollars / 1000).toFixed(1)}K` : '—'}
+            {contactCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : `$${(missingContact!.total_dollars / 1000).toFixed(1)}K`}
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            {missingContact ? `${missingContact.episode_count} episodes · ${missingContact.affected_patients} patients` : 'Loading...'}
+            {contactCalibrating ? 'Activates with treatment-plan data' : `${missingContact!.episode_count} episodes · ${missingContact!.affected_patients} patients`}
           </p>
         </div>
       </div>
@@ -300,10 +303,17 @@ export default function ExecutiveCommandCenter() {
                         Newly Onboarded
                       </div>
                     )}
+                    {!office.qciScore ? (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Calibrating
+                    </div>
+                    ) : (
                     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.bg} ${sc.text}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                       {statusLabels[office.benchmarkStatus]}
                     </div>
+                    )}
                   </div>
                 </div>
 
@@ -319,12 +329,16 @@ export default function ExecutiveCommandCenter() {
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider">QCI Score</p>
+                    {!office.qciScore ? (
+                      <p className="text-lg font-bold text-amber-500">Calibrating</p>
+                    ) : (<>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">{office.qciScore}</p>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                       office.qciGrade === 'A' ? 'bg-emerald-100 text-emerald-700' :
                       office.qciGrade === 'B' ? 'bg-blue-100 text-blue-700' :
                       'bg-amber-100 text-amber-700'
                     }`}>Grade {office.qciGrade}</span>
+                    </>)}
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider">Patients</p>
@@ -337,7 +351,7 @@ export default function ExecutiveCommandCenter() {
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50">
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">{office.reason}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">{!office.qciScore ? 'Quality scoring is calibrating as clinical data syncs. The activity metrics above are live.' : office.reason}</p>
                 </div>
 
                 <div className="flex items-center justify-end mt-3 text-xs font-medium text-teal-600 dark:text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity">
