@@ -31,7 +31,7 @@ function mapProvider(row: any): ProviderActivity {
     appointments: Number(row.total_appointments) || 0,
     patients: Number(row.total_patients) || 0,
     noShowPrevention: Number(row?.dimensions?.no_show_prevention?.score) || 0,
-    grade: row.grade || null,
+    grade: (row.grade && row.grade !== 'Calibrating') ? row.grade : null,
   };
 }
 
@@ -74,9 +74,10 @@ export default function WorkforceIntelPage() {
   }
 
   const clinicalLive = providers.some(p => p.grade);
-  const totalAppointments = providers.reduce((s, p) => s + p.appointments, 0);
-  const totalPatients = providers.reduce((s, p) => s + p.patients, 0);
-  const ordered = [...providers].sort((a, b) => b.appointments - a.appointments);
+  const active = providers.filter(p => p.appointments > 0);
+  const totalAppointments = active.reduce((s, p) => s + p.appointments, 0);
+  const totalPatients = active.reduce((s, p) => s + p.patients, 0);
+  const ordered = [...active].sort((a, b) => b.appointments - a.appointments);
   const pct = (v: number) => `${v.toFixed(1)}%`;
 
   return (
@@ -94,7 +95,7 @@ export default function WorkforceIntelPage() {
         </div>
       </div>
 
-      {providers.length === 0 ? (
+      {active.length === 0 ? (
         <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-10 text-center">
           <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">Provider profiles appear here once attribution is flowing from your practice management system.</p>
@@ -102,7 +103,7 @@ export default function WorkforceIntelPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard label="PROVIDERS" value={String(providers.length)} sub="Active in sync" icon={UserCheck} />
+            <StatCard label="PROVIDERS" value={String(active.length)} sub="Active in sync" icon={UserCheck} />
             <StatCard label="APPOINTMENTS" value={totalAppointments.toLocaleString()} sub="Total in record" icon={Calendar} />
             <StatCard label="PATIENT PANEL" value={totalPatients.toLocaleString()} sub="Across all providers" icon={Users} />
           </div>
@@ -152,7 +153,7 @@ export default function WorkforceIntelPage() {
                         <td className="text-center py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">{p.appointments.toLocaleString()}</td>
                         <td className="text-center py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">{p.patients.toLocaleString()}</td>
                         <td className="text-center py-3 px-4">
-                          {p.appointments === 0 ? (
+                          {p.noShowPrevention <= 0 ? (
                             <span className="text-slate-400">&mdash;</span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5">
