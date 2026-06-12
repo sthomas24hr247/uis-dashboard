@@ -307,6 +307,35 @@ function FingerprintDetail({ fp, onBack }: { fp: StaffFingerprint; onBack: () =>
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function mapFingerprint(r: any): StaffFingerprint {
+  const num = (v: any): number => (v != null ? Number(v) : 0);
+  const parse = (s: any): Record<string, number> => { try { return s ? JSON.parse(s) : {}; } catch { return {}; } };
+  const name = r.display_name || [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Unknown staff';
+  return {
+    staffId: String(r.staff_member_id || ''),
+    name,
+    role: r.role || 'Staff',
+    avgDecisionTimeMs: num(r.avg_decision_time_ms),
+    medianDecisionTimeMs: num(r.median_decision_time_ms),
+    velocityCategory: (r.velocity_category || 'moderate') as StaffFingerprint['velocityCategory'],
+    overallApprovalRate: num(r.overall_approval_rate),
+    approvalByType: parse(r.approval_by_type),
+    approvalByComplexity: parse(r.approval_by_complexity),
+    followThroughRate: num(r.follow_through_rate),
+    followThroughByType: parse(r.follow_through_by_type),
+    decisionFatigueCurve: parse(r.decision_fatigue_curve),
+    bestDecisionWindow: { startHour: 0, endHour: 0, day: '' },
+    delayConversionRate: num(r.delay_conversion_rate),
+    complianceScore: num(r.compliance_score),
+    engagementScore: num(r.engagement_score),
+    confidenceLevel: (r.confidence_level || 'low') as StaffFingerprint['confidenceLevel'],
+    totalDecisions: num(r.total_decisions),
+    trend30d: num(r.trend_30d),
+    trend60d: num(r.trend_60d),
+    momentumDirection: (r.momentum_direction || 'stable') as StaffFingerprint['momentumDirection'],
+  };
+}
+
 export default function BILDashboardPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'fingerprints' | 'verification' | 'feedback'>('overview');
@@ -318,16 +347,19 @@ export default function BILDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch real BIL stats from API
     const practiceId = getPracticeId();
-    apiFetch(`/api/bil/stats?practice_id=${practiceId}`)
-      .then(r => r.json()).then(d => setBilStats(d)).catch(() => {});
-
-    // Generate enhanced data
-    setFingerprints(generateFingerprints());
+    // Verification & Feedback tabs still use illustrative seed data (separate sources, future wiring)
     setFollowThroughs(generateFollowThroughs());
     setFeedbackInsights(generateFeedbackInsights());
-    setLoading(false);
+    setFingerprints(generateFingerprints()); // placeholder only; overwritten by live fetch before render
+    Promise.all([
+      apiFetch(`/api/bil/summary`).then(r => r.json()).catch(() => null),
+      apiFetch(`/api/bil/staff-fingerprints?practice_id=${practiceId}`).then(r => r.json()).catch(() => null),
+    ]).then(([summary, fpData]: any[]) => {
+      setBilStats(summary);
+      setFingerprints((((fpData && fpData.fingerprints) || []) as any[]).map(mapFingerprint));
+      setLoading(false);
+    }).catch(() => { setFingerprints([]); setLoading(false); });
   }, []);
 
   const totalDecisions = bilStats?.total_decisions || fingerprints.reduce((s, f) => s + f.totalDecisions, 0);
@@ -343,19 +375,22 @@ export default function BILDashboardPage() {
     return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><FingerprintDetail fp={selectedFP} onBack={() => setSelectedFP(null)} /></div>;
   }
 
-  // PREVIEW GATE — BIL renders synthetic fingerprints today and isn't wired to the real
-  // decision_events / staff_fingerprints backend yet. Show an honest preview until it is.
-  // Delete this block to restore the full dashboard once wired.
-  return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-      <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 mb-4">&larr; Back to Dashboard</button>
-      <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-10 text-center">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Behavioral Intelligence Layer</h1>
-        <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">Decision analytics and staff behavioral fingerprints build from real decisions logged in the platform over time. This module stays in preview until that decision history accumulates, so nothing shown is mistaken for live insight about your team.</p>
+  // DATA-DRIVEN GATE — each staff fingerprint unlocks at 20+ logged decisions. Until at least
+  // one team member qualifies, show an honest calibrating state with the real running counts.
+  const qualifying = fingerprints.filter(f => f.totalDecisions >= 20);
+  if (qualifying.length === 0) {
+    return (
+      <div className="p-6 lg:p-8 max-w-3xl mx-auto">
+        <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 mb-4">&larr; Back to Dashboard</button>
+        <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-10 text-center">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Behavioral Intelligence Layer</h1>
+          <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">Decision analytics and staff behavioral fingerprints build from real decisions logged in the platform over time. Each profile unlocks once that team member has logged at least 20 decisions.</p>
+          <div className="mt-6 text-sm font-medium text-slate-600 dark:text-slate-300">{fingerprints.length} team {fingerprints.length === 1 ? 'member' : 'members'} tracked &middot; {totalDecisions} decision{totalDecisions === 1 ? '' : 's'} logged so far</div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
