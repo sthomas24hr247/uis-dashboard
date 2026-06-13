@@ -6,6 +6,7 @@ import {
   Calendar, Users, CreditCard, Activity, TrendingUp, Info,
   Phone, Mail, Send, Filter, MoreHorizontal, ExternalLink,
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INSURANCE VERIFICATION PAGE
@@ -255,7 +256,7 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
   const [cdtSearch, setCdtSearch] = useState('');
   const [cdtResults, setCdtResults] = useState<CDTCoverage[]>([]);
   const [showAllCDT, setShowAllCDT] = useState(false);
-  const allCDT = generateCDTLookup();
+  const allCDT: CDTCoverage[] = [];
 
   const handleCDTSearch = (query: string) => {
     setCdtSearch(query);
@@ -486,7 +487,7 @@ function UrgencyIndicator({ days, status }: { days: number; status: ClaimStatus 
 }
 
 function ClaimsTrackingView() {
-  const [claims] = useState<Claim[]>(generateDemoClaims());
+  const [claims] = useState<Claim[]>([]);
   const [claimFilter, setClaimFilter] = useState<'all' | ClaimStatus>('all');
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
 
@@ -563,6 +564,9 @@ function ClaimsTrackingView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/30">
+              {filtered.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-16 text-center text-sm text-slate-400">No claims submitted yet.</td></tr>
+              )}
               {filtered.map(c => (
                 <tr key={c.claimId}
                   className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors ${c.status === 'denied' ? 'bg-red-50/50 dark:bg-red-900/5' : ''}`}>
@@ -686,7 +690,7 @@ export default function InsuranceVerificationPage() {
   const loadVerifications = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`https://api.uishealth.com/api/insurance/verifications?practiceId=${practiceId}&limit=100`);
+      const res = await apiFetch(`/api/insurance/verifications?practiceId=${practiceId}&limit=100`);
       if (res.ok) {
         const data = await res.json();
         if (data.verifications && data.verifications.length > 0) {
@@ -727,13 +731,13 @@ export default function InsuranceVerificationPage() {
           setPatients(mapped);
         } else {
           // Fall back to demo data if no real records yet
-          setPatients(generatePatientInsurance());
+          setPatients([]);
         }
       } else {
-        setPatients(generatePatientInsurance());
+        setPatients([]);
       }
     } catch {
-      setPatients(generatePatientInsurance());
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -755,7 +759,7 @@ export default function InsuranceVerificationPage() {
         ? String(parseFloat(form.deductibleTotal) - parseFloat(form.deductibleMet))
         : form.deductibleTotal || '';
 
-      const res = await fetch('https://api.uishealth.com/api/insurance/verifications', {
+      const res = await apiFetch('/api/insurance/verifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -962,7 +966,7 @@ export default function InsuranceVerificationPage() {
         <button onClick={() => setPageView('claims')}
           className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 ${pageView === 'claims' ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
           <FileText className="w-4 h-4" /> Claims Tracking
-          {(() => { const overdue = generateDemoClaims().filter(c => c.status !== 'paid' && c.daysSinceSubmission >= 30).length; return overdue > 0 ? <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">{overdue}</span> : null; })()}
+          {(() => { const overdue = 0; return overdue > 0 ? <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">{overdue}</span> : null; })()}
         </button>
       </div>
 
@@ -1002,6 +1006,13 @@ export default function InsuranceVerificationPage() {
       {/* Patient List */}
       <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden">
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+          {filtered.length === 0 && (
+            <div className="px-6 py-16 text-center">
+              <Shield className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No insurance verifications on file</p>
+              <p className="text-xs text-slate-400 mt-1">Add a verification to begin tracking coverage for this practice.</p>
+            </div>
+          )}
           {filtered.map(p => {
             const b = p.benefits;
             const pctUsed = b.annualMax > 0 ? Math.round((b.annualUsed / b.annualMax) * 100) : 0;
