@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import {
   ChevronLeft,
@@ -24,8 +25,8 @@ import {
 
 // Using Dentamind query (works without auth)
 const GET_APPOINTMENTS = gql`
-  query GetAppointments($status: String, $date: String, $limit: Int, $offset: Int) {
-    dentamindAppointments(status: $status, date: $date, limit: $limit, offset: $offset) {
+  query GetAppointments($status: String, $date: String, $startDate: String, $endDate: String, $limit: Int, $offset: Int) {
+    dentamindAppointments(status: $status, date: $date, startDate: $startDate, endDate: $endDate, limit: $limit, offset: $offset) {
       id
       patientId
       patientName
@@ -55,10 +56,13 @@ const statusColors: Record<string, string> = {
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'week' | 'list'>('week');
+  const navigate = useNavigate();
 
   const { data, loading, error, refetch } = useQuery(GET_APPOINTMENTS, {
     variables: {
-      limit: 100,
+      startDate: format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'yyyy-MM-dd'),
+      endDate: format(addDays(startOfWeek(currentDate, { weekStartsOn: 0 }), 6), 'yyyy-MM-dd'),
+      limit: 500,
       offset: 0,
     },
     fetchPolicy: 'cache-and-network',
@@ -72,7 +76,7 @@ export default function SchedulePage() {
   const appointmentsByDate = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     appointments.forEach((apt: any) => {
-      const date = apt.date || '';
+      const date = (apt.date || '').slice(0, 10);
       if (!grouped[date]) grouped[date] = [];
       grouped[date].push(apt);
     });
@@ -170,7 +174,7 @@ export default function SchedulePage() {
       )}
 
       {/* Week View */}
-      {view === 'week' && !loading && (
+      {view === 'week' && (data || !loading) && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden max-h-[calc(100vh-280px)] overflow-y-auto">
           <div className="grid grid-cols-7 border-b border-slate-200">
             {weekDays.map((day) => (
@@ -201,7 +205,7 @@ export default function SchedulePage() {
                   {dayAppointments.slice(0, 5).map((apt: any) => (
                     <div
                       key={apt.id}
-                      className={`p-2 rounded-lg border text-xs ${statusColors[apt.status] || statusColors.SCHEDULED}`}
+                      onClick={() => apt.patientId && navigate(`/patients/${apt.patientId}`)} className={`p-2 rounded-lg border text-xs cursor-pointer hover:opacity-80 transition-opacity ${statusColors[apt.status] || statusColors.SCHEDULED}`}
                     >
                       <p className="font-medium truncate">{apt.time}</p>
                       <p className="truncate">{apt.patientName}</p>
@@ -220,7 +224,7 @@ export default function SchedulePage() {
       )}
 
       {/* List View */}
-      {view === 'list' && !loading && (
+      {view === 'list' && (data || !loading) && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200">
           <div className="divide-y divide-slate-100">
             {appointments.length === 0 ? (
@@ -229,7 +233,7 @@ export default function SchedulePage() {
               </div>
             ) : (
               appointments.map((apt: any) => (
-                <div key={apt.id} className="p-4 hover:bg-slate-50 transition-colors">
+                <div key={apt.id} onClick={() => apt.patientId && navigate(`/patients/${apt.patientId}`)} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="text-center min-w-[80px]">
