@@ -123,6 +123,15 @@ export default function MARVAPortfolioBenchmarks() {
 
   const cp = data.currentPractice;
 
+  if (!cp || !cp.patientCount) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl">
+        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Portfolio benchmarking is calibrating</p>
+        <p className="text-xs text-slate-400 mt-1 max-w-md">Peer benchmarks activate once your practice data has populated and there are enough practices in the network to compare against.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}

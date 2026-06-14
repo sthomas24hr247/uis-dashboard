@@ -580,7 +580,7 @@ function DimensionsTable() {
 export default function MARVAPage() {
   const { user, token } = useAuth();
   const [activeExec, setActiveExec] = useState<'diana' | 'marcus'>('diana');
-  const [activeTab, setActiveTab] = useState<'my-dashboard' | 'demo' | 'how-it-works' | 'portfolio'>('demo');
+  const [activeTab, setActiveTab] = useState<'my-dashboard' | 'demo' | 'how-it-works' | 'portfolio'>('portfolio');
   const [executiveProfile, setExecutiveProfile] = useState<ExecutiveProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
@@ -734,7 +734,7 @@ export default function MARVAPage() {
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 max-w-sm mx-auto">
         {[
           ...(executiveProfile?.marva_config ? [{ id: 'my-dashboard', label: 'My Dashboard' }] : []),
-          { id: 'demo', label: 'Live Demo' },
+          
           { id: 'how-it-works', label: 'How It Works' },
           { id: 'portfolio', label: 'Portfolio' }
         ].map(t => (
