@@ -707,7 +707,7 @@ export default function MARVAPage() {
           MARVA <span className="text-teal-600">Adaptation</span>
         </h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm">
-          Same underlying data. Two completely different executive experiences — shaped entirely by behavioral fingerprint.
+          Patient-engagement gaps surfaced from your practice data, with the front-desk actions to close them.
         </p>
       </div>
 
