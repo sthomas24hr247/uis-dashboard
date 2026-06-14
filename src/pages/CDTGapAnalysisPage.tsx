@@ -366,9 +366,8 @@ export default function CDTGapAnalysisPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Generate CDT data (in production, this would come from the API)
-    const data = generateCDTData();
-    setCategories(data);
+    // Real CDT classification is not available yet; show an honest calibrating state instead of synthetic data.
+    setCategories([]);
     setLoading(false);
   }, []);
 
@@ -396,6 +395,16 @@ export default function CDTGapAnalysisPage() {
       </div>
     );
   }
+
+  // CDT gap analysis is gated until real treatment classification exists; do not render synthetic categories or recommendations.
+  if (categories.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+      <div className="max-w-md bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-8">
+        <p className="text-base font-semibold text-slate-700 dark:text-slate-200">CDT gap analysis is calibrating</p>
+        <p className="text-sm text-slate-400 mt-2">This view activates once your treatment data has been classified into CDT-level outcome gaps. It will populate from your real procedure data.</p>
+      </div>
+    </div>
+  );
 
   if (selectedCode) {
     return (
