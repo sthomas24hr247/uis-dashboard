@@ -683,7 +683,7 @@ export default function MARVAPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-      {showAssessment && (
+      {false && showAssessment && (
         <ECPAssessment
           onComplete={handleAssessmentComplete}
           onDismiss={() => setShowAssessment(false)}
@@ -746,7 +746,10 @@ export default function MARVAPage() {
       </div>
 
       {activeTab === 'my-dashboard' && executiveProfile?.marva_config && (
-        <RealUserView config={executiveProfile.marva_config} profile={executiveProfile} />
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl">
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Your personalized dashboard is calibrating</p>
+          <p className="text-xs text-slate-400 mt-1 max-w-md">Your executive view activates once it is connected to your live practice metrics.</p>
+        </div>
       )}
 
       {activeTab === 'demo' && (
