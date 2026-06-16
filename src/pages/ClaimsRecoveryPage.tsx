@@ -7,7 +7,7 @@ import { OptionAFlow } from "@/components/claims/OptionAFlow";
 import { useState, useMemo, useEffect } from "react";
 import { useJurisdiction } from "../context/JurisdictionContext";
 import { useAuth } from "../context/AuthContext";
-import { ODA_FEES, CDCP_STEP_THERAPY, CDCP_GA_CRITERIA, CDCP_DENIAL_CODES, CDCP_NARRATIVE_TEMPLATES, CA_PAYERS, CA_MOCK_CLAIMS } from "../data/canadian-claims-data";
+import { ODA_FEES, CDCP_STEP_THERAPY, CDCP_GA_CRITERIA, CDCP_DENIAL_CODES, CDCP_NARRATIVE_TEMPLATES, CA_PAYERS } from "../data/canadian-claims-data";
 import {
   FileText, Shield, PenTool, BarChart3,
   CheckCircle, XCircle, ArrowRight, RefreshCw,
@@ -167,14 +167,7 @@ interface DeniedClaim {
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
-const MOCK_CLAIMS: DeniedClaim[] = [
-  { id: "c001", patientId: "PT-8821", patientName: "Maria Gonzalez", patientAge: 5, clinic: "Location 04", claimDate: "02/14/2026", cdtCode: "D9222", procedure: "Deep Sedation/GA – First 15 Min", carrier: "Denti-Cal", billedAmt: 1601, denialCode: "ARC 071", denialReason: "Medical necessity not established", status: "denied", daysOld: 34, priority: "critical", claimType: "EMERGENCY", issues: ["Missing Title 22 emergency certification", "GA criteria (i)+(ii) not addressed in narrative", "Frankl behavior scale not documented"] },
-  { id: "c002", patientId: "PT-4453", patientName: "James Watkins", patientAge: 7, clinic: "Location 11", claimDate: "01/28/2026", cdtCode: "D9223", procedure: "Deep Sedation/GA – Each Addl 15 Min", carrier: "Denti-Cal", billedAmt: 476, denialCode: "ARC 062", denialReason: "No anesthetic agent on record", status: "denied", daysOld: 51, priority: "critical", claimType: "PREAUTH", issues: ["Anesthesia record missing agent/dosage", "Start/end times not documented"] },
-  { id: "c003", patientId: "PT-7790", patientName: "Rosa Mendez", patientAge: 4, clinic: "Location 07", claimDate: "03/01/2026", cdtCode: "D9222", procedure: "Deep Sedation/GA – First 15 Min", carrier: "Denti-Cal", billedAmt: 952, denialCode: "ARC 069", denialReason: "No associated dental services on claim", status: "denied", daysOld: 19, priority: "high", claimType: "PREAUTH", issues: ["D9222 billed without associated dental procedure codes", "Add D2930/D7140/D3220 that were performed same DOS"] },
-  { id: "c005", patientId: "PT-6671", patientName: "Ana Rodriguez", patientAge: 8, clinic: "Location 15", claimDate: "03/05/2026", cdtCode: "D9239", procedure: "IV Moderate Sedation – First 15 Min", carrier: "Denti-Cal", billedAmt: 381, denialCode: "ARC 071", denialReason: "Prior authorization not obtained", status: "denied", daysOld: 15, priority: "high", claimType: "PREAUTH", issues: ["TAR not obtained before service date", "Step therapy documentation missing from record"] },
-  { id: "c006", patientId: "PT-2241", patientName: "Sofia Reyes", patientAge: 6, clinic: "Location 09", claimDate: "01/15/2026", cdtCode: "D9222", procedure: "Deep Sedation/GA – First 15 Min", carrier: "Denti-Cal", billedAmt: 952, denialCode: "ARC 326", denialReason: "Missing docs/attachments for EDI document", status: "ai_scanned", daysOld: 64, priority: "critical", claimType: "EMERGENCY", issues: ["SOAP note not attached to EDI claim at submission", "Emergency narrative missing from electronic claim", "Anesthesia record not included in EDI transmission"] },
-  { id: "c007", patientId: "PT-5589", patientName: "Marcus Johnson", patientAge: 10, clinic: "Location 03", claimDate: "02/20/2026", cdtCode: "D9222", procedure: "Deep Sedation/GA – First 15 Min", carrier: "Denti-Cal", billedAmt: 952, denialCode: "ARC 048", denialReason: "Narrative vs radiograph mismatch", status: "addendum_generated", daysOld: 28, priority: "high", claimType: "PREAUTH", issues: ["Tooth #19 in narrative but radiograph shows tooth #18 treated", "CDT code D2930 billed for tooth #19 — inconsistent with documentation", "Reconcile tooth numbers across narrative, radiograph, and claim"] },
-];
+const MOCK_CLAIMS: DeniedClaim[] = [];
 
 const fmtCurrency = (n: number) => `$${n.toLocaleString()}`;
 
@@ -1208,6 +1201,11 @@ export default function ClaimsRecoveryPage() {
       </div>
 
       <div>
+        {activeTab === "tracker" && claims.length === 0 && (
+          <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+            Live claims sync is not connected for this practice yet. Use the Bulk CSV Upload tab to analyze a claims export; the tracker will populate automatically once the live sync is enabled.
+          </div>
+        )}
         {activeTab === "tracker"    && <ClaimsTracker claims={claims} onRecover={handleRecover} onRecoverAll={() => {
                       const allDenied = claims.filter(c => c.status === "denied");
                       if (allDenied.length > 0) {
