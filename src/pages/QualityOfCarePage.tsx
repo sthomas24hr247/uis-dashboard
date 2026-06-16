@@ -318,6 +318,12 @@ function ProviderDetail({ provider, benchmarks, onBack }: {
   );
 }
 
+// GATE: QCI data layer is half-fabricated — treatment_completion (constant 65), outcome_gap_closure
+// (constant 45) and revenue_capture (stamped) are not real, and composite_score is null for every
+// provider. Show a calibrating state until the clinical attribution pipeline populates real values.
+// Typed as boolean (not literal true) so code below stays reachable and narrowing is preserved.
+const QCI_CALIBRATING: boolean = true;
+
 export default function QualityOfCarePage() {
   const [providers, setProviders] = useState<ProviderQCI[]>([]);
   const [practice, setPractice] = useState<PracticeSummary | null>(null);
@@ -351,6 +357,31 @@ export default function QualityOfCarePage() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  if (QCI_CALIBRATING) {
+    return (
+      <div className="space-y-6 animate-in">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quality of Care Index</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Aggregate quality scores across 6 clinical dimensions</p>
+          </div>
+        </div>
+        <div className="p-8 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-semibold tracking-wide mb-4">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> CALIBRATING
+          </div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Your Quality of Care Index is calibrating</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            We are validating clinical outcome data across all six dimensions before publishing provider and practice scores. The index activates once treatment-completion, outcome-gap, and revenue-capture signals are verified against your live practice data.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
