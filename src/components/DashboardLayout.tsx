@@ -40,6 +40,7 @@ interface NavItem {
   icon: any;
   label: string;
   roles?: string[]; // per-item role filter
+  hideForPractices?: string[]; // hide this item for specific practice ids (case-insensitive)
 }
 
 interface NavGroup {
@@ -104,7 +105,7 @@ const allNavGroups: NavGroup[] = [
       // Hidden until Option 2 provider backfill calibrates QCI dimensions — re-enable then.
       // { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
-      { to: '/claims-recovery', icon: FileText, label: 'Claims Recovery' },
+      { to: '/claims-recovery', icon: FileText, label: 'Claims Recovery', hideForPractices: ['65f84018-7f64-423a-82ce-805384130a66'] }, // hidden for PoshPearl (no denial backlog); feature stays available for clients it fits
       // Hidden for now — re-add when educational resources are ready.
       // { to: '/education', icon: BookOpen, label: 'Educational Resources' },
     ],
@@ -142,6 +143,7 @@ export default function DashboardLayout() {
   const [chatOpen, setChatOpen] = useState(false);
 
   const userRole = user?.role || 'admin';
+  const currentPracticeId = (user?.practiceId || '').toLowerCase();
   const isManager = userRole === 'manager';
   const roleLabel = roleLabelMap[userRole] || userRole;
 
@@ -150,7 +152,7 @@ export default function DashboardLayout() {
     .filter(g => !g.roles || g.roles.includes(userRole))
     .map(g => ({
       ...g,
-      items: g.items.filter(item => !item.roles || item.roles.includes(userRole)),
+      items: g.items.filter(item => (!item.roles || item.roles.includes(userRole)) && !(item.hideForPractices && item.hideForPractices.some(pid => pid.toLowerCase() === currentPracticeId))),
     }))
     .filter(g => g.items.length > 0); // remove empty groups
 
