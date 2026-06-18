@@ -433,15 +433,6 @@ export default function LoginPage() {
                   </button>
                 </form>
 
-                <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-700 tracking-widest">DEMO ACCESS</span>
-                  <button
-                    onClick={() => { setEmail('demo@dentalcorp.ca'); setPassword('FuNN3LUIS!20'); }}
-                    className="text-[10px] text-cyan-700 hover:text-cyan-400 tracking-widest transition-colors"
-                  >
-                    USE DEMO CREDENTIALS →
-                  </button>
-                </div>
               </>
             )}
           </div>
