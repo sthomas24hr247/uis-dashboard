@@ -87,12 +87,12 @@ export default function ExecutiveCommandCenter() {
         if (data.offices && data.offices.length > 0) {
           setOffices(data.offices);
         } else {
-          console.warn('[ExecutiveCommandCenter] API returned no offices, using demo data');
-          setOffices(demoOffices);
+          console.warn('[ExecutiveCommandCenter] API returned no offices; showing empty state');
+          setOffices([]);
         }
       } catch (err: any) {
         console.error('[ExecutiveCommandCenter] Failed to fetch practice summary:', err);
-        setOffices(demoOffices);
+        setOffices([]);
       } finally {
         setIsLoading(false);
       }
