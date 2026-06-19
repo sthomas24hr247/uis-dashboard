@@ -13,31 +13,7 @@ import { apiFetch } from "@/lib/api";
 // Demo multi-office data (transitions to real API data once multiple practices are connected)
 type BenchmarkStatus = "above" | "at" | "below";
 type DimInfo = { score: number | null; benchmark: number; status: BenchmarkStatus };
-const demoOffices: { id: string; name: string; location: string; providers: number; activePatients: number; monthlyRevenue: number | null; prevMonthRevenue: number | null; qciScore: number; qciGrade: string; noShowRate: number; outcomeGapLeakage: number; benchmarkStatus: BenchmarkStatus; dimensions: Record<string, DimInfo>; reason: string }[] = [
-  {
-    id: "65f84018-7f64-423a-82ce-805384130a66",
-    name: "PoshPearl Family Dental Studio",
-    location: "Yucaipa, CA",
-    providers: 2,
-    activePatients: 62,
-    monthlyRevenue: 48200,
-    prevMonthRevenue: 46800,
-    qciScore: 72.4,
-    qciGrade: "B",
-    noShowRate: 9.2,
-    outcomeGapLeakage: 1400,
-    benchmarkStatus: "above" as const,
-    dimensions: {
-      treatment_completion: { score: 74, benchmark: 65, status: "above" as const },
-      recall_compliance: { score: 68, benchmark: 58, status: "above" as const },
-      outcome_gap_closure: { score: 58, benchmark: 45, status: "above" as const },
-      no_show_prevention: { score: 78, benchmark: 72, status: "above" as const },
-      patient_retention: { score: 65, benchmark: 60, status: "above" as const },
-      revenue_capture: { score: 71, benchmark: 70, status: "at" as const },
-    },
-    reason: "Strong patient retention and recall compliance. No-show prevention above benchmark. Single-location practice with consistent care delivery.",
-  },
-];
+const demoOffices: { id: string; name: string; location: string; providers: number; activePatients: number; monthlyRevenue: number | null; prevMonthRevenue: number | null; qciScore: number; qciGrade: string; noShowRate: number; outcomeGapLeakage: number; benchmarkStatus: BenchmarkStatus; dimensions: Record<string, DimInfo>; reason: string }[] = [];
 
 const statusColors = {
   above: { bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-700 dark:text-emerald-400", border: "border-emerald-200 dark:border-emerald-800", dot: "bg-emerald-500" },
@@ -128,7 +104,7 @@ export default function ExecutiveCommandCenter() {
   const totalPrevRevenue = revenueOffices.reduce((s, o) => s + (o.prevMonthRevenue ?? 0), 0);
   const revenueChange = hasRevenue && totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100) : null;
   const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
-  const avgQCI = offices.reduce((s, o) => s + o.qciScore, 0) / offices.length;
+  const avgQCI = offices.length ? offices.reduce((s, o) => s + o.qciScore, 0) / offices.length : 0;
   const totalLeakage = offices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
   const allQciCalibrating = offices.length > 0 && offices.every(o => !o.qciScore);
   const leakageCalibrating = totalLeakage === 0;
@@ -154,6 +130,14 @@ export default function ExecutiveCommandCenter() {
     return (
       <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh] text-slate-400 text-sm">
         Loading practice summary…
+      </div>
+    );
+  }
+
+  if (offices.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh] text-slate-400 text-sm">
+        No practice data is available yet.
       </div>
     );
   }
