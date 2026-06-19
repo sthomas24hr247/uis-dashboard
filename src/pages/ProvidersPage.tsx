@@ -6,16 +6,10 @@ interface QciProvider {
   provider_id: string;
   name: string;
   provider_type: string | null;
-  total_production: number;
+  total_production: number | null;
+  total_patients: number;
+  composite_score: number | null;
   grade: string;
-}
-
-function formatUSD(n: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n || 0);
 }
 
 export default function ProvidersPage() {
@@ -33,8 +27,7 @@ export default function ProvidersPage() {
         '/api/qci/providers?practice_id=' + pid
       );
       const list = (data.providers || [])
-        .filter((p) => (p.total_production || 0) > 0)
-        .sort((a, b) => (b.total_production || 0) - (a.total_production || 0));
+        .sort((a, b) => (b.composite_score ?? -1) - (a.composite_score ?? -1));
       setProviders(list);
     } catch (e: any) {
       setError(e?.message || 'Failed to load providers');
@@ -59,7 +52,7 @@ export default function ProvidersPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Providers</h1>
           <p className="text-slate-500">
-            {providers.length} providers with attributed production
+            {providers.length} providers
           </p>
         </div>
         <button
@@ -90,7 +83,7 @@ export default function ProvidersPage() {
       )}
       {!loading && !error && filtered.length === 0 && (
         <div className="text-slate-500 py-12 text-center">
-          No providers with attributed production found.
+          No providers found.
         </div>
       )}
 
@@ -123,10 +116,10 @@ export default function ProvidersPage() {
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <p className="text-xs text-slate-500 uppercase tracking-wide flex items-center gap-1">
                   <TrendingUp className="w-3.5 h-3.5" />
-                  Production (trailing 12 mo)
+                  Quality Score (trailing 24 mo)
                 </p>
                 <p className="text-xl font-bold text-slate-900 mt-1">
-                  {formatUSD(p.total_production)}
+                  {p.composite_score == null ? <span className="text-amber-600">Calibrating</span> : p.composite_score.toFixed(1)}<span className="text-sm font-normal text-slate-400"> · {p.total_patients} patients</span>
                 </p>
               </div>
             </div>
