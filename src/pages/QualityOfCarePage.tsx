@@ -80,6 +80,10 @@ function fmtScore(v: number | null | undefined): string {
   return v == null ? 'Cal' : v.toFixed(1);
 }
 
+function fmtMoney(v: number | null | undefined): string {
+  return v == null ? '—' : '$' + v.toLocaleString();
+}
+
 function ScoreGauge({ score, grade, size = 'lg' }: { score: number | null; grade: string; size?: 'lg' | 'sm' }) {
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - ((score == null ? 0 : score) / 100) * circumference;
@@ -264,11 +268,11 @@ function ProviderDetail({ provider, benchmarks, onBack }: {
             </div>
             <div>
               <p className="text-[10px] text-slate-400">Production</p>
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">${provider.total_production.toLocaleString()}</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fmtMoney(provider.total_production)}</p>
             </div>
             <div>
               <p className="text-[10px] text-slate-400">Collected</p>
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">${provider.total_collected.toLocaleString()}</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fmtMoney(provider.total_collected)}</p>
             </div>
           </div>
         </div>
@@ -463,11 +467,11 @@ export default function QualityOfCarePage() {
               </div>
               <div>
                 <p className="text-[10px] text-slate-400">Production</p>
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">${practice.totals.total_production.toLocaleString()}</p>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fmtMoney(practice.totals.total_production)}</p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400">Collected</p>
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">${practice.totals.total_collected.toLocaleString()}</p>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fmtMoney(practice.totals.total_collected)}</p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400">Leaked Episodes</p>
