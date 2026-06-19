@@ -12,7 +12,7 @@ import { apiFetch } from "@/lib/api";
 
 // Demo multi-office data (transitions to real API data once multiple practices are connected)
 type BenchmarkStatus = "above" | "at" | "below";
-type DimInfo = { score: number; benchmark: number; status: BenchmarkStatus };
+type DimInfo = { score: number | null; benchmark: number; status: BenchmarkStatus };
 const demoOffices: { id: string; name: string; location: string; providers: number; activePatients: number; monthlyRevenue: number | null; prevMonthRevenue: number | null; qciScore: number; qciGrade: string; noShowRate: number; outcomeGapLeakage: number; benchmarkStatus: BenchmarkStatus; dimensions: Record<string, DimInfo>; reason: string }[] = [
   {
     id: "65f84018-7f64-423a-82ce-805384130a66",
@@ -399,7 +399,7 @@ export default function ExecutiveCommandCenter() {
                       return (
                         <td key={key} className="text-center py-3 px-2">
                           <div className={`inline-flex flex-col items-center px-2 py-1 rounded-lg ${cs.bg}`}>
-                            <span className={`text-xs font-bold ${cs.text}`}>{dim.score}%</span>
+                            <span className={`text-xs font-bold ${cs.text}`}>{dim.score == null ? 'Cal' : dim.score + '%'}</span>
                             <span className="text-[9px] text-slate-400">{dim.benchmark}%</span>
                           </div>
                         </td>
@@ -542,11 +542,11 @@ function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof
                         <span className="text-xs text-slate-400">{label}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-slate-500">Benchmark: {dim.benchmark}%</span>
-                          <span className={`text-xs font-bold ${isAbove ? 'text-teal-400' : isBelow ? 'text-red-400' : 'text-slate-300'}`}>{dim.score}%</span>
+                          <span className={`text-xs font-bold ${isAbove ? 'text-teal-400' : isBelow ? 'text-red-400' : 'text-slate-300'}`}>{dim.score == null ? 'Cal' : dim.score + '%'}</span>
                         </div>
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                        <div className={`h-full rounded-full ${isAbove ? 'bg-teal-500' : isBelow ? 'bg-red-500' : 'bg-slate-500'}`} style={{ width: `${dim.score}%` }} />
+                        <div className={`h-full rounded-full ${isAbove ? 'bg-teal-500' : isBelow ? 'bg-red-500' : 'bg-slate-500'}`} style={{ width: `${dim.score == null ? 0 : dim.score}%` }} />
                       </div>
                     </div>
                   );
