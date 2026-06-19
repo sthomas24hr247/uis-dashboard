@@ -76,9 +76,13 @@ const dimensionIcons: Record<string, any> = {
   revenue_capture: DollarSign,
 };
 
-function ScoreGauge({ score, grade, size = 'lg' }: { score: number; grade: string; size?: 'lg' | 'sm' }) {
+function fmtScore(v: number | null | undefined): string {
+  return v == null ? 'Cal' : v.toFixed(1);
+}
+
+function ScoreGauge({ score, grade, size = 'lg' }: { score: number | null; grade: string; size?: 'lg' | 'sm' }) {
   const circumference = 2 * Math.PI * 54;
-  const offset = circumference - (score / 100) * circumference;
+  const offset = circumference - ((score == null ? 0 : score) / 100) * circumference;
   const isLg = size === 'lg';
 
   return (
@@ -88,7 +92,7 @@ function ScoreGauge({ score, grade, size = 'lg' }: { score: number; grade: strin
           className="text-slate-100 dark:text-slate-700/50" strokeWidth={isLg ? 8 : 6} />
         <circle cx="60" cy="60" r="54" fill="none"
           strokeWidth={isLg ? 8 : 6} strokeLinecap="round"
-          className={score >= 90 ? 'text-emerald-500' : score >= 80 ? 'text-teal-500' : score >= 70 ? 'text-blue-500' : score >= 60 ? 'text-amber-500' : 'text-red-500'}
+          className={score == null ? 'text-slate-300 dark:text-slate-600' : score >= 90 ? 'text-emerald-500' : score >= 80 ? 'text-teal-500' : score >= 70 ? 'text-blue-500' : score >= 60 ? 'text-amber-500' : 'text-red-500'}
           stroke="currentColor"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -97,7 +101,7 @@ function ScoreGauge({ score, grade, size = 'lg' }: { score: number; grade: strin
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className={`font-bold ${isLg ? 'text-2xl' : 'text-sm'} text-slate-900 dark:text-white`}>
-          {score.toFixed(1)}
+          {score == null ? 'Cal' : score.toFixed(1)}
         </span>
         <span className={`font-bold ${isLg ? 'text-sm' : 'text-[10px]'} ${gradeText[grade] || 'text-slate-500'}`}>
           {grade}
@@ -108,7 +112,7 @@ function ScoreGauge({ score, grade, size = 'lg' }: { score: number; grade: strin
 }
 
 function DimensionBar({ label, score, weight, benchmarks, icon: Icon }: {
-  label: string; score: number; weight: number;
+  label: string; score: number | null; weight: number;
   benchmarks?: { industry: number; top25: number; top10: number };
   icon: any;
 }) {
@@ -121,20 +125,22 @@ function DimensionBar({ label, score, weight, benchmarks, icon: Icon }: {
           <span className="text-[9px] text-slate-400 dark:text-slate-500">({(weight * 100).toFixed(0)}%)</span>
         </div>
         <span className={`text-xs font-bold ${
+          score == null ? 'text-slate-400 dark:text-slate-500' :
           score >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
           score >= 60 ? 'text-amber-600 dark:text-amber-400' :
           'text-red-600 dark:text-red-400'
-        }`}>{score.toFixed(1)}%</span>
+        }`}>{score == null ? 'Calibrating' : score.toFixed(1) + '%'}</span>
       </div>
       <div className="relative h-3 bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-visible">
         {/* Score bar */}
         <div
           className={`h-full rounded-full transition-all duration-700 ${
+            score == null ? 'bg-slate-200 dark:bg-slate-600' :
             score >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
             score >= 60 ? 'bg-gradient-to-r from-amber-400 to-amber-500' :
             'bg-gradient-to-r from-red-400 to-red-500'
           }`}
-          style={{ width: `${Math.min(score, 100)}%` }}
+          style={{ width: `${score == null ? 0 : Math.min(score, 100)}%` }}
         />
         {/* Benchmark markers */}
         {benchmarks && (
@@ -318,11 +324,11 @@ function ProviderDetail({ provider, benchmarks, onBack }: {
   );
 }
 
-// GATE: QCI data layer is half-fabricated — treatment_completion (constant 65), outcome_gap_closure
-// (constant 45) and revenue_capture (stamped) are not real, and composite_score is null for every
-// provider. Show a calibrating state until the clinical attribution pipeline populates real values.
-// Typed as boolean (not literal true) so code below stays reachable and narrowing is preserved.
-const QCI_CALIBRATING: boolean = true;
+// QCI is live on real per-provider data. Recall compliance, no-show prevention, and patient
+// retention are graded from synced appointment data; treatment completion, outcome gap closure,
+// and revenue capture remain calibrating (null) until their source data exists, and render as
+// "Calibrating" rather than zero. Set this true to re-gate the whole page to a calibrating panel.
+const QCI_CALIBRATING: boolean = false;
 
 export default function QualityOfCarePage() {
   const [providers, setProviders] = useState<ProviderQCI[]>([]);
@@ -439,14 +445,14 @@ export default function QualityOfCarePage() {
               <p className="text-[10px] font-semibold tracking-widest text-slate-400 mb-1">PRACTICE-WIDE QCI</p>
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-3xl font-bold ${gradeText[practice.grade] || 'text-slate-900 dark:text-white'}`}>
-                  {practice.composite_score.toFixed(1)}
+                  {fmtScore(practice.composite_score)}
                 </span>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${percentileColors[practice.percentile] || ''}`}>
                   {practice.percentile}
                 </span>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {practice.provider_count} providers | Score range: {practice.range.min_composite.toFixed(1)} — {practice.range.max_composite.toFixed(1)}
+                {practice.provider_count} providers | Score range: {fmtScore(practice.range.min_composite)} — {fmtScore(practice.range.max_composite)}
               </p>
             </div>
             {/* Quick stats */}
@@ -532,7 +538,7 @@ export default function QualityOfCarePage() {
                     {p.percentile}
                   </span>
                   <span className={`text-lg font-bold tabular-nums w-12 text-right inline-block ${gradeText[p.grade] || ''}`}>
-                    {p.composite_score.toFixed(1)}
+                    {fmtScore(p.composite_score)}
                   </span>
                   <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradeColors[p.grade] || ''} flex items-center justify-center text-xs font-bold`}>
                     {p.grade}

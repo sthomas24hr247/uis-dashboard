@@ -37,18 +37,18 @@ export default function AnalyticsPage() {
   const { data, loading, error, refetch } = useQuery(GET_ANALYTICS);
   const stats = data?.analyticsStats;
 
-  const [providerProduction, setProviderProduction] = useState<any[]>([]);
+  const [providerQuality, setProviderQuality] = useState<any[]>([]);
   useEffect(() => {
     const pid = getPracticeId();
     apiGet('/api/qci/providers' + (pid ? ('?practice_id=' + pid) : ''))
       .then((r: any) => {
         const list = (r?.providers || [])
-          .map((p: any) => ({ name: p.name, production: p.total_production || 0 }))
-          .filter((p: any) => p.production > 0 && p.name)
-          .sort((a: any, b: any) => b.production - a.production);
-        setProviderProduction(list);
+          .map((p: any) => ({ name: p.name, composite: p.composite_score, grade: p.grade }))
+          .filter((p: any) => p.name)
+          .sort((a: any, b: any) => (b.composite ?? -1) - (a.composite ?? -1));
+        setProviderQuality(list);
       })
-      .catch(() => setProviderProduction([]));
+      .catch(() => setProviderQuality([]));
   }, []);
 
   const statCards = stats ? [
@@ -215,22 +215,26 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Provider Production */}
-          {providerProduction.length > 0 && (
+          {/* Provider Quality */}
+          {providerQuality.length > 0 && (
             <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-slate-900">Provider Production</h2>
-                <span className="text-xs text-slate-400">Trailing 12 months — live from Dentrix Ascend</span>
+                <h2 className="text-lg font-semibold text-slate-900">Provider Quality Index</h2>
+                <span className="text-xs text-slate-400">Trailing 24 months — composite of live engagement metrics</span>
               </div>
               <div className="space-y-3">
-                {providerProduction.map((p: any) => (
+                {providerQuality.map((p: any) => (
                   <div key={p.name} className="space-y-1.5">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium text-slate-700">{p.name}</span>
-                      <span className="text-slate-500">${p.production.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="text-slate-500">
+                        {p.composite == null
+                          ? <span className="text-amber-600">Calibrating</span>
+                          : <>{p.composite.toFixed(1)} <span className="text-slate-400">· {p.grade}</span></>}
+                      </span>
                     </div>
                     <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-uis-500 rounded-full transition-all" style={{ width: ((p.production / (providerProduction[0].production || 1)) * 100) + '%' }} />
+                      <div className="h-full bg-uis-500 rounded-full transition-all" style={{ width: (p.composite == null ? 0 : p.composite) + '%' }} />
                     </div>
                   </div>
                 ))}
