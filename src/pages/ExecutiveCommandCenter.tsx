@@ -294,7 +294,7 @@ export default function ExecutiveCommandCenter() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{office.name}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{office.location} · {office.providers} providers</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{office.location} · {office.providers} total provider records</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     {isNewlyOnboarded(office) && (
@@ -385,7 +385,7 @@ export default function ExecutiveCommandCenter() {
                   <tr key={office.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 cursor-pointer" onClick={() => setSelectedOffice(office.id)}>
                     <td className="py-3 px-4">
                       <p className="font-semibold text-slate-900 dark:text-white">{office.name.replace("Bright Smiles Dental - ", "")}</p>
-                      <p className="text-[10px] text-slate-400">{office.providers} providers</p>
+                      <p className="text-[10px] text-slate-400">{office.providers} total provider records</p>
                     </td>
                     <td className="text-center py-3 px-3">
                       <span className="font-bold text-slate-900 dark:text-white">{office.qciScore}</span>
@@ -505,7 +505,7 @@ function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof
           <div>
             <div className="text-[10px] tracking-[0.25em] uppercase text-pink-400 mb-1">Practice Intelligence</div>
             <h2 className="text-xl font-semibold text-white">{office.name}</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{office.location} \u00b7 {office.providers} providers \u00b7 {office.activePatients.toLocaleString()} patients</p>
+            <p className="text-sm text-slate-400 mt-0.5">{office.location} \u00b7 {office.providers} total provider records \u00b7 {office.activePatients.toLocaleString()} patients</p>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-full border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 flex items-center justify-center transition-all text-lg">\u00d7</button>
         </div>
