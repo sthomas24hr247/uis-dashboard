@@ -102,8 +102,7 @@ const allNavGroups: NavGroup[] = [
     icon: HeartPulse,
     roles: ['admin', 'manager'],
     items: [
-      // Hidden until Option 2 provider backfill calibrates QCI dimensions — re-enable then.
-      // { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
+      { to: '/quality-of-care', icon: HeartPulse, label: 'Quality of Care Index', roles: ['admin'] },
       { to: '/insurance', icon: Shield, label: 'Insurance Verification' },
       { to: '/claims-recovery', icon: FileText, label: 'Claims Recovery', hideForPractices: ['65f84018-7f64-423a-82ce-805384130a66'] }, // hidden for PoshPearl (no denial backlog); feature stays available for clients it fits
       // Hidden for now — re-add when educational resources are ready.
