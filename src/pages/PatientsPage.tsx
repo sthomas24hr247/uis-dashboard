@@ -90,7 +90,7 @@ export default function PatientsPage() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button disabled title="Patients sync automatically from Dentrix Ascend" className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 rounded-lg cursor-not-allowed">
             <Plus className="w-4 h-4" />
             Add Patient
           </button>

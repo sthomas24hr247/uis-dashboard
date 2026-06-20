@@ -173,7 +173,7 @@ export default function ExecutiveCommandCenter() {
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Patients</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Active Patients</p>
             <Users className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalPatients.toLocaleString()}</p>

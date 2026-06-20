@@ -68,7 +68,7 @@ export default function HomePage() {
 
   const quickStats = [
     { label: "Today's Appointments", value: stats?.totalAppointments ?? "—", change: "View schedule", up: true },
-    { label: "Active Patients", value: stats?.activePatients ?? "—", change: "Total in system", up: true },
+    { label: "Active Patients", value: stats?.activePatients ?? "—", change: "Active in Dentrix", up: true },
     { label: "Production (MTD)", value: stats?.totalRevenue ? `$${(stats.totalRevenue / 1000).toFixed(1)}K` : "—", change: "Month to date", up: true },
     { label: "Outcome Gap", value: gapData?.overall_gap_pct ? `${gapData.overall_gap_pct}%` : "—", change: gapData?.total_leaked ? `$${(gapData.total_leaked / 1000).toFixed(1)}K leaked` : "View details", up: false },
   ];
