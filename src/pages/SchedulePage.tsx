@@ -198,11 +198,11 @@ export default function SchedulePage() {
               return (
                 <div
                   key={day.toISOString()}
-                  className={`p-2 border-r last:border-r-0 space-y-1 ${
+                  className={`p-2 border-r last:border-r-0 space-y-1 overflow-y-auto max-h-[460px] ${
                     isToday(day) ? 'bg-blue-50/50' : ''
                   }`}
                 >
-                  {dayAppointments.slice(0, 5).map((apt: any) => (
+                  {dayAppointments.map((apt: any) => (
                     <div
                       key={apt.id}
                       onClick={() => apt.patientId && navigate(`/patients/${apt.patientId}`)} className={`p-2 rounded-lg border text-xs cursor-pointer hover:opacity-80 transition-opacity ${statusColors[apt.status] || statusColors.SCHEDULED}`}
@@ -211,11 +211,7 @@ export default function SchedulePage() {
                       <p className="truncate">{apt.patientName}</p>
                     </div>
                   ))}
-                  {dayAppointments.length > 5 && (
-                    <p className="text-xs text-slate-500 text-center">
-                      +{dayAppointments.length - 5} more
-                    </p>
-                  )}
+                  
                 </div>
               );
             })}
