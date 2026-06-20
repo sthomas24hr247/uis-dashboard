@@ -139,33 +139,36 @@ function formatTime(time: string): string {
   }
 }
 
-// Demo waitlist entries (will be replaced by PMS integration data)
-const demoWaitlistEntries = [
-  {
-    id: 'wl-1', patientId: 'P001', patientName: 'Maria Rodriguez', phone: '(555) 234-5678', email: 'maria.r@email.com',
-    procedureNeeded: 'Cleaning', providerPreference: 'Dr. Sarah Palmer', preferredTimes: 'Morning',
-    contactMethod: 'sms', dateAdded: '2026-02-28', daysWaiting: 7, urgency: 'routine' as const,
-    status: 'waiting' as WaitlistStatus, priorityScore: 72,
-  },
-  {
-    id: 'wl-2', patientId: 'P002', patientName: 'James Chen', phone: '(555) 345-6789', email: 'jchen@email.com',
-    procedureNeeded: 'Crown Prep', providerPreference: 'Dr. Michael Torres', preferredTimes: 'Afternoon',
-    contactMethod: 'email', dateAdded: '2026-03-01', daysWaiting: 6, urgency: 'soon' as const,
-    status: 'waiting' as WaitlistStatus, priorityScore: 85,
-  },
-  {
-    id: 'wl-3', patientId: 'P003', patientName: 'Sarah Mitchell', phone: '(555) 456-7890', email: 'sarah.m@email.com',
-    procedureNeeded: 'Root Canal', providerPreference: 'Any', preferredTimes: 'Any',
-    contactMethod: 'sms', dateAdded: '2026-02-25', daysWaiting: 10, urgency: 'urgent' as const,
-    status: 'notified' as WaitlistStatus, priorityScore: 95,
-  },
-  {
-    id: 'wl-4', patientId: 'P004', patientName: 'David Thompson', phone: '(555) 567-8901', email: 'dthompson@email.com',
-    procedureNeeded: 'Cleaning', providerPreference: 'Dr. Sarah Palmer', preferredTimes: 'Morning',
-    contactMethod: 'sms', dateAdded: '2026-03-03', daysWaiting: 4, urgency: 'routine' as const,
-    status: 'confirmed' as WaitlistStatus, priorityScore: 60,
-  },
-];
+const GET_WAITLIST_ENTRIES = gql`
+  query GetWaitlistEntries($status: String) {
+    dentamindWaitlistEntries(status: $status) {
+      id
+      patientId
+      patientName
+      phone
+      email
+      procedureNeeded
+      providerPreference
+      preferredTimes
+      contactMethod
+      urgency
+      status
+      dateAdded
+      daysWaiting
+      priorityScore
+    }
+  }
+`;
+
+const CREATE_WAITLIST_ENTRY = gql`
+  mutation CreateWaitlistEntry($input: CreateWaitlistEntryInput!) {
+    createWaitlistEntry(input: $input) {
+      id
+      patientName
+      status
+    }
+  }
+`;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -181,6 +184,11 @@ export default function WaitlistPage() {
   const { data: actionsData } = useQuery(GET_WAITLIST_ACTIONS, {
     pollInterval: 30000,
   });
+  const { data: entriesData, refetch: refetchEntries } = useQuery(GET_WAITLIST_ENTRIES, {
+    variables: { status: null },
+    pollInterval: 30000,
+  });
+  const [createEntry, { loading: creating }] = useMutation(CREATE_WAITLIST_ENTRY);
 
   const [triggerNotify] = useMutation(TRIGGER_WAITLIST_NOTIFY, {
     onCompleted: (data) => {
@@ -198,11 +206,25 @@ export default function WaitlistPage() {
     },
   });
 
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ patientName: '', phone: '', email: '', procedureNeeded: '', providerPreference: '', preferredTimes: 'Any', contactMethod: 'sms', urgency: 'routine' });
+  const updateForm = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const submitEntry = async () => {
+    if (!form.patientName.trim()) { alert('Patient name is required'); return; }
+    try {
+      await createEntry({ variables: { input: { ...form } } });
+      setShowAdd(false);
+      setForm({ patientName: '', phone: '', email: '', procedureNeeded: '', providerPreference: '', preferredTimes: 'Any', contactMethod: 'sms', urgency: 'routine' });
+      refetchEntries();
+    } catch (e: any) {
+      alert('Failed to add: ' + e.message);
+    }
+  };
+
   const slots = slotsData?.waitlistSlots || [];
   const waitlistActions = (actionsData?.actionQueue || []).filter((a: any) => a.workflowType === 'waitlist_notify');
 
-  // Use demo entries for now (PMS integration will replace)
-  const entries: typeof demoWaitlistEntries = [];
+  const entries: any[] = entriesData?.dentamindWaitlistEntries || [];
 
   const filteredEntries = entries.filter((e) => {
     const matchSearch = searchQuery === '' || e.patientName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -210,7 +232,7 @@ export default function WaitlistPage() {
     return matchSearch && matchUrgency;
   });
 
-  const handleNotify = (entry: typeof demoWaitlistEntries[0]) => {
+  const handleNotify = (entry: any) => {
     setNotifyingId(entry.id);
     triggerNotify({
       variables: {
@@ -225,7 +247,7 @@ export default function WaitlistPage() {
           appointmentTime: '3:00 PM',
           providerName: entry.providerPreference || 'your provider',
           procedureType: entry.procedureNeeded,
-          locationName: 'UIS Health Demo Practice',
+          locationName: 'PoshPearl Family Dental Studio',
           locationPhone: '(555) 100-0000',
           confirmationLink: 'https://uishealth.com/confirm',
         }),
@@ -250,7 +272,7 @@ export default function WaitlistPage() {
           <p className="text-slate-500 mt-1">Smart matching and automated notifications when slots open</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition">
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition">
             <UserPlus className="w-4 h-4" /> Add to Waitlist
           </button>
           <button onClick={() => refetchSlots()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition">
@@ -534,6 +556,79 @@ export default function WaitlistPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowAdd(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-teal-500" /> Add to Waitlist
+              </h2>
+              <button onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Patient Name *</label>
+                <input value={form.patientName} onChange={(e) => updateForm('patientName', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Full name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Phone</label>
+                  <input value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="(555) 123-4567" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
+                  <input value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="name@email.com" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Procedure Needed</label>
+                  <input value={form.procedureNeeded} onChange={(e) => updateForm('procedureNeeded', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. Cleaning" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Provider Preference</label>
+                  <input value={form.providerPreference} onChange={(e) => updateForm('providerPreference', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Any" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Preferred Times</label>
+                  <select value={form.preferredTimes} onChange={(e) => updateForm('preferredTimes', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option>Any</option>
+                    <option>Morning</option>
+                    <option>Afternoon</option>
+                    <option>Evening</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Contact</label>
+                  <select value={form.contactMethod} onChange={(e) => updateForm('contactMethod', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option value="sms">SMS</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Urgency</label>
+                  <select value={form.urgency} onChange={(e) => updateForm('urgency', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option value="routine">Routine</option>
+                    <option value="soon">Soon</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800">Cancel</button>
+              <button onClick={submitEntry} disabled={creating} className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition ${creating ? 'bg-slate-300 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`}>
+                {creating ? 'Adding...' : 'Add to Waitlist'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
