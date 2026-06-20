@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import {
   ChevronLeft,
@@ -54,9 +54,22 @@ const statusColors: Record<string, string> = {
 };
 
 export default function SchedulePage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<'week' | 'list'>('week');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view: 'week' | 'list' = searchParams.get('view') === 'list' ? 'list' : 'week';
+  const dateParam = searchParams.get('date');
+  const parsedDate = dateParam ? new Date(dateParam + 'T00:00:00') : new Date();
+  const currentDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  const setView = (v: 'week' | 'list') => {
+    const next = new URLSearchParams(searchParams);
+    next.set('view', v);
+    setSearchParams(next, { replace: true });
+  };
+  const setCurrentDate = (d: Date) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('date', format(d, 'yyyy-MM-dd'));
+    setSearchParams(next, { replace: true });
+  };
 
   const { data, loading, error, refetch } = useQuery(GET_APPOINTMENTS, {
     variables: {

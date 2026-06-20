@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import { useState, useEffect } from 'react';
 import {
@@ -39,6 +39,7 @@ const GET_PATIENT = gql`
 
 export default function PatientDetailPage() {
   const { patientId } = useParams<{ patientId: string }>();
+  const navigate = useNavigate();
   const { data, loading, error } = useQuery(GET_PATIENT, {
     variables: { patientId },
     skip: !patientId,
@@ -102,9 +103,9 @@ export default function PatientDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/patients" className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
+          <button onClick={() => navigate(-1)} aria-label="Go back" className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
             <ArrowLeft className="w-5 h-5" />
-          </Link>
+          </button>
           <div className="w-14 h-14 bg-gradient-to-br from-uis-500 to-uis-700 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
             {patient.firstName?.[0]}{patient.lastName?.[0]}
           </div>
