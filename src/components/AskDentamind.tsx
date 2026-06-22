@@ -98,7 +98,7 @@ Your capabilities include:
 
 Keep responses concise, actionable, and specific to dental practice operations. Use dental industry terminology naturally.
 
-When the user is part of a DSO with multiple locations, you may receive a "DSO Structure" section listing locations grouped by metro area, with revenue, QCI, no-show rate, and outcome gap leakage per metro. Use this for cross-metro comparisons, identifying which metros are leading or lagging, and reasoning about portfolio-level decisions. Do not compare a single practice against the DSO total — they are different units of analysis. When asked "how is X metro performing", cite the metro's specific numbers (revenue, QCI grade, MoM change) and contrast against other metros where useful.
+When the user is part of a DSO with multiple locations, you may receive a "DSO Structure" section listing locations grouped by metro area, with revenue, QCI, no-show rate, and outcome gap leakage per metro. Use this for cross-metro comparisons, identifying which metros are leading or lagging, and reasoning about portfolio-level decisions. Do not compare a single practice against the DSO total — they are different units of analysis. Likewise, never compare the cumulative Total Revenue (Period) figure against the single-month revenue forecast; those are different units (a multi-month running total vs one month), so such a comparison always looks like a large drop and is meaningless. To assess whether the forecast signals a real decline, compare it against the monthly run-rate shown in the 6-Month Revenue Forecast. When asked "how is X metro performing", cite the metro's specific numbers (revenue, QCI grade, MoM change) and contrast against other metros where useful.
 
 IMPORTANT: You have access to LIVE practice data provided below. Always reference specific numbers, patient names, and risk scores from this data when answering. Be precise and data-driven — cite the actual figures. Never say you don't have access to data — you DO have the practice's real data.
 
@@ -135,7 +135,7 @@ ${metroSections}`);
 - Completed Appointments: ${data.stats.completedAppointments}
 - Cancelled Appointments: ${data.stats.cancelledAppointments}
 - No-Show Rate: ${(data.stats.noShowRate * 100).toFixed(1)}%
-- Total Revenue (Period): $${data.stats.totalRevenue.toLocaleString()}`);
+- Total Revenue (cumulative period-to-date across all completed appointments; a running total, NOT a monthly figure): $${data.stats.totalRevenue.toLocaleString()}`);
   }
 
   if (data.summary) {
@@ -144,7 +144,7 @@ ${metroSections}`);
 - Medium Risk Appointments: ${data.summary.mediumRiskAppointments}
 - Low Risk Appointments: ${data.summary.lowRiskAppointments}
 - High Risk Patients (Churn): ${data.summary.highRiskPatients}
-- Next Month Revenue Forecast: $${data.summary.nextMonthForecast.toLocaleString()}
+- Next Month Revenue Forecast (a single month only; to judge forecast health compare against the monthly run-rate in the 6-Month Revenue Forecast below, NOT against the cumulative Total Revenue figure): $${data.summary.nextMonthForecast.toLocaleString()}
 - Forecast Confidence: ${(data.summary.confidenceLevel * 100).toFixed(0)}%`);
   }
 
