@@ -17,7 +17,6 @@ import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import ManagerDashboard from "./pages/ManagerDashboard";
-import ROICalculatorPage from './pages/ROICalculatorPage';
 import BILDashboardPage from './pages/BILDashboardPage';
 import InsuranceVerificationPage from './pages/InsuranceVerificationPage';
 import QualityOfCarePage from './pages/QualityOfCarePage';
@@ -97,7 +96,6 @@ function App() {
         <Route path="settings" element={<SettingsPage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="manager-dashboard" element={<ManagerDashboard />} />
-        <Route path="roi" element={<ROICalculatorPage />} />
         <Route path="waitlist" element={<WaitlistPage />} />
         <Route path="automation" element={<AutomationHubPage />} />
       <Route path="claims-recovery" element={<ClaimsRecoveryPage />} />
