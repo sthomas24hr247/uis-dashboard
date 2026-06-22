@@ -56,11 +56,11 @@ const statusColors: Record<string, string> = {
 export default function SchedulePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const view: 'week' | 'list' = searchParams.get('view') === 'list' ? 'list' : 'week';
+  const view: 'week' | 'day' | 'list' = searchParams.get('view') === 'list' ? 'list' : searchParams.get('view') === 'day' ? 'day' : 'week';
   const dateParam = searchParams.get('date');
   const parsedDate = dateParam ? new Date(dateParam + 'T00:00:00') : new Date();
   const currentDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-  const setView = (v: 'week' | 'list') => {
+  const setView = (v: 'week' | 'day' | 'list') => {
     const next = new URLSearchParams(searchParams);
     next.set('view', v);
     setSearchParams(next, { replace: true });
@@ -117,7 +117,7 @@ export default function SchedulePage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Schedule</h1>
           <p className="text-slate-500">
-            {format(weekStart, 'MMMM d')} - {format(addDays(weekStart, 6), 'MMMM d, yyyy')}
+            {view === 'day' ? format(currentDate, 'EEEE, MMMM d, yyyy') : `${format(weekStart, 'MMMM d')} - ${format(addDays(weekStart, 6), 'MMMM d, yyyy')}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export default function SchedulePage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setCurrentDate(subWeeks(currentDate, 1))}
+            onClick={() => setCurrentDate(view === 'day' ? addDays(currentDate, -1) : subWeeks(currentDate, 1))}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -151,7 +151,7 @@ export default function SchedulePage() {
             Today
           </button>
           <button
-            onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
+            onClick={() => setCurrentDate(view === 'day' ? addDays(currentDate, 1) : addWeeks(currentDate, 1))}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
@@ -166,6 +166,15 @@ export default function SchedulePage() {
           >
             <CalendarDays className="w-4 h-4" />
             Week
+          </button>
+          <button
+            onClick={() => setView('day')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              view === 'day' ? 'bg-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            Day
           </button>
           <button
             onClick={() => setView('list')}
@@ -231,6 +240,45 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
+
+      {/* Day View */}
+      {view === 'day' && (data || !loading) && (() => {
+        const dateStr = format(currentDate, 'yyyy-MM-dd');
+        const dayAppts = appointmentsByDate[dateStr] || [];
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+              <p className="font-semibold text-slate-900">{format(currentDate, 'EEEE, MMMM d, yyyy')}</p>
+              <span className="text-sm text-slate-500">{dayAppts.length} appointment{dayAppts.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {dayAppts.length === 0 ? (
+                <div className="p-8 text-center text-slate-500">No appointments for this day</div>
+              ) : (
+                dayAppts.map((apt: any) => (
+                  <div key={apt.id} onClick={() => apt.patientId && navigate(`/patients/${apt.patientId}`)} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center min-w-[80px]">
+                          <p className="font-semibold text-slate-900">{apt.time}</p>
+                          <p className="text-xs text-slate-500">{apt.duration || 0} min</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{apt.patientName}</p>
+                          <p className="text-sm text-slate-500">{apt.type || 'General'} • {apt.provider || 'No Provider'}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[apt.status] || statusColors.SCHEDULED}`}>
+                        {apt.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* List View */}
       {view === 'list' && (data || !loading) && (
