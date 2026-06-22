@@ -194,7 +194,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       const sections: string[] = [];
       if (predData.predictions?.length) {
         const lines = predData.predictions.map((p: any) =>
-          `  - ${p.first_name} ${p.last_name}: Cancel Risk ${(p.cancel_risk_score * 100).toFixed(0)}% (${p.cancel_risk_tier}) | Acceptance: ${p.acceptance_tier} | OOP: ${p.oop_willingness_tier} (max $${p.oop_threshold_estimate}) | Attrition: ${p.attrition_risk_tier} | Channel: ${p.preferred_channel} | ${p.days_since_last_visit}d since visit`
+          `  - ${p.first_name} ${p.last_name}: Cancel Risk ${(p.cancel_risk_score * 100).toFixed(0)}% (${p.cancel_risk_tier}) | Acceptance: ${p.acceptance_tier || "unknown"} | Pending Tx: ${p.proposed_treatment_value ? "$" + Number(p.proposed_treatment_value).toLocaleString() : "none"} | Attrition: ${p.attrition_risk_tier} | ${p.days_since_last_visit}d since visit`
         ).join('\n');
         sections.push(`## Patient Predictions (${predData.predictions.length} patients scored)\n${lines}`);
       }

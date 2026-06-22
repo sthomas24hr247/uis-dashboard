@@ -172,7 +172,6 @@ export default function PatientDetailPage() {
                 {[
                   { label: 'Cancel Risk', tier: prediction.cancel_risk_tier, extra: `(${(prediction.cancel_risk_score * 100).toFixed(0)}%)` },
                   { label: 'Acceptance', tier: prediction.acceptance_tier, extra: '' },
-                  { label: 'OOP Willing', tier: prediction.oop_willingness_tier, extra: `(max $${prediction.oop_threshold_estimate?.toLocaleString()})` },
                   { label: 'Attrition', tier: prediction.attrition_risk_tier, extra: '' },
                 ].map((item, i) => (
                   <div key={i} className="flex justify-between items-center">
@@ -185,8 +184,8 @@ export default function PatientDetailPage() {
                   </div>
                 ))}
                 <div className="pt-2 border-t border-indigo-200 dark:border-indigo-700/30 flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Channel</span>
-                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 capitalize">{prediction.preferred_channel}</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-300">Pending Tx Value</span>
+                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{prediction.proposed_treatment_value ? '$' + Number(prediction.proposed_treatment_value).toLocaleString() : 'None'}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-600 dark:text-slate-300">Days Since Visit</span>
