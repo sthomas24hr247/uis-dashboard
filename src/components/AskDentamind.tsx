@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import { useAuth } from "../context/AuthContext";
-import { CA_MOCK_CLAIMS, CDCP_DENIAL_CODES } from "../data/canadian-claims-data";
+import { CDCP_DENIAL_CODES } from "../data/canadian-claims-data";
 import { apiGet, apiFetch } from "../lib/api";
 
 interface Message {
@@ -209,15 +209,6 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
           `  - [${r.priority?.toUpperCase()}] ${r.title} | Type: ${r.type} | Est Revenue: $${r.estimated_revenue} | Status: ${r.status}`
         ).join('\n');
         sections.push(`## Active AI Recommendations (${recData.count || recData.recommendations.length})\n${lines}`);
-      }
-      // Add denied claims data for Claims Recovery context
-      const deniedClaims = CA_MOCK_CLAIMS.filter((c: any) => c.status === "denied" || c.status === "ai_scanned" || c.status === "addendum_generated");
-      if (deniedClaims.length > 0) {
-        const claimLines = deniedClaims.map((c: any) =>
-          `  - ${c.patientName} (Age ${c.patientAge}): ${c.procedure} | Billed $${c.billedAmt} | Denial: ${c.denialCode} — ${c.denialReason} | Status: ${c.status} | ${c.daysOld}d old | Clinic: ${c.clinic} | Issues: ${c.issues.join("; ")}`
-        ).join("\n");
-        const totalAtRisk = deniedClaims.reduce((s: number, c: any) => s + c.billedAmt, 0);
-        sections.push(`## Denied Claims Recovery (${deniedClaims.length} claims, $${totalAtRisk.toLocaleString()} at risk)\n${claimLines}`);
       }
       setPatientIntel(sections.join('\n\n'));
     }).catch(() => {});
