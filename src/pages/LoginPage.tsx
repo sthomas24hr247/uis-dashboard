@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 
@@ -48,6 +48,10 @@ export default function LoginPage() {
   const [mfaError, setMfaError] = useState('');
   const [mfaLoading, setMfaLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Respect returnUrl or the path the user originally requested
+  const searchParams = new URLSearchParams(location.search);
+  const returnTo = searchParams.get('returnUrl') || (location.state as any)?.from || '/home';
 
   useEffect(() => {
     const totalDuration = BOOT_STEPS.reduce((s, step) => s + step.duration, 0);
@@ -99,7 +103,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(email, password);
-      navigate('/home');
+      navigate(returnTo);
     } catch (err: any) {
       if (err.mfaRequired) {
         setMfaTempToken(err.tempToken);
@@ -118,7 +122,7 @@ export default function LoginPage() {
     setMfaLoading(true);
     try {
       await completeMfaLogin(mfaTempToken, mfaCode);
-      navigate('/home');
+      navigate(returnTo);
     } catch (err: any) {
       setMfaError(err.message || 'Invalid code. Please try again.');
       setMfaCode('');

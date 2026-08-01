@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import DashboardLayout from './components/DashboardLayout';
@@ -32,9 +32,11 @@ import AutomationHubPage from './pages/AutomationHubPage';
 import ClaimsRecoveryPage from './pages/ClaimsRecoveryPage';
 import ClaimsRecoveryDemo from './pages/ClaimsRecoveryDemo';
 import ClaimsLoginPage from './pages/ClaimsLoginPage';
+import FinancialPage from './pages/FinancialPage';
 import ClaimsShell from './components/ClaimsShell';
 const ProtectedRoute = ({ children, redirectTo = '/login' }: { children: React.ReactNode; redirectTo?: string }) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -48,7 +50,7 @@ const ProtectedRoute = ({ children, redirectTo = '/login' }: { children: React.R
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={redirectTo} state={{ from: location.pathname + location.search }} replace />;
   }
 
   return <>{children}</>;
@@ -82,6 +84,7 @@ function App() {
         <Route path="patients/:patientId" element={<PatientDetailPage />} />
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<PageErrorBoundary pageName="Practice Performance"><AnalyticsPage /></PageErrorBoundary>} />
+        <Route path="financials" element={<PageErrorBoundary pageName="Financial Performance"><FinancialPage /></PageErrorBoundary>} />
         <Route path="ai-predictions" element={<PageErrorBoundary pageName="AI Predictions"><AIPredictionsPage /></PageErrorBoundary>} />
         <Route path="marva" element={<MARVAPage />} />
         <Route path="recommendations" element={<RecommendationsPage />} />
@@ -100,6 +103,8 @@ function App() {
         <Route path="automation" element={<AutomationHubPage />} />
       <Route path="claims-recovery" element={<ClaimsRecoveryPage />} />
         <Route path="command-center" element={<CommandCenterPage />} />        <Route path="education" element={<EducationalResourcesPage />} />
+        <Route path="dashboard" element={<Navigate to="/home" replace />} />
+        <Route path="file-chat" element={<Navigate to="/analytics" replace />} />
       </Route>
 
       {/* ── Standalone Claims Recovery product ── */}
