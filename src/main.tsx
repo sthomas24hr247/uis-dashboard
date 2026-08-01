@@ -13,6 +13,19 @@ try {
   }
 } catch {}
 import React from 'react'
+
+// Microsoft Teams JS SDK — signals successful load when running inside Teams iframe
+// Prevents Teams from timing out and showing "There was a problem reaching this app"
+import * as microsoftTeams from '@microsoft/teams-js';
+(async () => {
+  try {
+    await microsoftTeams.app.initialize();
+    microsoftTeams.app.notifyAppLoaded();
+    microsoftTeams.app.notifySuccess();
+  } catch {
+    // Not running inside Teams — safe to ignore
+  }
+})();
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ApolloProvider } from '@apollo/client'
