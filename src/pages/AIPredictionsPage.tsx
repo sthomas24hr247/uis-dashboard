@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import {
   DollarSign, CalendarClock, TrendingUp, Users, ShieldAlert, Activity,
@@ -143,6 +144,7 @@ function getRiskBadge(category: string) {
 
 export default function AIPredictionsPage() {
   const { data, loading, error, refetch } = useQuery(GET_COMMAND_CENTER, { errorPolicy: 'all' });
+  const navigate = useNavigate();
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [dsoContext, setDsoContext] = useState<any>(null);
   useEffect(() => {
@@ -210,6 +212,18 @@ export default function AIPredictionsPage() {
 
   const handleCardClick = (question: string) => {
     setActiveQuestion(question + '::' + Date.now());
+  };
+
+  // Drill into the Recommendations workspace. Per-patient deep-linking isn't
+  // possible yet: /api/recommendations returns practice-level items with no
+  // patient_id to match a churn/no-show record against. Lands on the list for
+  // now; add a patient id to the recommendation payload to target a specific one.
+  const viewRecommendation = () => {
+    navigate('/recommendations');
+  };
+
+  const scrollToAtRisk = () => {
+    document.getElementById('at-risk-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const cleanQuestion = activeQuestion ? activeQuestion.split('::')[0] : null;
@@ -424,14 +438,22 @@ export default function AIPredictionsPage() {
                   Patient Risk Summary
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30">
+                  <button
+                    type="button"
+                    onClick={scrollToAtRisk}
+                    className="p-4 rounded-xl text-left bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 hover:border-red-300 dark:hover:border-red-700 cursor-pointer transition-colors"
+                  >
                     <p className="text-3xl font-bold text-red-600 dark:text-red-400">{highChurn}</p>
                     <p className="text-sm text-red-600/70 dark:text-red-400/70 mt-1">High churn risk</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={scrollToAtRisk}
+                    className="p-4 rounded-xl text-left bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 hover:border-amber-300 dark:hover:border-amber-700 cursor-pointer transition-colors"
+                  >
                     <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{totalRiskAppts}</p>
                     <p className="text-sm text-amber-600/70 dark:text-amber-400/70 mt-1">At-risk appointments</p>
-                  </div>
+                  </button>
                   <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30">
                     <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                       ${(summary?.nextMonthForecast || 0).toLocaleString()}
@@ -449,6 +471,86 @@ export default function AIPredictionsPage() {
             </div>
           )}
 
+          {/* At-Risk Patients — full scannable list (data was already fetched; now shown) */}
+          {(churnRisks.length > 0 || noshowRisks.length > 0) && (
+            <div id="at-risk-list" className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 scroll-mt-24">
+              <div className="flex items-center gap-2 mb-5">
+                <Users className="w-5 h-5 text-rose-500" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">At-Risk Patients</h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">
+                  {churnRisks.length + noshowRisks.length} flagged
+                </span>
+              </div>
+
+              {churnRisks.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Churn risk</h3>
+                  <div className="space-y-2">
+                    {churnRisks.map((c: any) => (
+                      <div
+                        key={c.patientId}
+                        className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/40 hover:border-teal-400/30 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{c.firstName} {c.lastName}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {getRiskBadge(c.churnRiskCategory)}
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              Score {c.churnRiskScore}/100 · {c.daysSinceVisit}d since visit · {c.totalVisits} visits
+                            </span>
+                          </div>
+                          {c.recommendedAction && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <span className="font-semibold text-slate-600 dark:text-slate-300">Recommended:</span> {c.recommendedAction}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => viewRecommendation()}
+                          className="flex items-center gap-1 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors flex-shrink-0"
+                        >
+                          View Recommendation <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {noshowRisks.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Cancellation / no-show risk</h3>
+                  <div className="space-y-2">
+                    {noshowRisks.map((r: any) => (
+                      <div
+                        key={r.appointmentId}
+                        className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/40 hover:border-teal-400/30 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{r.patientName}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {getRiskBadge(r.riskCategory)}
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              Score {r.noshowRiskScore}/100 · {r.dayOfWeek} {r.hourOfDay}:00 · {r.type} · {r.provider || 'Unassigned'}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => viewRecommendation()}
+                          className="flex items-center gap-1 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors flex-shrink-0"
+                        >
+                          View Recommendation <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Top Priorities Right Now */}
           {priorities.length > 0 && (
             <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
@@ -460,7 +562,8 @@ export default function AIPredictionsPage() {
                 {priorities.map((priority, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-4 p-4 rounded-xl 
+                    onClick={() => viewRecommendation()}
+                    className="flex items-center gap-4 p-4 rounded-xl cursor-pointer
                       bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/40
                       hover:border-teal-400/30 transition-colors group"
                   >
@@ -477,8 +580,12 @@ export default function AIPredictionsPage() {
                         <span className="text-xs text-slate-500 dark:text-slate-400">{priority.detail}</span>
                       </div>
                     </div>
-                    <button className="hidden group-hover:flex items-center gap-1 text-xs font-semibold 
-                      text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); viewRecommendation(); }}
+                      className="flex items-center gap-1 text-xs font-semibold 
+                      text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors flex-shrink-0"
+                    >
                       {priority.action}
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
