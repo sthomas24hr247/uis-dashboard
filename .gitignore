@@ -29,3 +29,6 @@ deploy-azure.sh
 *.bak2
 .env.bak
 .env.bak.*
+
+.env.demo
+src/pages/VS Queries/
