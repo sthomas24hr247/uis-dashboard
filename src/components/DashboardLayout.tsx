@@ -31,7 +31,7 @@ import { FileText,
   ChevronRight,
   Moon,
   Sun,
-  Monitor, Layers, MessageCircle, X} from 'lucide-react';
+  Monitor, Layers, MessageCircle, X, DollarSign} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -93,6 +93,7 @@ const allNavGroups: NavGroup[] = [
       { to: '/outcome-gap', icon: TrendingDown, label: 'Outcome Gap' },
       { to: '/outcome-gap/classified', icon: Layers, label: 'Revenue Recovery' },
       { to: '/analytics', icon: FileBarChart, label: 'Practice Performance' },
+      { to: '/financials', icon: DollarSign, label: 'Financial Performance' },
       // { to: '/cdt-analysis', icon: BarChart3, label: 'CDT Analysis' }, // HIDDEN for go-live: page is hardcoded mock; rebuild on real procedure/episode data (fast-follow)
     ],
   },
