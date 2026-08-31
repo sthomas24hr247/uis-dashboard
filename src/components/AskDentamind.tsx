@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import { useAuth } from "../context/AuthContext";
 import { CDCP_DENIAL_CODES } from "../data/canadian-claims-data";
-import { apiGet, apiFetch } from "../lib/api";
+import { apiGet, apiFetch, apiPost, getPracticeId } from "../lib/api";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -175,6 +175,9 @@ ${metroSections}`);
 
 export default function AskDentamind({ initialQuestion, onQuestionHandled, practiceData }: AskDentamindProps) {
   const { user } = useAuth();
+  // Stable per-session id so the engine's identifier-collection loop keys correctly.
+  const conversationRef = useRef<string>(`web-${getPracticeId() || 'anon'}-${Date.now()}`);
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -249,22 +252,12 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       setMessages([userMsg]);
       setIsLoading(true);
 
-      apiFetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          system: fullPrompt,
-          messages: [{ role: 'user', content: initialQuestion }],
-        }),
+      apiPost('/api/marva/chat', {
+        message: initialQuestion,
+        conversationId: conversationRef.current,
       })
-        .then(r => r.json())
         .then(data => {
-          const text = data.content
-            ?.map((i: any) => (i.type === 'text' ? i.text : ''))
-            .filter(Boolean)
-            .join('\n') || 'I apologize, I was unable to process that request.';
+          const text = data.answer || 'I apologize, I was unable to process that request.';
           setMessages(prev => [...prev, { role: 'assistant', content: text }]);
         })
         .catch(() => {
@@ -292,56 +285,23 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
     setIsLoading(true);
 
     try {
-      const response = await apiFetch('/api/chat', {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1024,
-          system: fullPrompt,
-          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
-        }),
+      const data = await apiPost('/api/marva/chat', {
+        message: text.trim(),
+        conversationId: conversationRef.current,
       });
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No stream reader");
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const payload = line.slice(6);
-          if (payload === "[DONE]") continue;
-          try {
-            const evt = JSON.parse(payload);
-            if (evt.type === "content_block_delta" && evt.delta?.text) {
-              accumulated += evt.delta.text;
-              setMessages((prev) => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: accumulated };
-                return updated;
-              });
-            }
-          } catch {}
-        }
-      }
-
-      if (!accumulated) {
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { role: "assistant", content: "I apologize, I was unable to process that request." };
-          return updated;
-        });
-      }
+      const answer = data.answer || 'I apologize, I was unable to process that request.';
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: 'assistant', content: answer };
+        return updated;
+      });
+      // NOTE: data.action ('collect_identifiers' | 'handoff') and data.handoff
+      // are available here for richer UX later; the engine's answer text already
+      // tells the user what identifiers it needs, so verification works as-is.
     } catch (error) {
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: "Connection error. Please check your network and try again." };
+        updated[updated.length - 1] = { role: 'assistant', content: 'Connection error. Please check your network and try again.' };
         return updated;
       });
     } finally {
@@ -365,22 +325,12 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   const handleQuickQuestion = (q: string) => {
     setMessages([{ role: 'user', content: q }]);
     setIsLoading(true);
-    apiFetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: fullPrompt,
-        messages: [{ role: 'user', content: q }],
-      }),
+    apiPost('/api/marva/chat', {
+      message: q,
+      conversationId: conversationRef.current,
     })
-      .then(r => r.json())
       .then(data => {
-        const text = data.content
-          ?.map((i: any) => (i.type === 'text' ? i.text : ''))
-          .filter(Boolean)
-          .join('\n') || 'Error';
+        const text = data.answer || 'Error';
         setMessages(prev => [...prev, { role: 'assistant', content: text }]);
       })
       .catch(() => {
