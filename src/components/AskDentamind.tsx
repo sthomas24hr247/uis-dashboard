@@ -252,12 +252,23 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
       setMessages([userMsg]);
       setIsLoading(true);
 
-      apiPost('/api/marva/chat', {
-        message: initialQuestion,
-        conversationId: conversationRef.current,
+      // INTERIM BRIDGE: card prompts -> analytics brain with live data context.
+      apiFetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1024,
+          system: fullPrompt,
+          messages: [{ role: 'user', content: initialQuestion }],
+        }),
       })
+        .then(r => r.json())
         .then(data => {
-          const text = data.answer || 'I apologize, I was unable to process that request.';
+          const text = data.content
+            ?.map((i: any) => (i.type === 'text' ? i.text : ''))
+            .filter(Boolean)
+            .join('\n') || 'I apologize, I was unable to process that request.';
           setMessages(prev => [...prev, { role: 'assistant', content: text }]);
         })
         .catch(() => {
@@ -325,12 +336,23 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   const handleQuickQuestion = (q: string) => {
     setMessages([{ role: 'user', content: q }]);
     setIsLoading(true);
-    apiPost('/api/marva/chat', {
-      message: q,
-      conversationId: conversationRef.current,
+    // INTERIM BRIDGE: quick prompts -> analytics brain with live data context.
+    apiFetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: fullPrompt,
+        messages: [{ role: 'user', content: q }],
+      }),
     })
+      .then(r => r.json())
       .then(data => {
-        const text = data.answer || 'Error';
+        const text = data.content
+          ?.map((i: any) => (i.type === 'text' ? i.text : ''))
+          .filter(Boolean)
+          .join('\n') || 'Error';
         setMessages(prev => [...prev, { role: 'assistant', content: text }]);
       })
       .catch(() => {
