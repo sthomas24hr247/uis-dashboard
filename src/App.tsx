@@ -33,6 +33,7 @@ import ClaimsRecoveryPage from './pages/ClaimsRecoveryPage';
 import ClaimsRecoveryDemo from './pages/ClaimsRecoveryDemo';
 import ClaimsLoginPage from './pages/ClaimsLoginPage';
 import FinancialPage from './pages/FinancialPage';
+import MyPerformancePage from './pages/MyPerformancePage';
 import ClaimsShell from './components/ClaimsShell';
 const ProtectedRoute = ({ children, redirectTo = '/login' }: { children: React.ReactNode; redirectTo?: string }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -85,6 +86,7 @@ function App() {
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="analytics" element={<PageErrorBoundary pageName="Practice Performance"><AnalyticsPage /></PageErrorBoundary>} />
         <Route path="financials" element={<PageErrorBoundary pageName="Financial Performance"><FinancialPage /></PageErrorBoundary>} />
+        <Route path="my-performance" element={<PageErrorBoundary pageName="My Performance"><MyPerformancePage /></PageErrorBoundary>} />
         <Route path="ai-predictions" element={<PageErrorBoundary pageName="AI Predictions"><AIPredictionsPage /></PageErrorBoundary>} />
         <Route path="marva" element={<MARVAPage />} />
         <Route path="recommendations" element={<RecommendationsPage />} />

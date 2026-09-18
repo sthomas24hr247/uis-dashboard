@@ -31,7 +31,7 @@ import { FileText,
   ChevronRight,
   Moon,
   Sun,
-  Monitor, Layers, MessageCircle, X, DollarSign} from 'lucide-react';
+  Monitor, Layers, MessageCircle, X, DollarSign, Activity} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -58,6 +58,7 @@ const allNavGroups: NavGroup[] = [
     icon: LayoutDashboard,
     roles: ['admin', 'manager'],
     items: [
+      { to: '/my-performance', icon: Activity, label: 'My Performance' },
       { to: '/command-center', icon: Monitor, label: 'Command Center', roles: ['admin'] },
       { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard', roles: ['admin'] },
       { to: '/manager-dashboard', icon: LayoutDashboard, label: 'Manager Dashboard', roles: ['manager'] },
