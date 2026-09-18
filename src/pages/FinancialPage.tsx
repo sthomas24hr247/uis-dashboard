@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { TrendingUp, TrendingDown, DollarSign, X, ChevronRight } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL?.replace('/graphql', '') ?? '';
+const API = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
 
 interface MonthRow {
   period_month: string;
