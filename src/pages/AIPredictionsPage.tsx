@@ -178,7 +178,7 @@ export default function AIPredictionsPage() {
   const totalAppts = (summary?.highRiskAppointments || 0) + (summary?.mediumRiskAppointments || 0) + (summary?.lowRiskAppointments || 0);
   const scheduleHealth = totalAppts > 0 ? Math.round(((totalAppts - totalRiskAppts) / totalAppts) * 100) : 100;
   const growthRate = forecast.length > 0 ? forecast[0]?.growthRatePct : 0;
-  const highChurn = churnRisks.filter((c: any) => c.churnRiskCategory === 'HIGH').length;
+  const highChurn = summary?.highRiskPatients ?? churnRisks.filter((c: any) => c.churnRiskCategory === 'HIGH').length;
 
   // Build priorities from combined risks
   const priorities = [
