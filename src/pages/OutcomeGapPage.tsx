@@ -69,7 +69,7 @@ function RevenueFunnel({ funnel }: { funnel: FunnelStage[] }) {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="font-bold text-slate-900 dark:text-white">Revenue Funnel</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Episode flow from detection to collection</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Episode flow from treatment plan to collection</p>
         </div>
         <span className="text-sm text-slate-400 dark:text-slate-500">Live Data</span>
       </div>
@@ -283,7 +283,7 @@ export default function OutcomeGapPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Outcome Gap Dashboard</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Track every dollar from AI detection to collection</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Track every dollar from treatment plan to collection</p>
           </div>
         </div>
         <div className="p-10 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-center">
@@ -303,7 +303,7 @@ export default function OutcomeGapPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Outcome Gap Dashboard</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Track every dollar from AI detection to collection</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Track every dollar from treatment plan to collection</p>
           </div>
         </div>
         <button onClick={refresh} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
