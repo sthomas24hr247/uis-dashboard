@@ -22,6 +22,16 @@ export default function CommandCenterPage() {
   const [practice, setPractice] = useState<any>(null);
   const [now, setNow] = useState(new Date());
   const [selected, setSelected] = useState(0);
+  const [booting, setBooting] = useState(() => { try { return sessionStorage.getItem('cc_booted') !== '1'; } catch { return true; } });
+  const [bootStep, setBootStep] = useState(0);
+  useEffect(() => {
+    if (!booting) return;
+    const steps = [700, 700, 700, 700, 600];
+    let i = 0; const timers: any[] = [];
+    const run = () => { if (i < steps.length) { const d = steps[i]; i++; timers.push(setTimeout(() => { setBootStep(i); run(); }, d)); } else { timers.push(setTimeout(() => { try { sessionStorage.setItem('cc_booted', '1'); } catch {} setBooting(false); }, 500)); } };
+    run();
+    return () => timers.forEach(clearTimeout);
+  }, [booting]);
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => {
     let alive = true;
@@ -90,7 +100,8 @@ export default function CommandCenterPage() {
 
   return (
     <div style={{ background: C.bgDeep, minHeight: '100%', color: C.textPrimary, margin: -24, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '100%' }}>
+      {booting && <BootSequence step={bootStep} now={now} />}
+      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '100%', opacity: booting ? 0 : 1, transition: 'opacity .8s ease' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 20% 10%, rgba(200,162,255,.07) 0%, transparent 55%), radial-gradient(ellipse at 85% 30%, rgba(125,211,252,.05) 0%, transparent 50%)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', padding: 20 }}>
           <div style={{ border: `1px solid ${C.borderMedium}`, borderRadius: 16, overflow: 'hidden', background: 'rgba(6,6,16,.6)' }}>
@@ -120,7 +131,7 @@ export default function CommandCenterPage() {
               <div style={{ borderRight: `1px solid ${C.borderSubtle}`, padding: 14 }}>
                 <div style={mono({ fontSize: 9, letterSpacing: '.15em', color: C.textTer, padding: '4px 8px 12px' })}>ACTIVE ALERTS</div>
                 {alerts.map((a, i) => (
-                  <button key={a.key} onClick={() => setSelected(i)} style={{ width: '100%', textAlign: 'left', padding: '12px', marginBottom: 6, borderRadius: 10, background: selected === i ? 'rgba(255,255,255,.05)' : 'none', border: `1px solid ${selected === i ? C.borderMedium : 'transparent'}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button key={a.key} onClick={() => setSelected(i)} style={{ width: '100%', textAlign: 'left', padding: '12px', marginBottom: 6, borderRadius: 10, background: selected === i ? 'rgba(255,255,255,.05)' : 'none', borderLeft: `3px solid ${selected === i ? a.dot : 'transparent'}`, border: `1px solid ${selected === i ? C.borderMedium : 'transparent'}`, borderLeftWidth: 3, borderLeftColor: selected === i ? a.dot : 'transparent', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Dot c={a.dot} />
                     <div><div style={{ fontSize: 12, fontWeight: 600, color: selected === i ? C.textPrimary : C.textSec }}>{a.title}</div><div style={mono({ fontSize: 9, letterSpacing: '.08em', color: C.textTer, marginTop: 2 })}>{a.subtitle}</div></div>
                   </button>
@@ -162,7 +173,7 @@ export default function CommandCenterPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}><span style={{ color: C.cyan }}>⚡</span><span style={mono({ fontSize: 11, letterSpacing: '.12em', color: C.textPrimary })}>INTELLIGENCE FEED</span></div>
                 <div style={mono({ fontSize: 9, letterSpacing: '.1em', color: C.textTer, marginBottom: 14 })}>REAL-TIME PREDICTIVE ALERTS</div>
                 {loading ? <div style={mono({ fontSize: 11, color: C.textTer, padding: 12 })}>LOADING…</div> : feed.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 0', borderTop: i > 0 ? `1px solid ${C.borderSubtle}` : 'none' }}>
+                  <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 12px', marginBottom: 6, borderRadius: 8, borderLeft: `2px solid ${f.c}`, background: 'rgba(255,255,255,.02)' }}>
                     <div style={{ marginTop: 5 }}><Dot c={f.c} /></div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12.5, color: C.textPrimary, lineHeight: 1.4 }}>{f.text}</div>
@@ -176,6 +187,50 @@ export default function CommandCenterPage() {
           </div>
           <div style={mono({ fontSize: 10, color: C.textTer, marginTop: 14, textAlign: 'center' })}>Live practice intelligence for {practice?.name || 'PoshPearl Family Dental Studio'} · Figures update as data syncs</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BootSequence({ step, now }: any) {
+  const C2 = { deep: '#060610', cyan: '#7dd3fc', green: '#86efac', textSec: 'rgba(240,240,245,.5)', textTer: 'rgba(240,240,245,.3)', mono: '"JetBrains Mono", monospace', border: 'rgba(255,255,255,.1)' };
+  const modules = [
+    { name: 'INITIALIZING CORE SYSTEMS', done: 'COMPLETE' },
+    { name: 'SCANNING DENTRIX CONNECTION', done: 'COMPLETE' },
+    { name: 'SYNCING AI ENGINE', done: 'COMPLETE' },
+    { name: 'LOADING ATTRITION PREDICTOR', done: 'v1 LOADED' },
+    { name: 'CLASSIFYING TREATMENT EPISODES', done: 'COMPLETE' },
+  ];
+  const pctDone = Math.min(100, Math.round((step / modules.length) * 100));
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: C2.deep, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 8vw', fontFamily: C2.mono }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 20%, rgba(125,211,252,.06) 0%, transparent 60%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 24, left: '8vw', right: '8vw', display: 'flex', justifyContent: 'space-between', fontSize: 11, letterSpacing: '.15em', color: C2.textTer }}>
+        <span>UIS KERNEL v4.2.1 // CLASSIFIED</span>
+        <span>{now.toISOString().slice(0, 10)} // {now.toLocaleTimeString('en-GB')}</span>
+      </div>
+      <div style={{ position: 'relative', maxWidth: 720 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 99, background: C2.cyan, boxShadow: `0 0 10px ${C2.cyan}` }} className="animate-pulse" />
+          <span style={{ fontSize: 15, letterSpacing: '.12em', color: C2.cyan }}>SYSTEM BOOT SEQUENCE</span>
+          <span style={{ fontSize: 11, color: C2.textTer, marginLeft: 8 }}>{step}/{modules.length} MODULES LOADED</span>
+        </div>
+        <div style={{ height: 3, background: 'rgba(255,255,255,.08)', borderRadius: 3, overflow: 'hidden', margin: '14px 0 8px' }}>
+          <div style={{ height: '100%', width: `${pctDone}%`, background: C2.cyan, boxShadow: `0 0 12px ${C2.cyan}`, transition: 'width .5s ease' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, letterSpacing: '.1em', color: C2.textTer, marginBottom: 28 }}><span>PROGRESS</span><span>{pctDone}%</span></div>
+        {modules.map((m, i) => {
+          const state = i < step ? 'done' : i === step ? 'active' : 'pending';
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', opacity: state === 'pending' ? .3 : 1, transition: 'opacity .4s ease' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, letterSpacing: '.08em', color: state === 'active' ? C2.cyan : C2.textSec }}>
+                <span style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${state === 'done' ? C2.green : C2.border}`, background: state === 'done' ? 'rgba(134,239,172,.15)' : 'none', color: C2.green, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{state === 'done' ? '✓' : state === 'active' ? '•' : ''}</span>
+                {m.name}
+              </span>
+              <span style={{ fontSize: 10, letterSpacing: '.1em', color: state === 'done' ? C2.green : C2.textTer }}>{state === 'done' ? m.done : state === 'active' ? 'LOADING...' : ''}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
