@@ -747,29 +747,11 @@ export default function InsuranceVerificationPage() {
 
   useEffect(() => { loadVerifications(); }, []);
 
-    const handleVerify = async () => {
-    setVerifyMsg(null);
-    if (!form.patientFirstName || !form.patientLastName || !form.patientDob || !form.carrier) {
-      setVerifyMsg('Enter the patient first name, last name, date of birth, and carrier.');
-      return;
-    }
-    setVerifying(true);
-    try {
-      const res = await apiFetch('/api/insurance/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: form.patientFirstName,
-          lastName: form.patientLastName,
-          dob: form.patientDob,
-          carrier: form.carrier,
-          memberId: form.memberId || undefined,
-        }),
-      });
-      const data: any = await res.json().catch(() => ({}));
-      if (res.status === 202) { setVerifyMsg(data.message || 'Verification is taking longer than expected. Try again shortly.'); return; }
-      if (!res.ok) { setVerifyMsg(data.error || 'Verification failed. Check the details and try again.'); return; }
-
+    const applyVerifyResult = (data: any) => {
+      if (data.status === 'not_found') {
+        setVerifyMsg(data.message || 'Could not automatically locate coverage. Add the member ID to verify directly.');
+        return;
+      }
       const str = (v: any) => (v === undefined || v === null ? '' : String(v));
       const cov = data.coverage || {};
       setForm(pp => ({
@@ -789,13 +771,57 @@ export default function InsuranceVerificationPage() {
       }));
       setVerifyMsg(data.status === 'inactive'
         ? 'Coverage came back inactive for this patient. Review the details.'
-        : 'Benefits verified. Review the numbers, then Save.');
-    } catch (err) {
-      setVerifyMsg((err as Error).message || 'Verification failed.');
-    } finally {
-      setVerifying(false);
-    }
-  };
+        : (data.discovered ? 'Coverage located and benefits populated. Review, then Save.' : 'Benefits verified. Review the numbers, then Save.'));
+    };
+
+    const pollDiscovery = async (discoveryId: string) => {
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        try {
+          const pr = await apiFetch(`/api/insurance/verify/status/${discoveryId}`);
+          const pd: any = await pr.json().catch(() => ({}));
+          if (pd.status === 'checking') { setVerifyMsg('Checking coverage across payers\u2026'); continue; }
+          applyVerifyResult(pd);
+          return;
+        } catch { /* keep polling */ }
+      }
+      setVerifyMsg('Coverage check is taking longer than expected. Try again shortly, or add the member ID.');
+    };
+
+    const handleVerify = async () => {
+      setVerifyMsg(null);
+      if (!form.patientFirstName || !form.patientLastName || !form.patientDob || !form.carrier) {
+        setVerifyMsg('Enter the patient first name, last name, date of birth, and carrier.');
+        return;
+      }
+      setVerifying(true);
+      try {
+        const res = await apiFetch('/api/insurance/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: form.patientFirstName,
+            lastName: form.patientLastName,
+            dob: form.patientDob,
+            carrier: form.carrier,
+            memberId: form.memberId || undefined,
+          }),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok && res.status !== 202) { setVerifyMsg(data.error || 'Verification failed. Check the details and try again.'); return; }
+        if (data.status === 'checking' && data.discoveryId) {
+          setVerifyMsg('Checking coverage across payers\u2026');
+          await pollDiscovery(data.discoveryId);
+          return;
+        }
+        if (res.status === 202) { setVerifyMsg(data.message || 'Verification is taking longer than expected. Try again shortly.'); return; }
+        applyVerifyResult(data);
+      } catch (err) {
+        setVerifyMsg((err as Error).message || 'Verification failed.');
+      } finally {
+        setVerifying(false);
+      }
+    };
 
   const handleSaveVerification = async () => {
     if (!form.patientFirstName || !form.patientLastName || !form.carrier) {
