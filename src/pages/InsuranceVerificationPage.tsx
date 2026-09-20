@@ -747,73 +747,49 @@ export default function InsuranceVerificationPage() {
 
   useEffect(() => { loadVerifications(); }, []);
 
-    const handleVerifyWithZuub = async () => {
+    const handleVerify = async () => {
     setVerifyMsg(null);
-    if (!form.patientFirstName || !form.patientLastName || !form.patientDob || !form.carrier || !form.memberId) {
-      setVerifyMsg('Need first name, last name, date of birth, carrier, and member ID to verify.');
+    if (!form.patientFirstName || !form.patientLastName || !form.patientDob || !form.carrier) {
+      setVerifyMsg('Enter the patient first name, last name, date of birth, and carrier.');
       return;
     }
     setVerifying(true);
     try {
-      const payersRes = await apiFetch(`/api/zuub/payers?search=${encodeURIComponent(form.carrier)}`);
-      if (!payersRes.ok) throw new Error('Could not reach the payer network.');
-      const payersData: { payers?: Array<{ name?: string; primaryPayerId?: string; commonPayerId?: string }> } = await payersRes.json();
-      const payers = payersData.payers || [];
-      if (payers.length === 0) { setVerifyMsg(`"${form.carrier}" was not found in the network. Check the carrier name.`); return; }
-      const norm = (v: string | undefined) => (v || '').toLowerCase().trim();
-      const exact = payers.find(pp => norm(pp.name) === norm(form.carrier));
-      const contains = payers.filter(pp => norm(pp.name).includes(norm(form.carrier)) || norm(form.carrier).includes(norm(pp.name)));
-      const chosen = exact || (contains.length === 1 ? contains[0] : (payers.length === 1 ? payers[0] : null));
-      if (!chosen) { setVerifyMsg(`Multiple payers match "${form.carrier}" (e.g. ${payers.slice(0,3).map(pp => pp.name).join(', ')}). Enter a more specific carrier name.`); return; }
-      const payerId = chosen.primaryPayerId || chosen.commonPayerId;
-      if (!payerId) { setVerifyMsg(`Found ${chosen.name} but it has no payer ID on file.`); return; }
-
-      const verifyRes = await apiFetch('/api/zuub/verify', {
+      const res = await apiFetch('/api/insurance/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          payerId,
-          subscriber: { firstName: form.patientFirstName, lastName: form.patientLastName, dateOfBirth: form.patientDob, memberId: form.memberId },
+          firstName: form.patientFirstName,
+          lastName: form.patientLastName,
+          dob: form.patientDob,
+          carrier: form.carrier,
+          memberId: form.memberId || undefined,
         }),
       });
-      if (!verifyRes.ok) {
-        const e: { error?: string; detail?: string } = await verifyRes.json().catch(() => ({}));
-        throw new Error(e.error || e.detail || 'Verification request was rejected.');
-      }
-      const submit: { verificationId?: string } = await verifyRes.json();
-      const verificationId = submit.verificationId;
-      if (!verificationId) throw new Error('No verification ID returned.');
+      const data: any = await res.json().catch(() => ({}));
+      if (res.status === 202) { setVerifyMsg(data.message || 'Verification is taking longer than expected. Try again shortly.'); return; }
+      if (!res.ok) { setVerifyMsg(data.error || 'Verification failed. Check the details and try again.'); return; }
 
-      setVerifyMsg('Verifying with the payer…');
-      let summary: Record<string, unknown> | null = null;
-      for (let attempt = 0; attempt < 15; attempt++) {
-        await new Promise(r => setTimeout(r, 2000));
-        const bRes = await apiFetch(`/api/zuub/benefits/${verificationId}`);
-        if (bRes.status === 202) continue;
-        if (!bRes.ok) throw new Error('Could not retrieve benefits.');
-        const bData: { summary?: Record<string, unknown> } = await bRes.json();
-        if (bData.summary) { summary = bData.summary; break; }
-      }
-      if (!summary) { setVerifyMsg('Verification is taking longer than expected. Try again shortly.'); return; }
-
-      const str = (v: unknown) => (v === undefined || v === null ? '' : String(v));
-      const sm = summary;
+      const str = (v: any) => (v === undefined || v === null ? '' : String(v));
+      const cov = data.coverage || {};
       setForm(pp => ({
         ...pp,
-        carrier: str(sm.carrier) || pp.carrier,
-        memberId: str(sm.memberId) || pp.memberId,
-        groupNumber: str(sm.groupNumber) || pp.groupNumber,
-        annualMax: str(sm.annualMax) || pp.annualMax,
-        annualUsed: str(sm.annualUsed) || pp.annualUsed,
-        deductibleTotal: str(sm.deductible) || pp.deductibleTotal,
-        deductibleMet: str(sm.deductibleMet) || pp.deductibleMet,
-        preventiveCoverage: str(sm.preventiveCoverage) || pp.preventiveCoverage,
-        basicCoverage: str(sm.basicCoverage) || pp.basicCoverage,
-        majorCoverage: str(sm.majorCoverage) || pp.majorCoverage,
+        carrier: str(data.carrier) || pp.carrier,
+        memberId: str(data.memberId) || pp.memberId,
+        planName: str(data.planName) || pp.planName,
+        annualMax: str(data.annualMax) || pp.annualMax,
+        annualUsed: str(data.annualUsed) || pp.annualUsed,
+        deductibleTotal: str(data.deductible) || pp.deductibleTotal,
+        deductibleMet: str(data.deductibleMet) || pp.deductibleMet,
+        preventiveCoverage: str(cov.preventive) || pp.preventiveCoverage,
+        basicCoverage: str(cov.basic) || pp.basicCoverage,
+        majorCoverage: str(cov.major) || pp.majorCoverage,
         verificationMethod: 'clearinghouse',
-        verificationStatus: 'verified',
+        verificationStatus: data.status === 'inactive' ? 'expired' : 'verified',
       }));
-      setVerifyMsg('Benefits populated from Zuub. Review the numbers, then Save.');
+      setVerifyMsg(data.status === 'inactive'
+        ? 'Coverage came back inactive for this patient. Review the details.'
+        : 'Benefits verified. Review the numbers, then Save.');
     } catch (err) {
       setVerifyMsg((err as Error).message || 'Verification failed.');
     } finally {
@@ -821,7 +797,7 @@ export default function InsuranceVerificationPage() {
     }
   };
 
-const handleSaveVerification = async () => {
+  const handleSaveVerification = async () => {
     if (!form.patientFirstName || !form.patientLastName || !form.carrier) {
       alert('Patient first name, last name, and carrier are required.');
       return;
@@ -919,7 +895,7 @@ const handleSaveVerification = async () => {
                         placeholder="Last name" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Date of Birth</label>
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Date of Birth *</label>
                       <input type="date" value={form.patientDob} onChange={e => setForm(p => ({...p, patientDob: e.target.value}))}
                         className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
                     </div>
@@ -929,9 +905,9 @@ const handleSaveVerification = async () => {
                 <div>
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Insurance Plan</h3>
                   <div className="mb-3 flex items-center gap-3">
-                    <button type="button" onClick={handleVerifyWithZuub} disabled={verifying}
+                    <button type="button" onClick={handleVerify} disabled={verifying}
                       className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-all">
-                      {verifying ? 'Verifying…' : 'Verify with Zuub'}
+                      {verifying ? 'Verifying\u2026' : 'Verify'}
                     </button>
                     {verifyMsg && <span className="text-xs text-slate-500 dark:text-slate-300">{verifyMsg}</span>}
                   </div>
