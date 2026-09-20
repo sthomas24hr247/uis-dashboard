@@ -267,7 +267,15 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
     }
   };
 
-  const b = patient.benefits;
+  const plan: any = (patient.plan || {});
+  const b: any = Object.assign({
+    annualMax: 0, annualUsed: 0, annualRemaining: 0,
+    deductible: 0, deductibleTotal: 0, deductibleMet: 0, deductibleRemaining: 0,
+    planYearStart: '', planYearEnd: '', waitingPeriods: [] as any[],
+  }, patient.benefits || {});
+  const tiers: any[] = (patient as any).tiers || [];
+  const pFirst = patient.firstName || '';
+  const pLast = patient.lastName || '';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -279,11 +287,11 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-lg font-bold">
-            {patient.firstName[0]}{patient.lastName[0]}
+            {pFirst.charAt(0)}{pLast.charAt(0)}
           </div>
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{patient.firstName} {patient.lastName}</h2>
-            <p className="text-sm text-slate-500">{patient.plan.carrier} · {patient.plan.planName} · Member: {patient.plan.memberId}</p>
+            <p className="text-sm text-slate-500">{plan.carrier} · {plan.planName} · Member: {plan.memberId}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -301,14 +309,14 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><FileText className="w-4 h-4 text-teal-400" /> Plan Details</h3>
           <div className="space-y-2 text-xs">
             {[
-              ['Carrier', patient.plan.carrier],
-              ['Plan', patient.plan.planName],
-              ['Type', patient.plan.planType],
-              ['Group #', patient.plan.groupNumber],
-              ['Member ID', patient.plan.memberId],
-              ['Subscriber', patient.plan.subscriberName],
-              ['Relationship', patient.plan.relationship],
-              ['Effective', patient.plan.effectiveDate],
+              ['Carrier', plan.carrier],
+              ['Plan', plan.planName],
+              ['Type', plan.planType],
+              ['Group #', plan.groupNumber],
+              ['Member ID', plan.memberId],
+              ['Subscriber', plan.subscriberName],
+              ['Relationship', plan.relationship],
+              ['Effective', plan.effectiveDate],
               ['Plan Year', `${b.planYearStart} – ${b.planYearEnd}`],
             ].map(([label, val], i) => (
               <div key={i} className="flex justify-between py-1 border-b border-slate-50 dark:border-slate-700/30 last:border-0">
@@ -371,7 +379,7 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
             {b.waitingPeriods.length > 0 && (
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-semibold mb-1">Waiting Periods</p>
-                {b.waitingPeriods.map((wp, i) => (
+                {b.waitingPeriods.map((wp: any, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-xs py-1">
                     {wp.met ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
                     <span className={wp.met ? 'text-slate-500' : 'text-amber-600 dark:text-amber-400 font-semibold'}>{wp.category}: {wp.months} months {wp.met ? '(met)' : '(NOT MET)'}</span>
@@ -387,7 +395,7 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
       <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Shield className="w-4 h-4 text-teal-400" /> Coverage Tiers</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {patient.tiers.map((tier, i) => (
+          {tiers.map((tier, i) => (
             <div key={i} className={`rounded-xl p-4 border ${tier.coveragePercent >= 80 ? 'border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/50 dark:bg-emerald-900/10' : tier.coveragePercent >= 50 ? 'border-blue-200 dark:border-blue-800/30 bg-blue-50/50 dark:bg-blue-900/10' : tier.coveragePercent > 0 ? 'border-amber-200 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/10' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30'}`}>
               <p className="text-xs font-semibold text-slate-900 dark:text-white mb-1">{tier.category}</p>
               <p className={`text-2xl font-bold mb-1 ${tier.coveragePercent >= 80 ? 'text-emerald-500' : tier.coveragePercent >= 50 ? 'text-blue-500' : tier.coveragePercent > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{tier.coveragePercent}%</p>
@@ -453,7 +461,7 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
           {b.annualRemaining < 500 && b.annualMax > 0 && <div className="flex items-start gap-2"><span>⚠️</span><span>Only ${b.annualRemaining} of ${b.annualMax} annual max remaining. Present remaining treatment ASAP to use benefits before {b.planYearEnd}.</span></div>}
           {b.annualRemaining > 1500 && <div className="flex items-start gap-2"><span>💡</span><span>${b.annualRemaining} of benefits unused. Great opportunity to present elective procedures — patient has ample coverage remaining.</span></div>}
           {b.deductibleRemaining > 0 && <div className="flex items-start gap-2"><span>📋</span><span>Deductible not yet met (${b.deductibleRemaining} remaining). First basic/major procedure this year will include the deductible in patient cost.</span></div>}
-          {b.waitingPeriods.some(w => !w.met) && <div className="flex items-start gap-2"><span>🚫</span><span>Active waiting period on {b.waitingPeriods.filter(w => !w.met).map(w => w.category).join(', ')} — these services won't be covered until the waiting period expires.</span></div>}
+          {b.waitingPeriods.some((w: any) => !w.met) && <div className="flex items-start gap-2"><span>🚫</span><span>Active waiting period on {b.waitingPeriods.filter((w: any) => !w.met).map((w: any) => w.category).join(', ')} — these services won't be covered until the waiting period expires.</span></div>}
           <div className="flex items-start gap-2"><span>🎯</span><span>When presenting treatment, show patient the exact out-of-pocket cost: "${patient.firstName}, your insurance covers {patient.tiers.find(t => t.category.includes('Major'))?.coveragePercent || 50}% of this crown — your cost would be approximately ${Math.round(1250 * (1 - (patient.tiers.find(t => t.category.includes('Major'))?.coveragePercent || 50) / 100))}."</span></div>
         </div>
       </div>
