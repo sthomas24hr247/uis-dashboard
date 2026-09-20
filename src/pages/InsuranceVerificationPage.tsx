@@ -662,7 +662,7 @@ function ClaimsTrackingView() {
       </div>
 
       <div className="text-center pb-4">
-        <p className="text-xs text-slate-400">Dentamind AI — Claims Tracking · Follow-Up Automation · Denial Management · Clearinghouse Ready</p>
+        
       </div>
     </div>
   );
@@ -878,7 +878,7 @@ export default function InsuranceVerificationPage() {
   const verified = patients.filter(p => p.verificationStatus === 'verified').length;
   const pending = patients.filter(p => p.verificationStatus === 'pending').length;
   const expired = patients.filter(p => p.verificationStatus === 'expired').length;
-  const avgRemaining = patients.length ? Math.round(patients.filter(p => p.benefits.annualMax > 0).reduce((s, p) => s + p.benefits.annualRemaining, 0) / patients.filter(p => p.benefits.annualMax > 0).length) : 0;
+  const _withMax = patients.filter(p => (p.benefits?.annualMax || 0) > 0); const avgRemaining = _withMax.length ? Math.round(_withMax.reduce((s, p) => s + (p.benefits?.annualRemaining || 0), 0) / _withMax.length) : 0;
   const totalUnused = patients.reduce((s, p) => s + p.benefits.annualRemaining, 0);
 
   if (loading) return <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" /></div>;
@@ -1146,7 +1146,7 @@ export default function InsuranceVerificationPage() {
       </div>
 
       <div className="text-center pb-4">
-        <p className="text-xs text-slate-400">Dentamind AI — Insurance Verification · Benefit Tracking · CDT Coverage Lookup · Clearinghouse Ready</p>
+        
       </div>
       </>}
     </div>
