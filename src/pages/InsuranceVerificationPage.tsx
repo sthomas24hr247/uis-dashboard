@@ -681,6 +681,7 @@ export default function InsuranceVerificationPage() {
   const [pageView, setPageView] = useState<'verification' | 'claims'>('verification');
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [reverifyId, setReverifyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
@@ -797,6 +798,7 @@ export default function InsuranceVerificationPage() {
     };
 
     const handleReverify = (p: any) => {
+      setReverifyId(p.patientId || null);
       setForm(f => ({
         ...f,
         patientFirstName: p.firstName || '',
@@ -864,6 +866,7 @@ export default function InsuranceVerificationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          verificationId: reverifyId || undefined,
           practiceId,
           annualRemaining,
           deductibleRemaining,
@@ -913,7 +916,7 @@ export default function InsuranceVerificationPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">Coverage verification, benefit tracking, claims management, and CDT eligibility</p>
             </div>
           </div>
-          <button onClick={() => setShowAddForm(true)}
+          <button onClick={() => { setReverifyId(null); setShowAddForm(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg">
             + Add Verification
           </button>
