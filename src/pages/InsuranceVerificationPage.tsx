@@ -252,7 +252,7 @@ function BenefitMeter({ used, max, label }: { used: number; max: number; label: 
 // PATIENT DETAIL VIEW
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance; onBack: () => void }) {
+function PatientInsuranceDetail({ patient, onBack, onReverify }: { patient: PatientInsurance; onBack: () => void; onReverify: (p: PatientInsurance) => void }) {
   const [cdtSearch, setCdtSearch] = useState('');
   const [cdtResults, setCdtResults] = useState<CDTCoverage[]>([]);
   const [showAllCDT, setShowAllCDT] = useState(false);
@@ -296,7 +296,7 @@ function PatientInsuranceDetail({ patient, onBack }: { patient: PatientInsurance
         </div>
         <div className="flex items-center gap-3">
           <VerificationBadge status={patient.verificationStatus} />
-          <button className="px-3 py-2 text-xs font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-1.5">
+          <button onClick={() => onReverify(patient)} className="px-3 py-2 text-xs font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-1.5">
             <RefreshCw className="w-3.5 h-3.5" /> Re-verify
           </button>
         </div>
@@ -796,6 +796,20 @@ export default function InsuranceVerificationPage() {
       setVerifyMsg('Coverage check is taking longer than expected. Try again shortly, or add the member ID.');
     };
 
+    const handleReverify = (p: any) => {
+      setForm(f => ({
+        ...f,
+        patientFirstName: p.firstName || '',
+        patientLastName: p.lastName || '',
+        patientDob: p.dateOfBirth || '',
+        carrier: (p.plan && p.plan.carrier) || '',
+        memberId: (p.plan && p.plan.memberId) || '',
+      }));
+      setSelectedPatient(null);
+      setShowAddForm(true);
+      setVerifyMsg(null);
+    };
+
     const handleVerify = async () => {
       setVerifyMsg(null);
       if (!form.patientFirstName || !form.patientLastName || !form.patientDob || !form.carrier) {
@@ -883,7 +897,7 @@ export default function InsuranceVerificationPage() {
 
   if (loading) return <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" /></div>;
 
-  if (selectedPatient) return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><PatientInsuranceDetail patient={selectedPatient} onBack={() => setSelectedPatient(null)} /></div>;
+  if (selectedPatient) return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><PatientInsuranceDetail patient={selectedPatient} onBack={() => setSelectedPatient(null)} onReverify={handleReverify} /></div>;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
