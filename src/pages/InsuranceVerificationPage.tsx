@@ -780,7 +780,7 @@ export default function InsuranceVerificationPage() {
       }));
       setVerifyMsg(data.status === 'inactive'
         ? 'Coverage came back inactive for this patient. Review the details.'
-        : (data.discovered ? 'Coverage located and benefits populated. Review, then Save.' : 'Benefits verified. Review the numbers, then Save.'));
+        : (data.discovered ? `Coverage found automatically: ${data.carrier || 'payer located'}${data.memberId ? ', member ' + data.memberId : ''}. Please confirm the details, then Save.` : 'Benefits verified. Review the numbers, then Save.'));
     };
 
     const pollDiscovery = async (discoveryId: string) => {
@@ -819,6 +819,7 @@ export default function InsuranceVerificationPage() {
         return;
       }
       setVerifying(true);
+      setVerifyMsg('Verifying coverage\u2026 this can take a few seconds.');
       try {
         const res = await apiFetch('/api/insurance/verify', {
           method: 'POST',
@@ -875,6 +876,7 @@ export default function InsuranceVerificationPage() {
       });
       if (!res.ok) throw new Error('Save failed');
       setShowAddForm(false);
+      setReverifyId(null);
       setForm({
         patientFirstName: '', patientLastName: '', patientDob: '',
         carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
