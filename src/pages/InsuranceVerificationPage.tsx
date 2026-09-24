@@ -672,6 +672,15 @@ function ClaimsTrackingView() {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const EMPTY_FORM = {
+  patientFirstName: '', patientLastName: '', patientDob: '',
+  carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
+  subscriberName: '', effectiveDate: '', terminationDate: '',
+  annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
+  preventiveCoverage: '100', basicCoverage: '80', majorCoverage: '50',
+  verificationStatus: 'verified', verificationMethod: 'phone', verifiedBy: '', notes: '',
+};
+
 export default function InsuranceVerificationPage() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<PatientInsurance[]>([]);
@@ -685,14 +694,13 @@ export default function InsuranceVerificationPage() {
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    patientFirstName: '', patientLastName: '', patientDob: '',
-    carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
-    subscriberName: '', effectiveDate: '', terminationDate: '',
-    annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
-    preventiveCoverage: '100', basicCoverage: '80', majorCoverage: '50',
-    verificationStatus: 'verified', verificationMethod: 'phone', verifiedBy: '', notes: '',
-  });
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const resetForm = () => {
+    setForm({ ...EMPTY_FORM });
+    setVerifyMsg(null);
+    setReverifyId(null);
+    setVerifying(false);
+  };
 
   const practiceId = (() => {
     try { return JSON.parse(localStorage.getItem('uis_user') || '{}').practiceId || 'default'; } catch { return 'default'; }
@@ -757,6 +765,15 @@ export default function InsuranceVerificationPage() {
   useEffect(() => { loadVerifications(); }, []);
 
     const applyVerifyResult = (data: any) => {
+      if (data.status === 'needs_review') {
+        const list = (data.candidates || []).map((c: any) => (c.carrier || 'Unknown carrier') + (c.memberId ? ' (member ' + c.memberId + ')' : '')).join('; ');
+        setVerifyMsg((data.message || 'Possible coverage found. Confirm the correct plan before saving.') + (list ? ' ' + list + '.' : ''));
+        return;
+      }
+      if (data.status === 'manual') {
+        setVerifyMsg(data.message || 'This carrier is not available for electronic verification yet. Verify by phone and enter the details.');
+        return;
+      }
       if (data.status === 'not_found') {
         setVerifyMsg(data.message || 'Could not automatically locate coverage. Add the member ID to verify directly.');
         return;
@@ -799,8 +816,8 @@ export default function InsuranceVerificationPage() {
 
     const handleReverify = (p: any) => {
       setReverifyId(p.patientId || null);
-      setForm(f => ({
-        ...f,
+      setForm(() => ({
+        ...EMPTY_FORM,
         patientFirstName: p.firstName || '',
         patientLastName: p.lastName || '',
         patientDob: p.dateOfBirth || '',
@@ -876,15 +893,7 @@ export default function InsuranceVerificationPage() {
       });
       if (!res.ok) throw new Error('Save failed');
       setShowAddForm(false);
-      setReverifyId(null);
-      setForm({
-        patientFirstName: '', patientLastName: '', patientDob: '',
-        carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
-        subscriberName: '', effectiveDate: '', terminationDate: '',
-        annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
-        preventiveCoverage: '100', basicCoverage: '80', majorCoverage: '50',
-        verificationStatus: 'verified', verificationMethod: 'phone', verifiedBy: '', notes: '',
-      });
+      resetForm();
       await loadVerifications();
     } catch {
       alert('Failed to save verification. Please try again.');
@@ -918,7 +927,7 @@ export default function InsuranceVerificationPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">Coverage verification, benefit tracking, claims management, and CDT eligibility</p>
             </div>
           </div>
-          <button onClick={() => { setReverifyId(null); setShowAddForm(true); }}
+          <button onClick={() => { resetForm(); setShowAddForm(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg">
             + Add Verification
           </button>
@@ -930,7 +939,7 @@ export default function InsuranceVerificationPage() {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
               <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add Insurance Verification</h2>
-                <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl">✕</button>
+                <button onClick={() => { setShowAddForm(false); resetForm(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl">✕</button>
               </div>
               <div className="p-6 space-y-5">
                 {/* Patient Info */}
@@ -1058,7 +1067,7 @@ export default function InsuranceVerificationPage() {
                 </div>
               </div>
               <div className="sticky bottom-0 bg-white dark:bg-slate-900 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-3">
-                <button onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg transition-all">Cancel</button>
+                <button onClick={() => { setShowAddForm(false); resetForm(); }} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg transition-all">Cancel</button>
                 <button onClick={handleSaveVerification} disabled={saving}
                   className="px-6 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-all">
                   {saving ? 'Saving...' : 'Save Verification'}
