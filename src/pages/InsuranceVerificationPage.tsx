@@ -706,6 +706,13 @@ export default function InsuranceVerificationPage() {
     setFilling(false);
   };
 
+  const currentUserName = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('uis_user') || '{}');
+      return String(u.displayName || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || '');
+    } catch { return ''; }
+  })();
+
   const practiceId = (() => {
     try { return JSON.parse(localStorage.getItem('uis_user') || '{}').practiceId || 'default'; } catch { return 'default'; }
   })();
@@ -937,7 +944,7 @@ export default function InsuranceVerificationPage() {
           practiceId,
           annualRemaining,
           deductibleRemaining,
-          verifiedBy: form.verifiedBy || 'Staff',
+          verifiedBy: currentUserName || form.verifiedBy || 'Staff',
         }),
       });
       if (!res.ok) throw new Error('Save failed');
@@ -1107,7 +1114,7 @@ export default function InsuranceVerificationPage() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Verified By</label>
-                      <input value={form.verifiedBy} onChange={e => setForm(p => ({...p, verifiedBy: e.target.value}))}
+                      <input value={currentUserName || form.verifiedBy} readOnly={!!currentUserName} onChange={e => setForm(p => ({...p, verifiedBy: e.target.value}))}
                         placeholder="Staff name" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
                     </div>
                   </div>
