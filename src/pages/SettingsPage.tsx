@@ -201,9 +201,9 @@ export default function SettingsPage() {
       const res = await fetch(`${API_URL}/api/auth/users`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.map((u: any) => ({
+        setUsers((Array.isArray(data) ? data : (data.users || [])).map((u: any) => ({
           id: u.id,
-          name: u.name || u.email?.split('@')[0] || 'Unknown',
+          name: u.displayName || u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email?.split('@')[0] || 'Unknown',
           email: u.email,
           role: u.role || 'staff',
           phone: u.phone || '',
@@ -214,14 +214,8 @@ export default function SettingsPage() {
         })));
       }
     } catch {
-      // Fallback demo users
-      setUsers([
-        { id: '1', name: 'Admin User', email: 'admin@testpractice.com', role: 'staff', phone: '', title: 'Staff', lastLogin: '12/24/2025', status: 'active' },
-        { id: '2', name: 'Samuel Thomas', email: 'sthomas@myitcopilot.com', role: 'admin', phone: '(555) 123-4567', title: 'CTO', lastLogin: '13h ago', status: 'active' },
-        { id: '3', name: 'Dr. Name', email: 'partner@example.com', role: 'viewer', phone: '', title: '', lastLogin: 'Never', status: 'invited' },
-        { id: '4', name: 'Qu Dee', email: 'qudee@uishealth.com', role: 'admin', phone: '', title: '', lastLogin: 'Never', status: 'active' },
-        { id: '5', name: 'Dr. Neal Johnson', email: 'njohnson@uishealth.com', role: 'admin', phone: '', title: 'CEO', lastLogin: '1h ago', status: 'active' },
-      ]);
+      // Never show made-up people. An empty list means the team could not be loaded.
+      setUsers([]);
     }
   };
 
@@ -242,48 +236,48 @@ export default function SettingsPage() {
           status: updatedUser.status,
         }),
       });
-      if (res.ok) {
-        fetchUsers();
-      } else {
-        // Update locally if API doesn't support PUT yet
-        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-      }
+      const result: any = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(result.error || 'Could not save changes.'); return; }
+      fetchUsers();
     } catch {
-      // Update locally as fallback
-      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+      alert('Could not save changes. Check your connection and try again.');
+      return;
     }
     setEditingUser(null);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
 
+  const showSetupLink = (email: string, url: string) => {
+    if (!url) return;
+    try { if (navigator.clipboard) navigator.clipboard.writeText(url); } catch { /* copy is optional */ }
+    window.prompt(
+      'Setup link for ' + email + ' (already copied to your clipboard). '
+      + 'Send it to them from Outlook. It works once and expires in 72 hours.',
+      url
+    );
+  };
+
   const handleAddUser = async () => {
+    const invitedEmail = newUser.email.trim();
     try {
-      const token = localStorage.getItem('uis_token') || 'demo-token';
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const token = localStorage.getItem('uis_token') || '';
+      const res = await fetch(API_URL + '/api/auth/users/invite', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newUser.name, email: newUser.email, role: newUser.role, password: 'TempPass123!' }),
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ name: newUser.name, email: invitedEmail, role: newUser.role }),
       });
-      if (res.ok) {
-        fetchUsers();
-      } else {
-        // Add locally as fallback
-        setUsers(prev => [...prev, {
-          id: `new-${Date.now()}`, name: newUser.name, email: newUser.email, role: newUser.role,
-          phone: newUser.phone, title: newUser.title, lastLogin: 'Never', status: 'invited' as const,
-        }]);
-      }
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || 'Could not add this team member.'); return; }
+      setNewUser({ name: '', email: '', role: 'staff', phone: '', title: '' });
+      setShowAddUser(false);
+      fetchUsers();
+      showSetupLink(invitedEmail, data.setupUrl);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
     } catch {
-      setUsers(prev => [...prev, {
-        id: `new-${Date.now()}`, name: newUser.name, email: newUser.email, role: newUser.role,
-        phone: newUser.phone, title: newUser.title, lastLogin: 'Never', status: 'invited' as const,
-      }]);
+      alert('Could not add this team member. Check your connection and try again.');
     }
-    setNewUser({ name: '', email: '', role: 'staff', phone: '', title: '' });
-    setShowAddUser(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
   };
 
   const handleDeleteUser = async (id: string) => {
