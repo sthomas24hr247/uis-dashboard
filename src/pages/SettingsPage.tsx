@@ -870,7 +870,7 @@ export default function SettingsPage() {
 
       {/* Modals */}
       {editingUser && <EditUserModal u={editingUser} onSave={handleUpdateUser} onClose={() => setEditingUser(null)} />}
-      {showAddUser && <AddUserModal />}
+      {showAddUser && AddUserModal()}
       {showDeleteConfirm && <DeleteConfirmModal userId={showDeleteConfirm} />}
     </div>
   );
