@@ -795,6 +795,7 @@ export default function InsuranceVerificationPage() {
         ...pp,
         carrier: str(data.carrier) || pp.carrier,
         memberId: str(data.memberId) || pp.memberId,
+        groupNumber: str(data.groupNumber) || pp.groupNumber,
         planName: str(data.planName) || pp.planName,
         annualMax: str(data.annualMax) || pp.annualMax,
         annualUsed: str(data.annualUsed) || pp.annualUsed,
