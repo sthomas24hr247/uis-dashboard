@@ -17,7 +17,6 @@ import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 import ManagerDashboard from "./pages/ManagerDashboard";
 import BILDashboardPage from './pages/BILDashboardPage';
 import InsuranceVerificationPage from './pages/InsuranceVerificationPage';
@@ -69,7 +68,6 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route
