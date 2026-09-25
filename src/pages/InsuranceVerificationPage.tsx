@@ -695,11 +695,15 @@ export default function InsuranceVerificationPage() {
   const [verifying, setVerifying] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [pmsLink, setPmsLink] = useState<any>(null);
+  const [filling, setFilling] = useState(false);
   const resetForm = () => {
     setForm({ ...EMPTY_FORM });
     setVerifyMsg(null);
     setReverifyId(null);
     setVerifying(false);
+    setPmsLink(null);
+    setFilling(false);
   };
 
   const practiceId = (() => {
@@ -829,6 +833,46 @@ export default function InsuranceVerificationPage() {
       setVerifyMsg(null);
     };
 
+    const handleFillFromPms = async () => {
+      setVerifyMsg(null);
+      if (!form.patientFirstName || !form.patientLastName || !form.patientDob) {
+        setVerifyMsg('Enter the patient first name, last name, and date of birth first.');
+        return;
+      }
+      setFilling(true);
+      setVerifyMsg('Looking up the patient in practice records...');
+      try {
+        const qs = 'firstName=' + encodeURIComponent(form.patientFirstName)
+          + '&lastName=' + encodeURIComponent(form.patientLastName)
+          + '&dob=' + encodeURIComponent(form.patientDob);
+        const res = await apiFetch('/api/insurance/verify/pms-coverage?' + qs);
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok) { setVerifyMsg(data.error || 'Could not read practice records.'); return; }
+        if (!data.found) { setVerifyMsg(data.message || 'No matching patient was found in practice records.'); return; }
+        const plan = (data.plans || [])[0];
+        if (!plan) { setVerifyMsg('No current insurance plan is on file in practice records for this patient.'); return; }
+        setForm(pp => ({
+          ...pp,
+          carrier: plan.carrierName || pp.carrier,
+          memberId: plan.memberId || pp.memberId,
+          planName: plan.planName || pp.planName,
+        }));
+        setPmsLink({
+          carrierName: plan.carrierName || '',
+          memberId: plan.memberId || '',
+          payerId: plan.payerId || null,
+          policyholder: plan.policyholder || null,
+        });
+        setVerifyMsg('Filled from practice records'
+          + (plan.policyholder ? '. The patient is a dependent, so the policyholder on file will be used' : '')
+          + '. Click Verify.');
+      } catch (err) {
+        setVerifyMsg((err as Error).message || 'Could not read practice records.');
+      } finally {
+        setFilling(false);
+      }
+    };
+
     const handleVerify = async () => {
       setVerifyMsg(null);
       if (!form.patientFirstName || !form.patientLastName || !form.patientDob || !form.carrier) {
@@ -847,6 +891,8 @@ export default function InsuranceVerificationPage() {
             dob: form.patientDob,
             carrier: form.carrier,
             memberId: form.memberId || undefined,
+            payerId: (pmsLink && pmsLink.carrierName === form.carrier) ? (pmsLink.payerId || undefined) : undefined,
+            policyholder: (pmsLink && pmsLink.memberId === form.memberId) ? (pmsLink.policyholder || undefined) : undefined,
           }),
         });
         const data: any = await res.json().catch(() => ({}));
@@ -970,6 +1016,10 @@ export default function InsuranceVerificationPage() {
                     <button type="button" onClick={handleVerify} disabled={verifying}
                       className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-all">
                       {verifying ? 'Verifying\u2026' : 'Verify'}
+                    </button>
+                    <button type="button" onClick={handleFillFromPms} disabled={filling || verifying}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-teal-600 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 disabled:opacity-50 transition-all">
+                      {filling ? 'Looking up...' : 'Fill from practice records'}
                     </button>
                     {verifyMsg && <span className="text-xs text-slate-500 dark:text-slate-300">{verifyMsg}</span>}
                   </div>
