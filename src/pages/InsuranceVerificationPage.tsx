@@ -677,7 +677,7 @@ const EMPTY_FORM = {
   carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
   subscriberName: '', effectiveDate: '', terminationDate: '',
   annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
-  preventiveCoverage: '100', basicCoverage: '80', majorCoverage: '50',
+  preventiveCoverage: '', basicCoverage: '', majorCoverage: '',
   verificationStatus: 'verified', verificationMethod: 'phone', verifiedBy: '', notes: '',
 };
 
@@ -801,7 +801,7 @@ export default function InsuranceVerificationPage() {
       }));
       setVerifyMsg(data.status === 'inactive'
         ? 'Coverage came back inactive for this patient. Review the details.'
-        : (data.discovered ? `Coverage found automatically: ${data.carrier || 'payer located'}${data.memberId ? ', member ' + data.memberId : ''}. Please confirm the details, then Save.` : 'Benefits verified. Review the numbers, then Save.'));
+        : (data.discovered ? `Coverage found automatically: ${data.carrier || 'payer located'}${data.memberId ? ', member ' + data.memberId : ''}. Please confirm the details, then Save.` : 'Benefits verified. Fields left blank were not provided by the payer. Review, then Save.'));
     };
 
     const pollDiscovery = async (discoveryId: string) => {
@@ -931,6 +931,9 @@ export default function InsuranceVerificationPage() {
         body: JSON.stringify({
           ...form,
           verificationId: reverifyId || undefined,
+          preventiveCoverage: form.preventiveCoverage === '' ? null : form.preventiveCoverage,
+          basicCoverage: form.basicCoverage === '' ? null : form.basicCoverage,
+          majorCoverage: form.majorCoverage === '' ? null : form.majorCoverage,
           practiceId,
           annualRemaining,
           deductibleRemaining,
