@@ -252,10 +252,32 @@ export default function SettingsPage() {
     if (!url) return;
     try { if (navigator.clipboard) navigator.clipboard.writeText(url); } catch { /* copy is optional */ }
     window.prompt(
-      'Setup link for ' + email + ' (already copied to your clipboard). '
+      'The email could not be sent automatically. Setup link for ' + email + ' (already copied to your clipboard). '
       + 'Send it to them from Outlook. It works once and expires in 72 hours.',
       url
     );
+  };
+
+  const handleSendSetupLink = async (u: TeamUser) => {
+    const isInvite = u.status === 'invited';
+    const what = isInvite ? 'a new invitation' : 'a password reset link';
+    if (!window.confirm('Email ' + what + ' to ' + u.email + '?')) return;
+    try {
+      const token = localStorage.getItem('uis_token') || '';
+      const res = await fetch(API_URL + '/api/auth/users/' + encodeURIComponent(u.id) + '/setup-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || 'Could not send the link.'); return; }
+      if (data.emailSent) {
+        alert('Emailed ' + what + ' to ' + u.email + '. The link works once and expires in 72 hours.');
+      } else {
+        showSetupLink(u.email, data.setupUrl);
+      }
+    } catch {
+      alert('Could not send the link. Check your connection and try again.');
+    }
   };
 
   const handleAddUser = async () => {
@@ -272,7 +294,11 @@ export default function SettingsPage() {
       setNewUser({ name: '', email: '', role: 'staff', phone: '', title: '' });
       setShowAddUser(false);
       fetchUsers();
-      showSetupLink(invitedEmail, data.setupUrl);
+      if (data.emailSent) {
+        alert('Invitation emailed to ' + invitedEmail + '. The link works once and expires in 72 hours.');
+      } else {
+        showSetupLink(invitedEmail, data.setupUrl);
+      }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch {
@@ -799,6 +825,13 @@ export default function SettingsPage() {
                 <span className="text-xs text-slate-400 w-20 text-right">{formatLastLogin(u.lastLogin)}</span>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => setEditingUser(u)} className="p-1.5 hover:bg-teal-100 dark:hover:bg-teal-900/30 rounded-lg" title="Edit user">
+                  {u.status !== 'disabled' && (
+                    <button onClick={() => handleSendSetupLink(u)}
+                      className="px-2 py-1 text-xs font-medium border border-teal-600 text-teal-700 dark:text-teal-300 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30"
+                      title={u.status === 'invited' ? 'Resend invitation email' : 'Email a password reset link'}>
+                      {u.status === 'invited' ? 'Resend invite' : 'Email reset link'}
+                    </button>
+                  )}
                   <TeamMemberPasswordReset userId={u.id} userName={u.name} userEmail={u.email} token={token} />
                     <Edit3 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   </button>
