@@ -308,13 +308,19 @@ export default function SettingsPage() {
 
   const handleDeleteUser = async (id: string) => {
     try {
-      const token = localStorage.getItem('uis_token') || 'demo-token';
-      await fetch(`${API_URL}/api/auth/users/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const token = localStorage.getItem('uis_token') || '';
+      const res = await fetch(API_URL + '/api/auth/users/' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || 'Could not remove this team member.'); return; }
       fetchUsers();
     } catch {
-      setUsers(prev => prev.filter(u => u.id !== id));
+      alert('Could not remove this team member. Check your connection and try again.');
+    } finally {
+      setShowDeleteConfirm(null);
     }
-    setShowDeleteConfirm(null);
   };
 
   const formatLastLogin = (val?: string) => {
