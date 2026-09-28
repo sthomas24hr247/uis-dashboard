@@ -629,7 +629,6 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <button onClick={() => window.history.back()} className="text-xs text-slate-400 hover:text-teal-400 mb-1 flex items-center gap-1">‹ Back to Dashboard</button>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><Settings className="w-6 h-6 text-teal-500" /> Practice Settings</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Manage configuration, integrations, and team</p>
         </div>

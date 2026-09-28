@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Shield, Search, CheckCircle2, AlertTriangle, Clock,
   DollarSign, FileText, RefreshCw, ChevronRight, X, Zap,
@@ -682,7 +681,6 @@ const EMPTY_FORM = {
 };
 
 export default function InsuranceVerificationPage() {
-  const navigate = useNavigate();
   const [patients, setPatients] = useState<PatientInsurance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<PatientInsurance | null>(null);
@@ -974,9 +972,6 @@ export default function InsuranceVerificationPage() {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div>
-        <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1 mb-2">
-          <ArrowLeft className="w-3 h-3" /> Back to Dashboard
-        </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-xl"><Shield className="w-6 h-6 text-blue-400" /></div>

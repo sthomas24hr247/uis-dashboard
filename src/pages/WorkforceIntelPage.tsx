@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, UserCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Users, Calendar, UserCheck, AlertTriangle } from 'lucide-react';
 import { apiFetch, getPracticeId } from '@/lib/api';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,7 +48,6 @@ function StatCard({ label, value, sub, icon: Icon }: { label: string; value: str
 }
 
 export default function WorkforceIntelPage() {
-  const navigate = useNavigate();
   const [providers, setProviders] = useState<ProviderActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,9 +81,6 @@ export default function WorkforceIntelPage() {
   return (
     <div className="p-6 lg:p-8 max-w-[1100px] mx-auto space-y-6">
       <div>
-        <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1 mb-2">
-          <ArrowLeft className="w-3 h-3" /> Back to Dashboard
-        </button>
         <div className="flex items-center gap-3">
           <div className="p-2 bg-violet-500/10 rounded-xl"><Users className="w-6 h-6 text-violet-400" /></div>
           <div>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, TrendingUp, Users, Activity, DollarSign } from 'lucide-react';
+import { TrendingUp, Users, Activity, DollarSign } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
 
@@ -21,7 +20,6 @@ function fmt(n?: number) {
 }
 
 export default function MyPerformancePage() {
-  const navigate = useNavigate();
   const { token } = useAuth();
   const [data, setData] = useState<MyPerf | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,10 +38,6 @@ export default function MyPerformancePage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <button onClick={() => navigate('/home')} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-      </button>
-
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Activity className="w-6 h-6 text-teal-500" /> Your Performance

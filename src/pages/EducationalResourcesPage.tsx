@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BookOpen, Play, Search, Filter, Send, Monitor,
   CheckCircle2, Clock, Video, FileText, Link2, ExternalLink,
@@ -162,7 +161,6 @@ function InChairModal({ content, onClose }: { content: EducationalContent; onClo
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function EducationalResourcesPage() {
-  const navigate = useNavigate();
   const [content] = useState<EducationalContent[]>(generateContent());
   const [scheduledSends] = useState<ScheduledSend[]>(generateScheduledSends());
   const [activeTab, setActiveTab] = useState<'library' | 'autosend' | 'settings'>('library');
@@ -195,9 +193,6 @@ export default function EducationalResourcesPage() {
 
       {/* Header */}
       <div>
-        <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1 mb-2">
-          <ArrowLeft className="w-3 h-3" /> Back to Dashboard
-        </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-teal-500/10 rounded-xl"><BookOpen className="w-6 h-6 text-teal-400" /></div>

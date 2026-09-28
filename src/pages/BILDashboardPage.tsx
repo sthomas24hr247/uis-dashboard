@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Activity, ArrowLeft, BarChart3, Brain, CheckCircle2, Clock, DollarSign,
   Fingerprint, TrendingUp, TrendingDown, Users, XCircle, AlertTriangle,
@@ -337,7 +336,6 @@ function mapFingerprint(r: any): StaffFingerprint {
 }
 
 export default function BILDashboardPage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'fingerprints' | 'verification' | 'feedback'>('overview');
   const [fingerprints, setFingerprints] = useState<StaffFingerprint[]>([]);
   const [followThroughs, setFollowThroughs] = useState<FollowThroughItem[]>([]);
@@ -383,7 +381,6 @@ export default function BILDashboardPage() {
     const pct = (v: number) => `${Math.round((v || 0) * 100)}%`;
     return (
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-        <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 mb-4">&larr; Back to Dashboard</button>
         <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-8 text-center">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Behavioral Intelligence Layer</h1>
           <span className="inline-block text-[11px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-3 py-1 mb-4">Preview &middot; Calibrating</span>
@@ -401,8 +398,17 @@ export default function BILDashboardPage() {
                 </div>
                 <div className="flex items-center gap-4 text-center shrink-0">
                   <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100">{fp.totalDecisions}</p><p className="text-[10px] text-slate-400">decisions</p></div>
-                  <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100">{pct(fp.overallApprovalRate)}</p><p className="text-[10px] text-slate-400">approval</p></div>
-                  <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize">{fp.velocityCategory}</p><p className="text-[10px] text-slate-400">velocity</p></div>
+                  {fp.totalDecisions < 10 ? (
+                    <div className="max-w-[10rem]">
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">Not enough decisions yet</p>
+                      <p className="text-[10px] text-slate-400">{10 - fp.totalDecisions} more for a profile</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100">{pct(fp.overallApprovalRate)}</p><p className="text-[10px] text-slate-400">approval</p></div>
+                      <div><p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize">{String(fp.velocityCategory) === 'unknown' ? '—' : fp.velocityCategory}</p><p className="text-[10px] text-slate-400">velocity</p></div>
+                    </>
+                  )}
                   <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-amber-500 border border-amber-500/40 rounded-full px-2 py-0.5">Low confidence</span>
                 </div>
               </div>
@@ -417,9 +423,6 @@ export default function BILDashboardPage() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <button onClick={() => navigate('/home')} className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1 mb-2">
-          <ArrowLeft className="w-3 h-3" /> Back to Dashboard
-        </button>
         <div className="flex items-center gap-3">
           <div className="p-2 bg-violet-500/10 rounded-xl"><Brain className="w-6 h-6 text-violet-400" /></div>
           <div>

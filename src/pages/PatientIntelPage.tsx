@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   ArrowLeft, Users, AlertTriangle, Clock, Activity, TrendingDown, Calendar,
@@ -53,7 +52,6 @@ function factorChips(raw: string | null): { label: string; value: string }[] {
 }
 
 export default function PatientIntelPage() {
-  const navigate = useNavigate();
   const { token } = useAuth();
   const [rows, setRows] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,10 +84,6 @@ export default function PatientIntelPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <button onClick={() => navigate('/home')} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-      </button>
-
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Users className="w-6 h-6 text-teal-500" /> Patient Intelligence
