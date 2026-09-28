@@ -1,4 +1,5 @@
 import AlertBell from "./AlertBell";
+import DataFreshness from "./DataFreshness";
 import AskDentamind from "./AskDentamind";
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -330,6 +331,7 @@ export default function DashboardLayout() {
             {/* Right */}
             <div className="flex items-center gap-2">
               <button className="relative p-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                <DataFreshness />
                 <AlertBell />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
               </button>

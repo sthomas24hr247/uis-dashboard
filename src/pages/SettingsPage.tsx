@@ -3,6 +3,7 @@ import { UserManagement } from '@/components/claims/UserManagement';
 import { useAuth } from '../context/AuthContext';
 import { useJurisdiction } from '../context/JurisdictionContext';
 import { TeamMemberPasswordReset } from '@/components/TeamMemberPasswordReset';
+import { fetchDataStatus, startSync, timeAgo, formatThrough, isStale } from '@/lib/dataFreshness';
 import {
   Settings, Database, Shield, Users, Bell, Plug, CheckCircle2,
   AlertTriangle, RefreshCw, Globe, Lock, Cpu, ChevronRight, Building2,
@@ -163,11 +164,7 @@ export default function SettingsPage() {
   const [pmsStats, setPmsStats] = useState<{ patients: number; appointments: number } | null>(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/graphql`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer demo-token' },
-      body: JSON.stringify({ query: '{ health { isHealthy latencyMs pmsConnected databaseConnected } }' }),
-    }).then(r => r.json()).then(d => setHealthStatus(d.data?.health)).catch(() => {});
+    loadDataStatus();
 
     // Live patient/appointment counts for the PMS Connection card.
     // NOTE: confirm these field names match the GraphQL schema. If they differ,
@@ -219,7 +216,30 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSync = () => { setSyncing(true); setTimeout(() => setSyncing(false), 2000); };
+  const loadDataStatus = async () => {
+    const st = await fetchDataStatus();
+    if (!st) {
+      setHealthStatus({ loaded: true, isHealthy: false, syncHealthy: false, pmsConnected: false, databaseConnected: false, latencyMs: 0 });
+      return;
+    }
+    setHealthStatus({
+      loaded: true,
+      isHealthy: st.syncHealthy && !isStale(st.dataCurrentThrough),
+      syncHealthy: st.syncHealthy,
+      pmsConnected: st.connected,
+      databaseConnected: true,
+      latencyMs: st.databaseLatencyMs,
+      lastSuccessfulSync: st.lastSuccessfulSync,
+      dataCurrentThrough: st.dataCurrentThrough,
+    });
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    const r = await startSync();
+    if (!r.ok) { alert(r.message); setSyncing(false); return; }
+    setTimeout(() => { loadDataStatus(); setSyncing(false); }, 20000);
+  };
 
   const handleUpdateUser = async (updatedUser: TeamUser) => {
     try {
@@ -610,9 +630,9 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2">
           {healthStatus?.isHealthy ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <AlertTriangle className="w-5 h-5 text-amber-600" />}
           <span className={`text-sm font-semibold ${healthStatus?.isHealthy ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
-            {healthStatus?.isHealthy ? 'All Systems Operational' : 'Checking...'}
+            {!healthStatus ? 'Checking...' : healthStatus.isHealthy ? 'All Systems Operational' : (healthStatus.syncHealthy ? 'Practice data may be out of date' : 'Sync needs attention')}
           </span>
-          <span className="text-xs text-slate-400 ml-2">PMS: {healthStatus?.pmsConnected ? '✓' : '—'} · DB: {healthStatus?.databaseConnected ? '✓' : '—'} · {healthStatus?.latencyMs || 0}ms</span>
+          <span className="text-xs text-slate-600 dark:text-slate-300 ml-2">{healthStatus ? ('Last sync ' + timeAgo(healthStatus.lastSuccessfulSync || null) + ' · Practice data current through ' + formatThrough(healthStatus.dataCurrentThrough || null) + ' · ' + (healthStatus.latencyMs || 0) + 'ms') : ''}</span>
         </div>
         <button onClick={handleSync} disabled={syncing} className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center gap-1">
           <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing...' : 'Sync Now'}
