@@ -99,38 +99,23 @@ function useRecommendationsData() {
 function useDecisionState() {
   const [decisions, setDecisions] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
+  // When the page was opened: the server measures decision time from here.
+  const [openedAt] = useState(() => new Date().toISOString());
 
   const recordDecision = async (rec: Recommendation, decision: string, rejectionCode?: string) => {
     setSubmitting(rec.id);
-    const now = new Date().toISOString();
     try {
-      const staffUser = JSON.parse(localStorage.getItem('uis_user') || '{}');
-      const practiceId = getPracticeId();
-      await apiFetch(`/api/bil/decision-events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recommendation_id: rec.id,
-          practice_id: practiceId,
-          staff_member_id: staffUser.userId || '',
-          decision,
-          presented_at: rec.generated_at,
-          decision_at: now,
-          device_type: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop',
-          rec_type: rec.type,
-          rec_subtype: rec.subtype,
-          rec_complexity: rec.complexity,
-          rec_estimated_revenue: rec.estimated_revenue,
-          rec_priority: rec.priority,
-          rejection_reason_code: rejectionCode || null,
-        }),
-      });
-      // Update recommendation status in DB
+      // One status update: the server records the decision (who, practice and details from the sign-in and database).
       const newStatus = decision === "approved" ? "approved" : decision === "rejected" ? "dismissed" : "snoozed";
       await apiFetch(`/api/recommendations/${rec.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: newStatus,
+          shownAt: openedAt,
+          rejectionCode: rejectionCode || null,
+          deviceType: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        }),
       });
       setDecisions(prev => ({ ...prev, [rec.id]: decision }));
     } catch (err) {
