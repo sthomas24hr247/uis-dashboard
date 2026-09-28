@@ -43,6 +43,82 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ---- Session policy (HIPAA automatic logoff) ----
+  // Tokens last only as long as the role's inactivity window (15 minutes; 30 for staff) and are
+  // renewed while the person is active. A one-minute warning offers "Stay signed in".
+  const [warnSeconds, setWarnSeconds] = useState<number | null>(null);
+  const [signOutReason, setSignOutReason] = useState<string | null>(() => {
+    try { return sessionStorage.getItem('uis_signout_reason'); } catch { return null; }
+  });
+  const lastActivityRef = React.useRef<number>(Date.now());
+  const lastRefreshRef = React.useRef<number>(Date.now());
+  const refreshingRef = React.useRef<boolean>(false);
+
+  const tokenExpiryMs = (t: string | null): number => {
+    if (!t) return 0;
+    try {
+      const part = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = JSON.parse(atob(part + '==='.slice((part.length + 3) % 4)));
+      return Number(json.exp || 0) * 1000;
+    } catch { return 0; }
+  };
+
+  const endSession = React.useCallback((reason: string) => {
+    try { sessionStorage.setItem('uis_signout_reason', reason); } catch { /* ignore */ }
+    localStorage.removeItem('uis_token');
+    localStorage.removeItem('uis_user');
+    setToken(null);
+    setUser(null);
+    setWarnSeconds(null);
+    setSignOutReason(reason);
+  }, []);
+
+  const renewSession = React.useCallback(async (): Promise<void> => {
+    const current = localStorage.getItem('uis_token');
+    if (!current || refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      const res = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', headers: { Authorization: `Bearer ${current}` } });
+      const data: any = await res.json().catch(() => ({}));
+      if (res.status === 401) { endSession(data.error || 'Your session has ended. Please sign in again.'); return; }
+      if (res.ok && data.token) {
+        localStorage.setItem('uis_token', data.token);
+        lastRefreshRef.current = Date.now();
+        setWarnSeconds(null);
+        setToken(data.token);
+      }
+    } catch { /* network issue: try again on the next check */ }
+    finally { refreshingRef.current = false; }
+  }, [endSession]);
+
+  useEffect(() => {
+    if (!token) return;
+    lastRefreshRef.current = Date.now();
+    lastActivityRef.current = Date.now();
+    setSignOutReason(null);
+    try { sessionStorage.removeItem('uis_signout_reason'); } catch { /* ignore */ }
+    const mark = () => { lastActivityRef.current = Date.now(); };
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, mark, { passive: true }));
+    const onExpired = (ev: Event) => endSession(String((ev as CustomEvent).detail || 'Your session has ended. Please sign in again.'));
+    window.addEventListener('uis:session-expired', onExpired as EventListener);
+    const tick = setInterval(() => {
+      const now = Date.now();
+      const exp = tokenExpiryMs(localStorage.getItem('uis_token'));
+      if (!exp) return;
+      const left = exp - now;
+      if (left <= 0) { endSession('You were signed out after a period of inactivity. Please sign in again.'); return; }
+      const activeSinceRefresh = lastActivityRef.current > lastRefreshRef.current;
+      if (activeSinceRefresh && now - lastRefreshRef.current > 2 * 60 * 1000) { void renewSession(); return; }
+      setWarnSeconds(left <= 60 * 1000 && !activeSinceRefresh ? Math.ceil(left / 1000) : null);
+    }, 5000);
+    return () => {
+      clearInterval(tick);
+      events.forEach(e => window.removeEventListener(e, mark));
+      window.removeEventListener('uis:session-expired', onExpired as EventListener);
+    };
+  }, [token, endSession, renewSession]);
+
   useEffect(() => {
     // Check for existing session
     const storedToken = localStorage.getItem('uis_token');
@@ -187,6 +263,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const sessionUi = (
+    <>
+      {user && warnSeconds !== null && (
+        <div role="alertdialog" aria-modal="true" aria-labelledby="uis-session-warn-title" aria-describedby="uis-session-warn-text"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+            <h2 id="uis-session-warn-title" className="text-lg font-semibold text-slate-900 dark:text-white">Are you still there?</h2>
+            <p id="uis-session-warn-text" className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              For patient privacy, you will be signed out in about {warnSeconds} seconds due to inactivity.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3 justify-end">
+              <button onClick={() => endSession('You have been signed out.')}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
+                Sign out
+              </button>
+              <button autoFocus onClick={() => { lastActivityRef.current = Date.now(); void renewSession(); }}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-teal-600 text-white hover:bg-teal-700">
+                Stay signed in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {!user && signOutReason && (
+        <div role="status"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-md rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-700 px-4 py-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-3">
+          <span className="flex-1">{signOutReason}</span>
+          <button aria-label="Dismiss" className="font-semibold leading-none"
+            onClick={() => { setSignOutReason(null); try { sessionStorage.removeItem('uis_signout_reason'); } catch { /* ignore */ } }}>
+            ×
+          </button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -202,6 +314,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }}
     >
       {children}
+      {sessionUi}
     </AuthContext.Provider>
   );
 };

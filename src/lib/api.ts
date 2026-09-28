@@ -20,10 +20,21 @@ export function getPracticeId(): string {
 
 // REST wrapper. `path` starts with '/', e.g. '/api/dashboard/practice-summary'.
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  return fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: withAuth((options.headers as Record<string, string>) || {}),
   });
+  // A session the server has ended signs the person out cleanly (AuthContext listens).
+  if (res.status === 401 && localStorage.getItem('uis_token')) {
+    try {
+      const d: any = await res.clone().json();
+      const code = String(d?.code || '');
+      if (['SESSION_EXPIRED', 'SESSION_MAX', 'ACCOUNT_INACTIVE'].includes(code) || /token|session|expired|unauthori/i.test(String(d?.error || ''))) {
+        window.dispatchEvent(new CustomEvent('uis:session-expired', { detail: d?.error || 'Your session has ended. Please sign in again.' }));
+      }
+    } catch { /* not JSON: leave it to the caller */ }
+  }
+  return res;
 }
 
 export async function apiGet<T = any>(path: string): Promise<T> {
