@@ -64,12 +64,20 @@ interface FollowThroughItem {
 
 interface FeedbackInsight {
   recType: string;
+  kindLabel?: string;
+  decisions?: number;
   approvalRate: number;
-  followThroughRate: number;
-  avgDecisionTime: number;
+  followThroughRate: number | null;
+  followThroughLevel?: 'good' | 'attention' | 'low' | null;
+  targetGood?: number;
+  avgDecisionTime: number | null;
   topRejectionReason: string;
+  verifiedVisits?: number;
+  estimatedValue?: number;
+  sample?: 'gathering' | 'early' | 'full';
+  statusLabel?: string;
   recommendation: string;
-  status: 'healthy' | 'needs_attention' | 'critical';
+  status: 'healthy' | 'needs_attention' | 'critical' | 'gathering';
 }
 
 // ── Generate Demo Data ──────────────────────────────────────────────────────
@@ -343,6 +351,7 @@ export default function BILDashboardPage() {
   const [fingerprints, setFingerprints] = useState<StaffFingerprint[]>([]);
   const [followThroughs, setFollowThroughs] = useState<FollowThroughItem[]>([]);
   const [feedbackInsights, setFeedbackInsights] = useState<FeedbackInsight[]>([]);
+  const [feedbackTotals, setFeedbackTotals] = useState<{ verifiedVisits: number; estimatedValue: number } | null>(null);
   const [selectedFP, setSelectedFP] = useState<StaffFingerprint | null>(null);
   const [bilStats, setBilStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -350,8 +359,11 @@ export default function BILDashboardPage() {
   useEffect(() => {
     const practiceId = getPracticeId();
     // Verification & Feedback tabs still use illustrative seed data (separate sources, future wiring)
-    // Only real data is shown. Follow-through comes from practice records; feedback insights are not built yet.
-    setFeedbackInsights([]);
+    // Only real data is shown. Follow-through and feedback come from real decisions and practice records.
+    apiFetch(`/api/bil/feedback`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { setFeedbackInsights(((d && d.insights) || []) as FeedbackInsight[]); setFeedbackTotals((d && d.totals) || null); })
+      .catch(() => { setFeedbackInsights([]); setFeedbackTotals(null); });
     apiFetch(`/api/bil/follow-throughs`)
       .then(r => (r.ok ? r.json() : null))
       .then(d => setFollowThroughs(((d && d.items) || []) as FollowThroughItem[]))
@@ -583,43 +595,68 @@ export default function BILDashboardPage() {
       {activeTab === 'feedback' && (
         <div className="space-y-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            The BIL Feedback Loop analyzes how each recommendation type performs — approval rate vs. follow-through rate reveals whether recs need better framing, better timing, or better content.
+            How each kind of recommendation is working over the last 90 days. Follow-through is compared with a starting target for that kind; approval alone is not treated as success.
           </p>
           {feedbackInsights.length === 0 && (
             <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">Feedback insights are not available yet. They will appear once there are enough real decisions and follow-through results to compare.</p>
           )}
-          {feedbackInsights.sort((a, b) => {
-            const order = { critical: 0, needs_attention: 1, healthy: 2 };
-            return order[a.status] - order[b.status];
+          {feedbackTotals && feedbackInsights.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-5 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Estimated value of recovered visits (last 90 days)</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{((v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))(feedbackTotals.estimatedValue)}</p>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{feedbackTotals.verifiedVisits} verified {feedbackTotals.verifiedVisits === 1 ? 'visit' : 'visits'}, valued at the practice's average visit value. An estimate, not collected revenue.</p>
+            </div>
+          )}
+          {[...feedbackInsights].sort((a, b) => {
+            const order: Record<string, number> = { critical: 0, needs_attention: 1, healthy: 2, gathering: 3 };
+            return (order[a.status] ?? 9) - (order[b.status] ?? 9);
           }).map(insight => (
             <div key={insight.recType} className={`bg-white dark:bg-slate-800/60 border rounded-xl p-5 ${
               insight.status === 'critical' ? 'border-red-300 dark:border-red-800/50' :
               insight.status === 'needs_attention' ? 'border-amber-300 dark:border-amber-800/50' :
               'border-slate-200 dark:border-slate-700/50'
             }`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                     insight.status === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
                     insight.status === 'needs_attention' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  }`}>{insight.status.replace('_', ' ')}</span>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white capitalize">{insight.recType.replace('_', ' ')}</h3>
+                    insight.status === 'healthy' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                    'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
+                  }`}>{insight.statusLabel || insight.status.replace('_', ' ')}</span>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{insight.kindLabel || insight.recType.replace('_', ' ')}</h3>
+                  {insight.sample === 'early' && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400">Early read</span>}
                 </div>
-                <span className="text-[10px] text-slate-400">Top rejection: {insight.topRejectionReason}</span>
+                {insight.topRejectionReason && <span className="text-[11px] text-slate-500 dark:text-slate-400">Top dismissal reason: {insight.topRejectionReason}</span>}
               </div>
-              <div className="grid grid-cols-3 gap-4 mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-3">
                 <div>
-                  <p className="text-[9px] text-slate-400 uppercase">Approval Rate</p>
-                  <p className={`text-lg font-bold ${insight.approvalRate >= 80 ? 'text-emerald-400' : insight.approvalRate >= 60 ? 'text-amber-400' : 'text-red-400'}`}>{insight.approvalRate}%</p>
+                  <p className="text-[9px] text-slate-400 uppercase">Decisions</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{insight.decisions ?? 0}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-slate-400 uppercase">Follow-Through</p>
-                  <p className={`text-lg font-bold ${insight.followThroughRate >= 75 ? 'text-emerald-400' : insight.followThroughRate >= 50 ? 'text-amber-400' : 'text-red-400'}`}>{insight.followThroughRate}%</p>
+                  <p className="text-[9px] text-slate-400 uppercase">Approval</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{insight.approvalRate}%</p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-slate-400 uppercase">Avg Decision Time</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{insight.avgDecisionTime}s</p>
+                  <p className="text-[9px] text-slate-400 uppercase">Follow-through</p>
+                  <p className={`text-lg font-bold ${
+                    insight.followThroughLevel === 'good' ? 'text-emerald-500' :
+                    insight.followThroughLevel === 'attention' ? 'text-amber-500' :
+                    insight.followThroughLevel === 'low' ? 'text-red-500' : 'text-slate-400'
+                  }`}>{insight.followThroughRate == null ? '—' : insight.followThroughRate + '%'}</p>
+                  {insight.targetGood != null && <p className="text-[10px] text-slate-400">Starting target {insight.targetGood}%</p>}
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-400 uppercase">Typical decision time</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{insight.avgDecisionTime == null ? '—' : insight.avgDecisionTime + 's'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-400 uppercase">Visits recovered</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{insight.verifiedVisits ?? 0}</p>
+                  {(insight.estimatedValue ?? 0) > 0 && <p className="text-[10px] text-slate-400">Est. {((v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))(insight.estimatedValue ?? 0)}</p>}
                 </div>
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg text-xs text-slate-600 dark:text-slate-300 flex items-start gap-2">
