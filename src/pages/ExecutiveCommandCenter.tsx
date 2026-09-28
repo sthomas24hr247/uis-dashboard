@@ -102,6 +102,8 @@ export default function ExecutiveCommandCenter() {
   const hasRevenue = revenueOffices.length > 0;
   const totalRevenue = revenueOffices.reduce((s, o) => s + (o.monthlyRevenue ?? 0), 0);
   const totalPrevRevenue = revenueOffices.reduce((s, o) => s + (o.prevMonthRevenue ?? 0), 0);
+  const totalNet = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.netProduction ?? 0), 0);
+  const totalCollections = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.collections ?? 0), 0);
   const revenueChange = hasRevenue && totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100) : null;
   const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
   const avgQCI = offices.length ? offices.reduce((s, o) => s + o.qciScore, 0) / offices.length : 0;
@@ -159,15 +161,20 @@ export default function ExecutiveCommandCenter() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenue (MTD)</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Gross Production (MTD)</p>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{hasRevenue ? `$${(totalRevenue / 1000).toFixed(1)}K` : '—'}</p>
           {revenueChange != null && (
           <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${revenueChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {revenueChange >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {Math.abs(revenueChange).toFixed(1)}% vs last month
+            {Math.abs(revenueChange).toFixed(1)}% vs same days last month
           </div>
+          )}
+          {hasRevenue && (
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              {'Net $' + (totalNet / 1000).toFixed(1) + 'K \u00b7 Collections $' + (totalCollections / 1000).toFixed(1) + 'K'}
+            </p>
           )}
         </div>
 
@@ -303,7 +310,7 @@ export default function ExecutiveCommandCenter() {
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Revenue</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Production (MTD)</p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">{office.monthlyRevenue != null ? `$${(office.monthlyRevenue / 1000).toFixed(1)}K` : '—'}</p>
                     {revChange != null && (
                     <span className={`text-[10px] font-medium ${revChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -474,7 +481,7 @@ function PracticeDrillDown({ office, onClose, missingContact }: { office: typeof
   const contactReady = !!missingContact && missingContact.episode_count > 0;
 
   const kpis = [
-    { label: 'Monthly Revenue', value: office.monthlyRevenue != null ? `$${(office.monthlyRevenue / 1000).toFixed(0)}K` : '\u2014', sub: (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs last mo` : 'No revenue data', color: 'text-teal-400' },
+    { label: 'Production (MTD)', value: office.monthlyRevenue != null ? `$${(office.monthlyRevenue / 1000).toFixed(0)}K` : '\u2014', sub: (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? `${((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100).toFixed(1)}% vs same days last mo` : 'No production data', color: 'text-teal-400' },
     { label: 'QCI Score', value: qciCalibrating ? 'Calibrating' : `${office.qciScore}`, sub: qciCalibrating ? 'clinical scoring in progress' : office.qciGrade + ' grade', color: qciCalibrating ? 'text-amber-400' : (office.qciGrade === 'B' ? 'text-blue-400' : 'text-amber-400') },
     { label: 'No-Show Rate', value: `${office.noShowRate}%`, sub: office.noShowRate > 10 ? 'Above threshold' : 'On target', color: office.noShowRate > 10 ? 'text-red-400' : 'text-teal-400' },
     { label: 'Gap Leakage', value: office.outcomeGapLeakage ? `$${(office.outcomeGapLeakage / 1000).toFixed(1)}K` : 'Calibrating', sub: office.outcomeGapLeakage ? 'This month' : 'activates with PMS data', color: 'text-pink-400' },
