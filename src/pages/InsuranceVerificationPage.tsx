@@ -28,7 +28,7 @@ interface InsurancePlan {
   relationship: 'self' | 'spouse' | 'child' | 'other';
   effectiveDate: string;
   terminationDate?: string;
-  planType: 'PPO' | 'HMO' | 'DHMO' | 'Indemnity' | 'Discount' | 'Medicaid' | '';
+  planType: 'PPO' | 'HMO' | 'DHMO' | 'Indemnity' | 'Discount' | 'Medi-Cal' | 'DMO' | '';
 }
 
 interface BenefitSummary {
@@ -334,8 +334,8 @@ function PatientInsuranceDetail({ patient, onBack, onReverify }: { patient: Pati
             {b.annualMax > 0 && <BenefitMeter used={b.annualUsed} max={b.annualMax} label="Annual Maximum" />}
             {b.annualMax === 0 && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-400">
-                <p className="font-semibold">{(plan.planType === 'HMO' || plan.planType === 'DHMO') ? 'HMO/DHMO Plan' : 'Annual maximum not provided'}</p>
-                <p>{(plan.planType === 'HMO' || plan.planType === 'DHMO') ? 'No annual maximum — copays per procedure' : 'The payer did not return an annual maximum for this plan.'}</p>
+                <p className="font-semibold">{(plan.planType === 'HMO' || plan.planType === 'DHMO' || plan.planType === 'DMO') ? 'HMO/DHMO Plan' : 'Annual maximum not provided'}</p>
+                <p>{(plan.planType === 'HMO' || plan.planType === 'DHMO' || plan.planType === 'DMO') ? 'No annual maximum — copays per procedure' : 'The payer did not return an annual maximum for this plan.'}</p>
               </div>
             )}
             <div>
@@ -674,7 +674,7 @@ function ClaimsTrackingView() {
 
 const EMPTY_FORM = {
   patientFirstName: '', patientLastName: '', patientDob: '',
-  carrier: '', planName: '', planType: 'PPO', memberId: '', groupNumber: '',
+  carrier: '', planName: '', planType: '', memberId: '', groupNumber: '',
   subscriberName: '', effectiveDate: '', terminationDate: '',
   annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
   preventiveCoverage: '', basicCoverage: '', majorCoverage: '',
@@ -735,7 +735,7 @@ export default function InsuranceVerificationPage() {
             plan: {
               carrier: v.carrier,
               planName: v.planName || '',
-              planType: v.planType || (/medi-?cal|denti-?cal|medicaid/i.test(String(v.carrier || '')) ? 'Medicaid' : ''),
+              planType: v.planType || (/medi-?cal|denti-?cal|medicaid/i.test(String(v.carrier || '')) ? 'Medi-Cal' : ''),
               memberId: v.memberId || '',
               groupNumber: v.groupNumber || '',
               subscriberName: v.subscriberName || '',
@@ -1044,7 +1044,7 @@ export default function InsuranceVerificationPage() {
                       <label className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1 block">Plan Type</label>
                       <select value={form.planType} onChange={e => setForm(p => ({...p, planType: e.target.value}))}
                         className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
-                        <option>PPO</option><option>HMO</option><option>DMO</option><option>Medi-Cal</option><option>Medicare</option><option>Self-Pay</option><option>Other</option>
+                        <option value="">Select plan type</option><option>PPO</option><option>HMO</option><option>DMO</option><option>Medi-Cal</option><option>Medicare</option><option>Self-Pay</option><option>Other</option>
                       </select>
                     </div>
                     <div>
@@ -1214,10 +1214,10 @@ export default function InsuranceVerificationPage() {
                       <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full">
                         <div className={`h-full rounded-full ${pctUsed > 85 ? 'bg-red-500' : pctUsed > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${pctUsed}%` }} />
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">${b.annualRemaining.toLocaleString()} of ${b.annualMax.toLocaleString()}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">${Math.round(b.annualRemaining).toLocaleString()} of ${Math.round(b.annualMax).toLocaleString()}</p>
                     </div>
                   ) : (
-                    <p className={`text-[10px] ${(p.plan.planType === 'HMO' || p.plan.planType === 'DHMO') ? 'text-blue-400 font-semibold' : 'text-slate-400'}`}>{(p.plan.planType === 'HMO' || p.plan.planType === 'DHMO') ? p.plan.planType + ' — Copay Plan' : 'Annual max not provided'}</p>
+                    <p className={`text-[10px] ${(p.plan.planType === 'HMO' || p.plan.planType === 'DHMO' || p.plan.planType === 'DMO') ? 'text-blue-400 font-semibold' : 'text-slate-400'}`}>{(p.plan.planType === 'HMO' || p.plan.planType === 'DHMO' || p.plan.planType === 'DMO') ? p.plan.planType + ' — Copay Plan' : 'Annual max not provided'}</p>
                   )}
                 </div>
                 <div className="text-right w-16">
