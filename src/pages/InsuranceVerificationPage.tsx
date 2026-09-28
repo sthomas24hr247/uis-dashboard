@@ -850,10 +850,11 @@ export default function InsuranceVerificationPage() {
       setFilling(true);
       setVerifyMsg('Looking up the patient in practice records...');
       try {
-        const qs = 'firstName=' + encodeURIComponent(form.patientFirstName)
-          + '&lastName=' + encodeURIComponent(form.patientLastName)
-          + '&dob=' + encodeURIComponent(form.patientDob);
-        const res = await apiFetch('/api/insurance/verify/pms-coverage?' + qs);
+        const res = await apiFetch('/api/insurance/verify/pms-coverage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firstName: form.patientFirstName, lastName: form.patientLastName, dob: form.patientDob }),
+        });
         const data: any = await res.json().catch(() => ({}));
         if (!res.ok) { setVerifyMsg(data.error || 'Could not read practice records.'); return; }
         if (!data.found) { setVerifyMsg(data.message || 'No matching patient was found in practice records.'); return; }
