@@ -74,7 +74,8 @@ interface FeedbackInsight {
 
 // ── Generate Demo Data ──────────────────────────────────────────────────────
 
-function generateFingerprints(): StaffFingerprint[] {
+// Design reference only. Never displayed.
+export function generateFingerprints(): StaffFingerprint[] {
   return [
     {
       /* Staff populated from database */ staffId: '0', name: 'No staff data yet', role: 'Pending sync',
@@ -118,7 +119,8 @@ function generateFingerprints(): StaffFingerprint[] {
   ];
 }
 
-function generateFollowThroughs(): FollowThroughItem[] {
+// Design reference only. Never displayed.
+export function generateFollowThroughs(): FollowThroughItem[] {
   return [
     /* Populated from database */ { recId: '0', title: 'No recommendations yet', type: 'treatment_plan', approvedBy: 'Dr. Sarah Johnson', approvedAt: '2026-02-11', status: 'pending', daysElapsed: 12, revenue: 1250 },
     { recId: '0', title: 'Schedule Robert Brown for accepted filling', type: 'scheduling', approvedBy: 'Michael Chen', approvedAt: '2026-02-18', status: 'verified', verifiedAt: '2026-02-20', daysElapsed: 5, revenue: 195 },
@@ -131,7 +133,8 @@ function generateFollowThroughs(): FollowThroughItem[] {
   ];
 }
 
-function generateFeedbackInsights(): FeedbackInsight[] {
+// Design reference only. Never displayed.
+export function generateFeedbackInsights(): FeedbackInsight[] {
   return [
     { recType: 'scheduling', approvalRate: 92, followThroughRate: 88, avgDecisionTime: 3.2, topRejectionReason: 'Patient preference conflict', recommendation: 'Scheduling recs performing well. Consider adding patient preferred time slots.', status: 'healthy' },
     { recType: 'treatment_plan', approvalRate: 65, followThroughRate: 48, avgDecisionTime: 12.5, topRejectionReason: 'Patient financial concern', recommendation: 'Treatment plans have high approval but LOW follow-through (48%). Staff approves but doesn\'t execute. Add automated scheduling nudge after approval.', status: 'critical' },
@@ -347,9 +350,9 @@ export default function BILDashboardPage() {
   useEffect(() => {
     const practiceId = getPracticeId();
     // Verification & Feedback tabs still use illustrative seed data (separate sources, future wiring)
-    setFollowThroughs(generateFollowThroughs());
-    setFeedbackInsights(generateFeedbackInsights());
-    setFingerprints(generateFingerprints()); // placeholder only; overwritten by live fetch before render
+    // Only real data is shown. Follow-through and feedback start empty until they are tracked for real.
+    setFollowThroughs([]);
+    setFeedbackInsights([]);
     Promise.all([
       apiFetch(`/api/bil/summary`).then(r => r.json()).catch(() => null),
       apiFetch(`/api/bil/staff-fingerprints?practice_id=${practiceId}`).then(r => r.json()).catch(() => null),
@@ -454,8 +457,8 @@ export default function BILDashboardPage() {
         {[
           { label: 'TOTAL DECISIONS', value: totalDecisions.toString(), sub: 'All time', icon: Activity, color: 'text-teal-400' },
           { label: 'APPROVAL RATE', value: `${avgApproval}%`, sub: 'Team average', icon: Target, color: avgApproval >= 80 ? 'text-emerald-400' : 'text-amber-400' },
-          { label: 'FOLLOW-THROUGH', value: `${avgFollowThrough}%`, sub: 'Executed after approval', icon: CheckCircle2, color: avgFollowThrough >= 75 ? 'text-emerald-400' : 'text-amber-400' },
-          { label: 'VERIFIED', value: `${verified}/${followThroughs.length}`, sub: `${pending} pending · ${failed} failed`, icon: Shield, color: 'text-emerald-400' },
+          { label: 'FOLLOW-THROUGH', value: followThroughs.length ? `${avgFollowThrough}%` : '—', sub: followThroughs.length ? 'Executed after approval' : 'Not tracked yet', icon: CheckCircle2, color: followThroughs.length && avgFollowThrough >= 75 ? 'text-emerald-400' : 'text-amber-400' },
+          { label: 'VERIFIED', value: followThroughs.length ? `${verified}/${followThroughs.length}` : '—', sub: followThroughs.length ? `${pending} pending · ${failed} failed` : 'Not tracked yet', icon: Shield, color: 'text-emerald-400' },
           { label: 'STAFF PROFILED', value: fingerprints.length.toString(), sub: `${fingerprints.filter(f => f.confidenceLevel === 'high').length} high confidence`, icon: Fingerprint, color: 'text-violet-400' },
         ].map((stat, i) => (
           <div key={i} className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
@@ -539,6 +542,9 @@ export default function BILDashboardPage() {
             </h3>
             <p className="text-xs text-slate-400 mt-1">Checks PMS to confirm approved recommendations were actually implemented</p>
           </div>
+          {followThroughs.length === 0 && (
+            <p className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Follow-through checks are not available yet. They will appear once approved recommendations can be confirmed against practice records.</p>
+          )}
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
             {followThroughs.map(ft => {
               const statusStyles = {
@@ -576,6 +582,9 @@ export default function BILDashboardPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">
             The BIL Feedback Loop analyzes how each recommendation type performs — approval rate vs. follow-through rate reveals whether recs need better framing, better timing, or better content.
           </p>
+          {feedbackInsights.length === 0 && (
+            <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">Feedback insights are not available yet. They will appear once there are enough real decisions and follow-through results to compare.</p>
+          )}
           {feedbackInsights.sort((a, b) => {
             const order = { critical: 0, needs_attention: 1, healthy: 2 };
             return order[a.status] - order[b.status];
