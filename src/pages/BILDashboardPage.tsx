@@ -350,9 +350,12 @@ export default function BILDashboardPage() {
   useEffect(() => {
     const practiceId = getPracticeId();
     // Verification & Feedback tabs still use illustrative seed data (separate sources, future wiring)
-    // Only real data is shown. Follow-through and feedback start empty until they are tracked for real.
-    setFollowThroughs([]);
+    // Only real data is shown. Follow-through comes from practice records; feedback insights are not built yet.
     setFeedbackInsights([]);
+    apiFetch(`/api/bil/follow-throughs`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setFollowThroughs(((d && d.items) || []) as FollowThroughItem[]))
+      .catch(() => setFollowThroughs([]));
     Promise.all([
       apiFetch(`/api/bil/summary`).then(r => r.json()).catch(() => null),
       apiFetch(`/api/bil/staff-fingerprints?practice_id=${practiceId}`).then(r => r.json()).catch(() => null),
@@ -540,10 +543,10 @@ export default function BILDashboardPage() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <Shield className="w-4 h-4 text-teal-400" /> Follow-Through Verification Log
             </h3>
-            <p className="text-xs text-slate-400 mt-1">Checks PMS to confirm approved recommendations were actually implemented</p>
+            <p className="text-xs text-slate-400 mt-1">Checks practice records for the result of each approved recommendation: a booked, confirmed, or attended visit. It measures outcomes in the schedule, not effort.</p>
           </div>
           {followThroughs.length === 0 && (
-            <p className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Follow-through checks are not available yet. They will appear once approved recommendations can be confirmed against practice records.</p>
+            <p className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">No approved recommendations to check yet. Approved items appear here and are checked against practice records each morning.</p>
           )}
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
             {followThroughs.map(ft => {
