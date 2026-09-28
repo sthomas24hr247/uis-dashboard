@@ -177,6 +177,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error(data.error || 'Login failed');
       }
 
+      // Two-step sign-in not set up yet (required): send the person through guided setup
+      if (data.mfaSetupRequired) {
+        const setupError: any = new Error('MFA_SETUP_REQUIRED');
+        setupError.mfaSetupRequired = true;
+        setupError.setupToken = data.setupToken;
+        throw setupError;
+      }
+
       // MFA required — throw special error with tempToken
       if (data.mfaRequired) {
         const mfaError: any = new Error('MFA_REQUIRED');

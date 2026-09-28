@@ -105,7 +105,10 @@ export default function LoginPage() {
       await login(email, password);
       navigate(returnTo);
     } catch (err: any) {
-      if (err.mfaRequired) {
+      if (err.mfaSetupRequired) {
+        try { sessionStorage.setItem('uis_mfa_enroll', err.setupToken); } catch { /* ignore */ }
+        navigate('/mfa-setup?returnTo=' + encodeURIComponent(returnTo));
+      } else if (err.mfaRequired) {
         setMfaTempToken(err.tempToken);
         setMfaStep('mfa_code');
       } else {

@@ -860,7 +860,7 @@ export default function SettingsPage() {
                 <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${roleColor[u.role] || roleColor.staff}`}>{u.role}</span>
                 <span className="text-xs text-slate-400 w-20 text-right">{formatLastLogin(u.lastLogin)}</span>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setEditingUser(u)} className="p-1.5 hover:bg-teal-100 dark:hover:bg-teal-900/30 rounded-lg" title="Edit user">
+
                   {u.status !== 'disabled' && (
                     <button onClick={() => handleSendSetupLink(u)}
                       className="px-2 py-1 text-xs font-medium border border-teal-600 text-teal-700 dark:text-teal-300 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30"
@@ -869,6 +869,22 @@ export default function SettingsPage() {
                     </button>
                   )}
                   <TeamMemberPasswordReset userId={u.id} userName={u.name} userEmail={u.email} token={token} />
+                  {u.status === 'active' && (
+                    <button type="button"
+                      onClick={async () => {
+                        if (!window.confirm('Reset two-step sign-in for ' + (u.name || u.email) + '? They will set it up again at their next sign-in.')) return;
+                        try {
+                          const r = await fetch(API_URL + '/api/auth/users/' + encodeURIComponent(u.id) + '/reset-mfa', { method: 'POST', headers: { Authorization: 'Bearer ' + (localStorage.getItem('uis_token') || '') } });
+                          const d: any = await r.json().catch(() => ({}));
+                          window.alert(r.ok ? 'Two-step sign-in was reset. They will set it up again at their next sign-in.' : (d.error || 'Could not reset two-step sign-in.'));
+                        } catch { window.alert('Could not reset two-step sign-in.'); }
+                      }}
+                      className="px-2 py-1 text-xs font-medium border border-amber-600 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30"
+                      title="Clear this person's two-step sign-in so they set it up again at their next sign-in">
+                      Reset MFA
+                    </button>
+                  )}
+                  <button onClick={() => setEditingUser(u)} className="p-1.5 hover:bg-teal-100 dark:hover:bg-teal-900/30 rounded-lg" title="Edit user">
                     <Edit3 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   </button>
                   <button onClick={() => setShowDeleteConfirm(u.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Remove user">
