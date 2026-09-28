@@ -28,7 +28,7 @@ interface InsurancePlan {
   relationship: 'self' | 'spouse' | 'child' | 'other';
   effectiveDate: string;
   terminationDate?: string;
-  planType: 'PPO' | 'HMO' | 'DHMO' | 'Indemnity' | 'Discount';
+  planType: 'PPO' | 'HMO' | 'DHMO' | 'Indemnity' | 'Discount' | 'Medicaid' | '';
 }
 
 interface BenefitSummary {
@@ -291,7 +291,7 @@ function PatientInsuranceDetail({ patient, onBack, onReverify }: { patient: Pati
           </div>
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{patient.firstName} {patient.lastName}</h2>
-            <p className="text-sm text-slate-500">{plan.carrier} · {plan.planName} · Member: {plan.memberId}</p>
+            <p className="text-sm text-slate-500">{[plan.carrier, plan.planName && plan.planName !== plan.carrier ? plan.planName : '', 'Member: ' + plan.memberId].filter(Boolean).join(' · ')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -311,7 +311,7 @@ function PatientInsuranceDetail({ patient, onBack, onReverify }: { patient: Pati
             {[
               ['Carrier', plan.carrier],
               ['Plan', plan.planName],
-              ['Type', plan.planType],
+              ['Type', plan.planType || 'Not provided'],
               ['Group #', plan.groupNumber],
               ['Member ID', plan.memberId],
               ['Subscriber', plan.subscriberName],
@@ -334,19 +334,19 @@ function PatientInsuranceDetail({ patient, onBack, onReverify }: { patient: Pati
             {b.annualMax > 0 && <BenefitMeter used={b.annualUsed} max={b.annualMax} label="Annual Maximum" />}
             {b.annualMax === 0 && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-400">
-                <p className="font-semibold">HMO/DHMO Plan</p>
-                <p>No annual maximum — copays per procedure</p>
+                <p className="font-semibold">{(plan.planType === 'HMO' || plan.planType === 'DHMO') ? 'HMO/DHMO Plan' : 'Annual maximum not provided'}</p>
+                <p>{(plan.planType === 'HMO' || plan.planType === 'DHMO') ? 'No annual maximum — copays per procedure' : 'The payer did not return an annual maximum for this plan.'}</p>
               </div>
             )}
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-slate-500">Deductible</span>
-                <span className={`font-bold ${b.deductibleRemaining === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {b.deductibleRemaining === 0 ? '✓ Met' : `$${b.deductibleRemaining} remaining`}
+                <span className={`font-bold ${!((b.deductible || (b as any).deductibleTotal || 0) > 0) ? 'text-slate-400' : b.deductibleRemaining === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {!((b.deductible || (b as any).deductibleTotal || 0) > 0) ? 'Not provided' : b.deductibleRemaining === 0 ? '✓ Met' : `$${b.deductibleRemaining} remaining`}
                 </span>
               </div>
               <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.deductible > 0 ? (b.deductibleMet / b.deductible) * 100 : 100}%` }} />
+                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.deductible > 0 ? (b.deductibleMet / b.deductible) * 100 : 0}%` }} />
               </div>
             </div>
             {b.orthoMax !== undefined && (
@@ -735,7 +735,7 @@ export default function InsuranceVerificationPage() {
             plan: {
               carrier: v.carrier,
               planName: v.planName || '',
-              planType: v.planType || 'PPO',
+              planType: v.planType || (/medi-?cal|denti-?cal|medicaid/i.test(String(v.carrier || '')) ? 'Medicaid' : ''),
               memberId: v.memberId || '',
               groupNumber: v.groupNumber || '',
               subscriberName: v.subscriberName || '',
@@ -1206,7 +1206,7 @@ export default function InsuranceVerificationPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{p.firstName} {p.lastName}</p>
-                  <p className="text-[10px] text-slate-400">{p.plan.carrier} · {p.plan.planName} · {p.plan.planType}</p>
+                  <p className="text-[10px] text-slate-400">{[p.plan.carrier, p.plan.planName && p.plan.planName !== p.plan.carrier ? p.plan.planName : '', p.plan.planType].filter(Boolean).join(' · ')}</p>
                 </div>
                 <div className="hidden md:block w-32">
                   {b.annualMax > 0 ? (
@@ -1217,12 +1217,12 @@ export default function InsuranceVerificationPage() {
                       <p className="text-[10px] text-slate-400 mt-0.5">${b.annualRemaining.toLocaleString()} of ${b.annualMax.toLocaleString()}</p>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-blue-400 font-semibold">{p.plan.planType} — Copay Plan</p>
+                    <p className={`text-[10px] ${(p.plan.planType === 'HMO' || p.plan.planType === 'DHMO') ? 'text-blue-400 font-semibold' : 'text-slate-400'}`}>{(p.plan.planType === 'HMO' || p.plan.planType === 'DHMO') ? p.plan.planType + ' — Copay Plan' : 'Annual max not provided'}</p>
                   )}
                 </div>
                 <div className="text-right w-16">
-                  <p className={`text-xs font-bold ${b.deductibleRemaining === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {b.deductibleRemaining === 0 ? '✓ Met' : `$${b.deductibleRemaining}`}
+                  <p className={`text-xs font-bold ${!((b.deductible || (b as any).deductibleTotal || 0) > 0) ? 'text-slate-400' : b.deductibleRemaining === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {!((b.deductible || (b as any).deductibleTotal || 0) > 0) ? '—' : b.deductibleRemaining === 0 ? '✓ Met' : `$${b.deductibleRemaining}`}
                   </p>
                   <p className="text-[9px] text-slate-400">deductible</p>
                 </div>
