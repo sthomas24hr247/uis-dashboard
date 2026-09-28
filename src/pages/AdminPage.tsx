@@ -7,7 +7,7 @@ import {
   Calendar, Shield, X
 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
+const API = (import.meta.env.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com') + '/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -755,7 +755,7 @@ function GHLPanel({ onToast }: { onToast: (msg: string, type: 'success' | 'error
   const load = useCallback(async (q = '') => {
     setLoading(true);
     try {
-      const res = await apiGet(`/admin/ghl/contacts?search=${encodeURIComponent(q)}`);
+      const res = await apiPost('/admin/ghl/contacts', { search: q });
       setContacts(res.contacts || []);
       setConnected(true);
     } catch {

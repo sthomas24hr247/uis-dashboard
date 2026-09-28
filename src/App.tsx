@@ -16,6 +16,7 @@ import RecommendationsPage from './pages/RecommendationsPage';
 import PatientIntelPage from './pages/PatientIntelPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
+import AdminOnly from './components/AdminOnly';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ManagerDashboard from "./pages/ManagerDashboard";
 import BILDashboardPage from './pages/BILDashboardPage';
@@ -101,7 +102,7 @@ function App() {
         <Route path="workforce" element={<PageErrorBoundary pageName="Workforce Intel"><WorkforceIntelPage /></PageErrorBoundary>} />
         <Route path="cdt-analysis" element={<CDTGapAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
-            <Route path="admin" element={<AdminPage />} />
+            <Route path="admin" element={<AdminOnly><AdminPage /></AdminOnly>} />
             <Route path="manager-dashboard" element={<ManagerDashboard />} />
         <Route path="waitlist" element={<WaitlistPage />} />
         <Route path="automation" element={<AutomationHubPage />} />
