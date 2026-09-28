@@ -28,6 +28,16 @@ interface TeamUser {
 function MFASection() {
   const { token } = useAuth();
   const [mfaEnabled, setMfaEnabled] = useState(false);
+  // Load the real status so an enrolled account shows Enabled and is never offered setup again.
+  useEffect(() => {
+    let alive = true;
+    const base = (import.meta as any).env?.VITE_API_URL?.replace('/graphql', '') || 'https://api.uishealth.com';
+    fetch(base + '/api/auth/mfa/status', { headers: { Authorization: 'Bearer ' + (localStorage.getItem('uis_token') || '') } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive && d) setMfaEnabled(!!d.enabled); })
+      .catch(() => { /* leave as is */ });
+    return () => { alive = false; };
+  }, []);
   const [step, setStep] = useState<'idle'|'setup'|'verify'|'disable'>('idle');
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
