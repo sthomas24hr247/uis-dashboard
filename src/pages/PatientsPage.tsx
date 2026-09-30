@@ -21,8 +21,8 @@ const cleanName = (s: any) => String(s || '').replace(/^[^A-Za-z]+/, '');
 
 // Using Dentamind query (works without auth)
 const GET_PATIENTS = gql`
-  query GetPatients($status: String, $search: String, $limit: Int, $offset: Int) {
-    dentamindPatients(status: $status, search: $search, limit: $limit, offset: $offset) {
+  query GetPatients($status: String, $search: String, $limit: Int, $offset: Int, $sortBy: String, $sortDir: String) {
+    dentamindPatients(status: $status, search: $search, limit: $limit, offset: $offset, sortBy: $sortBy, sortDir: $sortDir) {
       id
       firstName
       lastName
@@ -46,7 +46,20 @@ export default function PatientsPage() {
   const [page, setPage] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => { const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350); return () => clearTimeout(t); }, [searchQuery]);
-  useEffect(() => { setPage(0); }, [debouncedSearch, statusFilter]);
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  useEffect(() => { setPage(0); }, [debouncedSearch, statusFilter, sortBy, sortDir]);
+  const toggleSort = (key: string) => {
+    if (sortBy === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(key); setSortDir(key === 'lastVisit' ? 'desc' : 'asc'); }
+  };
+  const sortHeader = (key: string, label: string) => (
+    <button type="button" onClick={() => toggleSort(key)} title={`Sort by ${label}`}
+      className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
+      {label}
+      <span className="text-xs opacity-70">{sortBy === key ? (sortDir === 'asc' ? '\u25B2' : '\u25BC') : '\u2195'}</span>
+    </button>
+  );
 
   const { data, loading, error, refetch } = useQuery(GET_PATIENTS, {
     variables: {
@@ -54,6 +67,8 @@ export default function PatientsPage() {
       status: statusFilter,
       limit: PAGE_SIZE + 1,
       offset: page * PAGE_SIZE,
+      sortBy,
+      sortDir,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -156,13 +171,13 @@ export default function PatientsPage() {
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Patient</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">{sortHeader('name', 'Patient')}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Contact</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Insurance</th>
-                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Last Visit</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">{sortHeader('lastVisit', 'Last Visit')}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Balance</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">AI Risk</th>
-                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Status</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">{sortHeader('status', 'Status')}</th>
                 <th className="w-12"></th>
               </tr>
             </thead>
