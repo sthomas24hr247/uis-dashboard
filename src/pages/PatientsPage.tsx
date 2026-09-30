@@ -16,6 +16,9 @@ import {
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 
+// Dentrix sometimes prefixes archived or duplicate records with marks such as . ` +
+const cleanName = (s: any) => String(s || '').replace(/^[^A-Za-z]+/, '');
+
 // Using Dentamind query (works without auth)
 const GET_PATIENTS = gql`
   query GetPatients($status: String, $search: String, $limit: Int, $offset: Int) {
@@ -38,19 +41,28 @@ const GET_PATIENTS = gql`
 
 export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>('ACTIVE');
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => { const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350); return () => clearTimeout(t); }, [searchQuery]);
+  useEffect(() => { setPage(0); }, [debouncedSearch, statusFilter]);
 
   const { data, loading, error, refetch } = useQuery(GET_PATIENTS, {
     variables: {
-      search: searchQuery || null,
+      search: debouncedSearch || null,
       status: statusFilter,
-      limit: 50,
-      offset: 0,
+      limit: PAGE_SIZE + 1,
+      offset: page * PAGE_SIZE,
     },
     fetchPolicy: 'cache-and-network',
   });
 
-  const patients = data?.dentamindPatients || [];
+  const fetched = data?.dentamindPatients || [];
+  const hasNext = fetched.length > PAGE_SIZE;
+  const patients = fetched.slice(0, PAGE_SIZE);
+  const rangeStart = patients.length ? page * PAGE_SIZE + 1 : 0;
+  const rangeEnd = page * PAGE_SIZE + patients.length;
 
   const [predictions, setPredictions] = useState<any[]>([]);
   useEffect(() => {
@@ -80,7 +92,7 @@ export default function PatientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Patients</h1>
-          <p className="text-slate-500">{patients.length} patients</p>
+          <p className="text-slate-500">{statusFilter === 'ACTIVE' ? 'Active patients' : statusFilter === 'INACTIVE' ? 'Inactive patients' : 'All patients'}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -120,6 +132,16 @@ export default function PatientsPage() {
         </select>
       </div>
 
+      <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+        <span>{patients.length ? `Showing ${rangeStart} to ${rangeEnd}` : 'No matching patients'}{statusFilter ? ` (${statusFilter === 'ACTIVE' ? 'active' : 'inactive'} patients)` : ''}</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setPage(pg => Math.max(0, pg - 1))} disabled={page === 0}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(pg => pg + 1)} disabled={!hasNext}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40">Next</button>
+        </div>
+      </div>
+
       {/* Patients Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading && !data ? (
@@ -157,7 +179,7 @@ export default function PatientsPage() {
 }
 
 function PatientRow({ patient, prediction }: { patient: any; prediction?: any }) {
-  const statusColor = patient.status === 'ACTIVE' 
+  const statusColor = String(patient.status || '').toUpperCase() === 'ACTIVE' 
     ? 'bg-emerald-100 text-emerald-700'
     : 'bg-slate-100 text-slate-600';
 
@@ -170,7 +192,7 @@ function PatientRow({ patient, prediction }: { patient: any; prediction?: any })
           </div>
           <div>
             <p className="font-medium text-slate-900">
-              {patient.firstName} {patient.lastName}
+              {cleanName(patient.firstName)} {cleanName(patient.lastName)}
             </p>
             <p className="text-sm text-slate-500">
               DOB: {patient.dateOfBirth || 'N/A'}
@@ -195,14 +217,14 @@ function PatientRow({ patient, prediction }: { patient: any; prediction?: any })
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-slate-600">
-        {patient.insuranceProvider || 'Self-Pay'}
+        {patient.insuranceProvider || 'Not on file'}
       </td>
       <td className="px-4 py-3 text-sm text-slate-600">
-        {patient.lastVisit || 'Never'}
+        {patient.lastVisit || 'None on record'}
       </td>
       <td className="px-4 py-3">
         <span className={`font-medium ${(patient.balance || 0) > 0 ? 'text-amber-600' : 'text-slate-600'}`}>
-          ${(patient.balance || 0).toFixed(2)}
+          {patient.balance ? '$' + Number(patient.balance).toFixed(2) : '\u2014'}
         </span>
       </td>
       <td className="px-4 py-3">
