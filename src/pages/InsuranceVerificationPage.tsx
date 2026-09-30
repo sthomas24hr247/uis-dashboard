@@ -673,7 +673,7 @@ function ClaimsTrackingView() {
 
 const EMPTY_FORM = {
   patientFirstName: '', patientLastName: '', patientDob: '',
-  carrier: '', planName: '', planType: '', memberId: '', groupNumber: '',
+  carrier: '', planName: '', planType: '', memberId: '', groupNumber: '', zuubIds: [] as string[],
   subscriberName: '', effectiveDate: '', terminationDate: '',
   annualMax: '', annualUsed: '', deductibleTotal: '', deductibleMet: '',
   preventiveCoverage: '', basicCoverage: '', majorCoverage: '',
@@ -774,6 +774,8 @@ export default function InsuranceVerificationPage() {
   useEffect(() => { loadVerifications(); }, []);
 
     const applyVerifyResult = (data: any) => {
+      const zNote: string = data?.zuub?.note ? ' ' + data.zuub.note : '';
+      if (Array.isArray(data?.zuub?.ids) && data.zuub.ids.length) setForm(pp => ({ ...pp, zuubIds: data.zuub.ids }));
       if (data.status === 'needs_review') {
         const list = (data.candidates || []).map((c: any) => (c.carrier || 'Unknown carrier') + (c.memberId ? ' (member ' + c.memberId + ')' : '')).join('; ');
         setVerifyMsg((data.message || 'Possible coverage found. Confirm the correct plan before saving.') + (list ? ' ' + list + '.' : ''));
@@ -807,7 +809,7 @@ export default function InsuranceVerificationPage() {
       }));
       setVerifyMsg(data.status === 'inactive'
         ? 'Coverage came back inactive for this patient. Review the details.'
-        : (data.discovered ? `Coverage found automatically: ${data.carrier || 'payer located'}${data.memberId ? ', member ' + data.memberId : ''}. Please confirm the details, then Save.` : 'Benefits verified. Fields left blank were not provided by the payer. Review, then Save.'));
+        : (data.discovered ? `Coverage found automatically: ${data.carrier || 'payer located'}${data.memberId ? ', member ' + data.memberId : ''}. Please confirm the details, then Save.` : 'Benefits verified. Fields left blank were not provided by the payer. Review, then Save.') + zNote);
     };
 
     const pollDiscovery = async (discoveryId: string) => {
@@ -898,6 +900,7 @@ export default function InsuranceVerificationPage() {
             dob: form.patientDob,
             carrier: form.carrier,
             memberId: form.memberId || undefined,
+            groupNumber: form.groupNumber || undefined,
             payerId: (pmsLink && pmsLink.carrierName === form.carrier) ? (pmsLink.payerId || undefined) : undefined,
             policyholder: (pmsLink && pmsLink.memberId === form.memberId) ? (pmsLink.policyholder || undefined) : undefined,
           }),
