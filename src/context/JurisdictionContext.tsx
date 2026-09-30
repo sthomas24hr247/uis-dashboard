@@ -77,7 +77,9 @@ export const JurisdictionProvider: React.FC<{ children: ReactNode }> = ({ childr
     const fetchJurisdictions = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/practice/jurisdiction`);
+        const token = localStorage.getItem('uis_token');
+        if (!token) { setAllPractices([]); return; }
+        const res = await fetch(`${API_URL}/api/practice/jurisdiction`, { headers: { Authorization: 'Bearer ' + token } });
         if (res.ok) {
           const data = await res.json();
           setAllPractices(data.practices || []);
@@ -89,7 +91,7 @@ export const JurisdictionProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
     };
     fetchJurisdictions();
-  }, [refreshTick]);
+  }, [refreshTick, user?.practiceId]);
 
   // Resolve active practice jurisdiction
   const activePractice = user?.practiceId
