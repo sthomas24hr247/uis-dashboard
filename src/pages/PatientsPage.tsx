@@ -112,7 +112,7 @@ export default function PatientsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -158,7 +158,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Patients Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         {loading && !data ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -169,7 +169,7 @@ export default function PatientsPage() {
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">{sortHeader('name', 'Patient')}</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Contact</th>
@@ -199,17 +199,17 @@ function PatientRow({ patient, prediction }: { patient: any; prediction?: any })
     : 'bg-slate-100 text-slate-600';
 
   return (
-    <tr className="hover:bg-slate-50 transition-colors">
+    <tr className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <p className="font-medium text-slate-900">
+            <p className="font-medium text-slate-900 dark:text-white">
               {cleanName(patient.firstName)} {cleanName(patient.lastName)}
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               DOB: {patient.dateOfBirth || 'N/A'}
             </p>
           </div>
@@ -218,27 +218,27 @@ function PatientRow({ patient, prediction }: { patient: any; prediction?: any })
       <td className="px-4 py-3">
         <div className="space-y-1">
           {patient.phone && (
-            <div className="flex items-center gap-1 text-sm text-slate-600">
+            <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-300">
               <Phone className="w-3 h-3" />
               {patient.phone}
             </div>
           )}
           {patient.email && (
-            <div className="flex items-center gap-1 text-sm text-slate-500">
+            <div className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
               <Mail className="w-3 h-3" />
               {patient.email}
             </div>
           )}
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-slate-600">
+      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
         {patient.insuranceProvider || 'Not on file'}
       </td>
-      <td className="px-4 py-3 text-sm text-slate-600">
+      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
         {patient.lastVisit || 'None on record'}
       </td>
       <td className="px-4 py-3">
-        <span className={`font-medium ${(patient.balance || 0) > 0 ? 'text-amber-600' : 'text-slate-600'}`}>
+        <span className={`font-medium ${(patient.balance || 0) > 0 ? 'text-amber-600' : 'text-slate-600 dark:text-slate-300'}`}>
           {patient.balance ? '$' + Number(patient.balance).toFixed(2) : '\u2014'}
         </span>
       </td>
@@ -261,7 +261,7 @@ function PatientRow({ patient, prediction }: { patient: any; prediction?: any })
       <td className="px-4 py-3">
         <Link
           to={`/patients/${patient.id}`}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors inline-block"
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors inline-block"
         >
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </Link>
