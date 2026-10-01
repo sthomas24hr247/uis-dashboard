@@ -110,7 +110,14 @@ export default function ExecutiveCommandCenter() {
   const totalLeakage = offices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
   const allQciCalibrating = offices.length > 0 && offices.every(o => !o.qciScore);
   const leakageCalibrating = totalLeakage === 0;
-  const contactCalibrating = !missingContact || missingContact.episode_count === 0;
+  const leak = offices.reduce((s: any, o: any) => {
+    const x = (o as any).leakageDetail;
+    if (!x) return s;
+    return { has: true, dueBack: s.dueBack + x.dueBackPatients, lost: s.lost + x.lostAppointmentPatients,
+      noContact: s.noContact + x.careDueNoContact, noContactValue: s.noContactValue + x.careDueNoContactValue,
+      activeNoContact: s.activeNoContact + x.activeNoContact, avgVisit: x.avgVisitValue || s.avgVisit };
+  }, { has: false, dueBack: 0, lost: 0, noContact: 0, noContactValue: 0, activeNoContact: 0, avgVisit: 0 });
+  const contactCalibrating = !leak.has;
 
   const officeAlerts = offices.flatMap(o => {
     const alerts: { office: string; message: string; severity: "high" | "medium" | "low" }[] = [];
@@ -201,8 +208,8 @@ export default function ExecutiveCommandCenter() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Revenue Leakage</p>
             <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{leakageCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : `$${(totalLeakage / 1000).toFixed(1)}K`}</p>
-          <p className="text-xs text-slate-400 mt-1">{leakageCalibrating ? 'Activates with treatment-plan data' : 'Outcome gap monthly total'}</p>
+          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{leakageCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : `$${(totalLeakage / 1000).toFixed(1)}K est.`}</p>
+          <p className="text-xs text-slate-400 mt-1">{leakageCalibrating ? 'Calculating from the schedule' : `${leak.dueBack} due back, ${leak.lost} lost appointments, at $${leak.avgVisit} per visit`}</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 cursor-pointer hover:border-orange-400/50 transition-all" onClick={() => navigate('/outcome-gap')}>
@@ -211,10 +218,10 @@ export default function ExecutiveCommandCenter() {
             <Users className="w-4 h-4 text-orange-500" />
           </div>
           <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-            {contactCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : `$${(missingContact!.total_dollars / 1000).toFixed(1)}K`}
+            {contactCalibrating ? <span className="text-base text-amber-500">Calibrating</span> : `$${(leak.noContactValue / 1000).toFixed(1)}K`}
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            {contactCalibrating ? 'Activates with treatment-plan data' : `${missingContact!.episode_count} episodes · ${missingContact!.affected_patients} patients`}
+            {contactCalibrating ? 'Calculating from the schedule' : `${leak.noContact} with care due · ${leak.activeNoContact} active with no phone or email`}
           </p>
         </div>
       </div>
