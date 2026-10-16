@@ -1,3 +1,4 @@
+import MarkdownAnswer from './MarkdownAnswer';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
@@ -439,13 +440,13 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-md'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-md'
+                      ? 'max-w-[85%] whitespace-pre-wrap bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-md'
+                      : 'w-full min-w-0 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-md'
                   }`}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? <MarkdownAnswer content={msg.content} /> : msg.content}
                 </div>
               </div>
             ))}
