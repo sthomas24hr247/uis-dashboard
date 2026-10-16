@@ -104,6 +104,46 @@ function TableChart({ node }: { node: any }) {
   );
 }
 
+function TableCards({ rows }: { rows: string[][] }) {
+  const [head, ...body] = rows;
+  const has = (i: number) => body.filter(r => findTier(r[i] || '') !== null).length >= Math.ceil(body.length / 2);
+  const pick = (re: RegExp) => head.findIndex((h, i) => i > 0 && re.test(h) && has(i));
+  let tierCol = pick(/cancel|no-?show|risk/i);
+  if (tierCol < 0) tierCol = pick(/tier|severity|priority|level/i);
+  if (tierCol < 0) tierCol = head.findIndex((_, i) => i > 0 && has(i));
+  return (
+    <div className="my-2 space-y-2" role="list">
+      {body.map((r, idx) => {
+        const t = tierCol >= 0 ? findTier(r[tierCol] || '') : null;
+        return (
+          <div key={idx} role="listitem" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-3 py-2">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">{r[0]}</span>
+              {t && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${t.badge}`}>{t.label}</span>}
+            </div>
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+              {head.slice(1).map((h, j) => {
+                const v = (r[j + 1] || '').trim();
+                if (!v || v === '\u2014' || v === '-') return null;
+                if (j + 1 === tierCol && tierOf(v)) return null;
+                const cellTier = tierOf(v);
+                return (
+                  <div key={j} className="min-w-0">
+                    <dt className="text-slate-500 dark:text-slate-400">{h}</dt>
+                    <dd className="text-slate-800 dark:text-slate-100 break-words">
+                      {cellTier ? <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${cellTier.badge}`}>{cellTier.label}</span> : v}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const heading = 'font-semibold text-slate-900 dark:text-white';
 const components: Components = {
   h1: ({ children }) => <h3 className={`text-base ${heading} mt-3 mb-2`}>{children}</h3>,
@@ -121,14 +161,22 @@ const components: Components = {
   ),
   blockquote: ({ children }) => <blockquote className="border-l-2 border-slate-300 dark:border-slate-600 pl-3 my-2">{children}</blockquote>,
   code: ({ children }) => <code className="px-1 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">{children}</code>,
-  table: ({ node, children }) => (
-    <>
-      <TableChart node={node} />
-      <div className="my-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-        <table className="w-full text-xs border-collapse">{children}</table>
-      </div>
-    </>
-  ),
+  table: ({ node, children }) => {
+    const rows = rowsOf(node);
+    const wide = rows.length > 1 && rows[0].length > 4;
+    return (
+      <>
+        <TableChart node={node} />
+        {wide ? (
+          <TableCards rows={rows} />
+        ) : (
+          <div className="my-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+            <table className="w-full text-xs border-collapse">{children}</table>
+          </div>
+        )}
+      </>
+    );
+  },
   thead: ({ children }) => <thead className="bg-slate-200/70 dark:bg-slate-700/60">{children}</thead>,
   th: ({ children }) => <th className="text-left font-semibold px-2.5 py-1.5 whitespace-nowrap">{children}</th>,
   td: ({ node, children }) => {
