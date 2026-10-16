@@ -163,7 +163,7 @@ const components: Components = {
   code: ({ children }) => <code className="px-1 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">{children}</code>,
   table: ({ node, children }) => {
     const rows = rowsOf(node);
-    const wide = rows.length > 1 && rows[0].length > 4;
+    const wide = rows.length > 1 && (rows[0].length > 4 || (rows[0].length === 4 && rows.slice(1).some(r => r.some(c => money(c) !== null))));
     return (
       <>
         <TableChart node={node} />
