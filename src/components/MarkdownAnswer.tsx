@@ -16,6 +16,11 @@ const TIERS: Record<string, Tier> = {
   low: { label: 'Low', badge: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100', color: '#3B6D11' },
 };
 const tierOf = (s: string): Tier | null => TIERS[s.trim().toLowerCase()] || null;
+const TIER_ORDER = ['critical', 'high', 'medium', 'moderate', 'low'];
+const findTier = (s: string): Tier | null => {
+  const m = s.toLowerCase().match(/\b(critical|high|medium|moderate|low)\b/);
+  return m ? TIERS[m[1]] : null;
+};
 
 function textOf(node: any): string {
   if (!node) return '';
@@ -25,6 +30,7 @@ function textOf(node: any): string {
 
 function money(s: string): number | null {
   if (!s.includes('$')) return null;
+  if (/\d\s*[\u2013\u2014-]\s*\$?\d/.test(s)) return null;
   const m = s.replace(/[,\s~*]/g, '').match(/\$(-?\d+(?:\.\d+)?)([kKmM])?/);
   if (!m) return null;
   const n = parseFloat(m[1]) * (m[2] ? (m[2].toLowerCase() === 'm' ? 1e6 : 1e3) : 1);
@@ -54,20 +60,25 @@ function TableChart({ node }: { node: any }) {
   const [head, ...body] = rows;
   const moneyCol = head.findIndex((_, i) => i > 0 && body.filter(r => money(r[i] || '') !== null).length >= 2);
   if (moneyCol < 0) return null;
-  const riskCol = head.findIndex((h, i) => /risk level|tier|severity|priority/i.test(h) || body.some(r => tierOf(r[i] || '') !== null));
+  const hasTiers = (i: number) => body.filter(r => findTier(r[i] || '') !== null).length >= Math.ceil(body.length / 2);
+  const pick = (re: RegExp) => head.findIndex((h, i) => i !== moneyCol && re.test(h) && hasTiers(i));
+  let riskCol = pick(/cancel|no-?show|risk/i);
+  if (riskCol < 0) riskCol = pick(/tier|severity|priority|level/i);
+  if (riskCol < 0) riskCol = head.findIndex((_, i) => i > 0 && i !== moneyCol && hasTiers(i));
   const data = body
     .map(r => {
       const v = money(r[moneyCol] || '');
-      const t = riskCol >= 0 ? tierOf(r[riskCol] || '') : null;
+      const t = riskCol >= 0 ? findTier(r[riskCol] || '') : null;
       return v === null ? null : { name: r[0], value: v, tier: t, label: fmt(v) + (t ? ' · ' + t.label : '') };
     })
     .filter(Boolean)
     .slice(0, 12) as { name: string; value: number; tier: Tier | null; label: string }[];
-  if (data.length < 2) return null;
+  if (data.length < 3 || data.length < body.length) return null;
   const tiers = Array.from(new Set(data.map(d => d.tier).filter(Boolean))) as Tier[];
+  tiers.sort((a, b) => TIER_ORDER.indexOf(a.label.toLowerCase()) - TIER_ORDER.indexOf(b.label.toLowerCase()));
   return (
     <figure className="my-3 text-slate-600 dark:text-slate-300" role="img" aria-label={`Bar chart of ${head[moneyCol]} by ${head[0]}`}>
-      <figcaption className="text-xs font-medium mb-1">{head[moneyCol]} by {head[0].toLowerCase()}</figcaption>
+      <figcaption className="text-xs font-medium mb-1">{head[moneyCol]} by {head[0].toLowerCase()}{riskCol >= 0 ? `, colored by ${head[riskCol].toLowerCase()}` : ''}</figcaption>
       <ResponsiveContainer width="100%" height={data.length * 30 + 16}>
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 110, bottom: 4, left: 0 }}>
           <XAxis type="number" hide />
