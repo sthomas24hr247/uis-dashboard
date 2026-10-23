@@ -10,6 +10,21 @@ export interface DataStatus {
   dataCurrentThrough: string | null;
   newestTransactionDate: string | null;
   databaseLatencyMs: number;
+  sources?: SourceHealth[];
+  ledgerDollarsFrozen?: boolean;
+}
+
+// One source system's health (Work Surface v2, "Nothing stale looks live").
+export interface SourceHealth {
+  key: string;
+  name: string;
+  asserts: string;
+  state: 'fresh' | 'stale' | 'connected' | 'not_connected' | string;
+  lastGood: string | null;
+  ageMinutes: number | null;
+  staleAfterMinutes: number | null;
+  newestPosting?: string | null;
+  note?: string;
 }
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_URL || 'https://api.uishealth.com';
