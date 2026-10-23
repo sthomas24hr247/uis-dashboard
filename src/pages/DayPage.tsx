@@ -57,6 +57,18 @@ function sentence(i: Item): string {
   return 'has no phone or email on file';
 }
 
+// Dentrix often sends only the generic word "Appointment"; fall back to the provider's role.
+function visitLabel(s: ScheduleItem): string | null {
+  const generic = (v: string | null) => !v || /^\s*appointment\s*$/i.test(v);
+  if (!generic(s.description)) return s.description;
+  if (!generic(s.type)) return s.type;
+  const role = String(s.provider.role || '').toLowerCase();
+  if (role.includes('hygien')) return 'Hygiene visit';
+  if (role.includes('pediatric')) return 'Pediatric visit';
+  if (role.includes('dentist') || role.includes('surgeon')) return 'Dentist visit';
+  return null;
+}
+
 const primaryBtn = 'inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 text-sm font-medium whitespace-nowrap';
 const secondaryBtn = 'inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-teal-500 px-3 py-2 text-sm font-medium whitespace-nowrap';
 
@@ -126,7 +138,7 @@ export default function DayPage() {
               <span className="min-w-0 flex-1 rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5">
                 <span className="block truncate text-slate-900 dark:text-white">
                   {s.patient ? <Link to={`/patients/${s.patient.id}`} className="hover:underline">{s.patient.name || 'Patient'}</Link> : 'Patient'}
-                  {s.description || s.type ? <span className="text-slate-500 dark:text-slate-400"> · {s.description || s.type}</span> : null}
+                  {visitLabel(s) ? <span className="text-slate-500 dark:text-slate-400"> · {visitLabel(s)}</span> : null}
                 </span>
                 <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
                   {s.provider.name || 'Provider not set'}{s.status === 'confirmed' ? ' · confirmed' : ''}
