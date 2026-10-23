@@ -91,7 +91,7 @@ export default function MyPerformancePage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Activity className="w-6 h-6 text-teal-500" /> {data?.linked && data.provider ? data.provider.name : 'Your production'}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Your own numbers, compared only with your own history.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{data?.linked && data.canChooseProvider && data.provider ? `${data.provider.name}'s numbers, compared only with their own history.` : 'Your own numbers, compared only with your own history.'}</p>
         </div>
         {picker}
       </div>

@@ -6,6 +6,7 @@ import SchedulePage from './pages/SchedulePage';
 import PatientsPage from './pages/PatientsPage';
 import PatientDetailPage from './pages/PatientDetailPage';
 import TodayPage from './pages/TodayPage';
+import DayPage from './pages/DayPage';
 import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import HomePage from './pages/HomePage';
@@ -86,6 +87,7 @@ function App() {
         <Route path="home/manager" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="today" element={<TodayPage />} />
+        <Route path="day" element={<DayPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:patientId" element={<PatientDetailPage />} />
         <Route path="providers" element={<ProvidersPage />} />
