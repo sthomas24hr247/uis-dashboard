@@ -64,6 +64,7 @@ const allNavGroups: NavGroup[] = [
       { to: '/command-center', icon: Monitor, label: 'Command Center', roles: ['admin'] },
       { to: '/home', icon: LayoutDashboard, label: 'Executive Dashboard', roles: ['admin'] },
       { to: '/day', icon: ListChecks, label: 'The Day' },
+      { to: '/whos-here', icon: Users, label: "Who's Here" },
       { to: '/manager-dashboard', icon: LayoutDashboard, label: 'Manager Dashboard', roles: ['manager'] },
     ],
   },
