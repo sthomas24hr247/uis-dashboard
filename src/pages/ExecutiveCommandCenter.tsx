@@ -102,7 +102,7 @@ export default function ExecutiveCommandCenter() {
   const hasRevenue = revenueOffices.length > 0;
   const totalRevenue = revenueOffices.reduce((s, o) => s + (o.monthlyRevenue ?? 0), 0);
   const totalPrevRevenue = revenueOffices.reduce((s, o) => s + (o.prevMonthRevenue ?? 0), 0);
-  const totalNet = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.netProduction ?? 0), 0);
+  const totalGross = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.grossProduction ?? 0), 0);
   const totalCollections = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.collections ?? 0), 0);
   const revenueChange = hasRevenue && totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100) : null;
   const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
@@ -168,7 +168,7 @@ export default function ExecutiveCommandCenter() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Gross Production (MTD)</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400" title="Net of insurance write-downs posted so far. Matches Dentrix net production run on the same day. Recent days can still go down as write-downs post.">Net Production (MTD)</p>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{hasRevenue ? `$${(totalRevenue / 1000).toFixed(1)}K` : '—'}</p>
@@ -180,7 +180,7 @@ export default function ExecutiveCommandCenter() {
           )}
           {hasRevenue && (
             <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-              {'Net $' + (totalNet / 1000).toFixed(1) + 'K \u00b7 Collections $' + (totalCollections / 1000).toFixed(1) + 'K'}
+              {'Gross $' + (totalGross / 1000).toFixed(1) + 'K \u00b7 Collections $' + (totalCollections / 1000).toFixed(1) + 'K'}
             </p>
           )}
         </div>
