@@ -6,8 +6,8 @@
 // the next clinic day within a week.
 
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ListChecks, Phone } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ListChecks, Phone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '@/lib/dataFreshness';
 
@@ -74,6 +74,8 @@ const secondaryBtn = 'inline-flex items-center justify-center rounded-lg border 
 
 export default function DayPage() {
   const { token } = useAuth();
+  const [search] = useSearchParams();
+  const fromWhosHere = search.get('from') === 'whos-here';
   const [data, setData] = useState<Day | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<number | null>(null);
@@ -153,6 +155,11 @@ export default function DayPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
+      {fromWhosHere && (
+        <Link to="/whos-here" className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 dark:text-teal-400 hover:underline">
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Who's here
+        </Link>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">

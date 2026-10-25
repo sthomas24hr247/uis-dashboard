@@ -130,7 +130,7 @@ export default function WhosHerePage() {
           <ul className="lg:col-span-2 space-y-3">
             {data.staff.map(st => (
               <li key={st.id}>
-                <Link to="/day" className={cardCls}>
+                <Link to="/day?from=whos-here" className={cardCls}>
                   <span aria-hidden="true" className={avatarCls + ' bg-teal-700 text-white'}>{initials(st.name)}</span>
                   <span className="flex-1 min-w-0">
                     <span className="block font-semibold text-slate-900 dark:text-white">
