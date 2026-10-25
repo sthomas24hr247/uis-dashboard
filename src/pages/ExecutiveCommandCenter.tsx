@@ -101,10 +101,12 @@ export default function ExecutiveCommandCenter() {
   const revenueOffices = offices.filter((o) => o.monthlyRevenue != null);
   const hasRevenue = revenueOffices.length > 0;
   const totalRevenue = revenueOffices.reduce((s, o) => s + (o.monthlyRevenue ?? 0), 0);
-  const totalPrevRevenue = revenueOffices.reduce((s, o) => s + (o.prevMonthRevenue ?? 0), 0);
+  // Compare charges (gross), not net: insurance write-downs post weeks after the visit, so net month-to-date always trails.
+  const totalChargesCur = revenueOffices.reduce((s, o: any) => s + (o.chargesCurrent ?? 0), 0);
+  const totalChargesPrev = revenueOffices.reduce((s, o: any) => s + (o.chargesPrevious ?? 0), 0);
   const totalGross = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.grossProduction ?? 0), 0);
   const totalCollections = revenueOffices.reduce((s, o: any) => s + (o.production?.current?.collections ?? 0), 0);
-  const revenueChange = hasRevenue && totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue * 100) : null;
+  const revenueChange = hasRevenue && totalChargesPrev > 0 ? ((totalChargesCur - totalChargesPrev) / totalChargesPrev * 100) : null;
   const totalPatients = offices.reduce((s, o) => s + o.activePatients, 0);
   const avgQCI = offices.length ? offices.reduce((s, o) => s + o.qciScore, 0) / offices.length : 0;
   const totalLeakage = offices.reduce((s, o) => s + o.outcomeGapLeakage, 0);
@@ -175,7 +177,7 @@ export default function ExecutiveCommandCenter() {
           {revenueChange != null && (
           <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${revenueChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {revenueChange >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {Math.abs(revenueChange).toFixed(1)}% vs same days last month
+            {Math.abs(revenueChange).toFixed(1)}% charges vs same days last month
           </div>
           )}
           {hasRevenue && (
@@ -282,7 +284,8 @@ export default function ExecutiveCommandCenter() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {offices.map((office) => {
             const sc = statusColors[office.benchmarkStatus];
-            const revChange = (office.monthlyRevenue != null && office.prevMonthRevenue != null && office.prevMonthRevenue !== 0) ? ((office.monthlyRevenue - office.prevMonthRevenue) / office.prevMonthRevenue * 100) : null;
+            const cc = (office as any).chargesCurrent, cp = (office as any).chargesPrevious;
+            const revChange = (cc != null && cp != null && cp !== 0) ? ((cc - cp) / cp * 100) : null;
             return (
               <div
                 key={office.id}
