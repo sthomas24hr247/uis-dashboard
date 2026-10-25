@@ -15,6 +15,11 @@ interface Patient { id: string; name: string | null; phone?: string | null }
 interface Appt { time: string; duration: number | null; status: string; confirmed: boolean; ended: boolean; upcoming: boolean; type: string | null; description: string | null; patient: Patient | null }
 interface Need { kind: 'not_marked' | 'unconfirmed' | 'lost'; time?: string; missed?: string; expiresInDays?: number | null; patient: Patient | null }
 interface Block { start: string; end: string; minutes: number }
+interface Candidate {
+  patient: Patient | null; why: string; items?: number; work?: string[]; likelihood?: string | null;
+  expiresInDays?: number | null; estimatedNet?: number;
+}
+interface CallList { kind?: string; basis: string; showsValue?: boolean; candidates: Candidate[] }
 interface ProvDay {
   date: string | null; isToday: boolean; asOf: string | null;
   provider: { id: string; name: string; role: string | null };
@@ -30,6 +35,7 @@ const time12 = (t: string) => {
 const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
 const dayLabel = (d: string) =>
   new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const shortDate = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 function visitLabel(a: Appt, role: string | null): string {
@@ -60,6 +66,9 @@ export default function ProviderDayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<number | null>(null);
   const [showLost, setShowLost] = useState(false);
+  const [callFor, setCallFor] = useState<Block | null>(null);
+  const [calls, setCalls] = useState<CallList | null>(null);
+  const [callsLoading, setCallsLoading] = useState(false);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -98,6 +107,18 @@ export default function ProviderDayPage() {
     ? <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className={primaryBtn} aria-label={`Call ${p.name || 'patient'}`}><Phone className="w-4 h-4" aria-hidden="true" /> Call</a>
     : null;
   const openBtn = (p: Patient | null) => p ? <Link to={`/patients/${p.id}`} className={secondaryBtn}>Open</Link> : null;
+
+  const openList = (b: Block) => {
+    if (!token || !id || !data?.date) return;
+    setCallFor(b); setCalls(null); setCallsLoading(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const q = new URLSearchParams({ date: data.date, start: b.start, minutes: String(b.minutes) });
+    fetch(`${API}/api/whos-here/provider/${encodeURIComponent(id)}/call-list?${q.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d: CallList) => setCalls(d))
+      .catch(() => setCalls({ basis: 'The list could not be loaded. Please try again.', candidates: [] }))
+      .finally(() => setCallsLoading(false));
+  };
 
   const renderNeed = (n: Need, i: number) => {
     const name = n.patient?.name || 'Patient';
@@ -146,6 +167,49 @@ export default function ProviderDayPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 space-y-3">
+              {callFor && (
+                <section className="rounded-2xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 p-4" aria-live="polite">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-semibold text-amber-950 dark:text-amber-100">
+                        Who to call for {time12(callFor.start)} ({callFor.minutes} min open)
+                      </h2>
+                      {calls?.basis && <p className="text-xs text-amber-900/80 dark:text-amber-200/80 mt-0.5">{calls.basis}</p>}
+                    </div>
+                    <button type="button" onClick={() => { setCallFor(null); setCalls(null); }}
+                      className="text-sm font-medium text-amber-900 dark:text-amber-200 hover:underline">Close</button>
+                  </div>
+                  {callsLoading ? (
+                    <p className="text-sm mt-3 text-amber-900 dark:text-amber-200">Finding patients…</p>
+                  ) : !calls || calls.candidates.length === 0 ? (
+                    <p className="text-sm mt-3 text-amber-900 dark:text-amber-200">No one to suggest for this slot right now.</p>
+                  ) : (
+                    <ul className="mt-3 space-y-2">
+                      {calls.candidates.map((c, i) => (
+                        <li key={i} className="rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-slate-900 dark:text-white">{c.patient?.name || 'Patient'}</div>
+                            <div className="text-sm text-slate-600 dark:text-slate-300">{c.why}</div>
+                            {c.work && c.work.length > 0 && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {c.work.join(' · ')}{c.items && c.items > c.work.length ? ` · and ${c.items - c.work.length} more` : ''}
+                              </div>
+                            )}
+                            {!c.patient?.phone && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">No phone on file</div>}
+                          </div>
+                          {typeof c.estimatedNet === 'number' && (
+                            <div className="text-right shrink-0">
+                              <div className="font-semibold text-slate-900 dark:text-white">{usd(c.estimatedNet)}</div>
+                              <div className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">est. net</div>
+                            </div>
+                          )}
+                          <div className="flex gap-2 shrink-0">{callBtn(c.patient)}{openBtn(c.patient)}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {current.length} {current.length === 1 ? 'thing needs' : 'things need'} a person {dayWord}
               </h2>
@@ -203,7 +267,11 @@ export default function ProviderDayPage() {
                         <li key={i} className="flex gap-3 text-sm">
                           <span className="w-16 shrink-0 tabular-nums font-semibold text-amber-700 dark:text-amber-300">{time12(b.start)}</span>
                           <span className="flex-1 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 font-medium text-amber-900 dark:text-amber-200">
-                            Open until {time12(b.end)} ({b.minutes} min)
+                            <span className="block">Open until {time12(b.end)} ({b.minutes} min)</span>
+                            <button type="button" onClick={() => openList(b)}
+                              className="mt-1.5 inline-flex rounded-md bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-xs font-semibold">
+                              Who to call
+                            </button>
                           </span>
                         </li>
                       );
