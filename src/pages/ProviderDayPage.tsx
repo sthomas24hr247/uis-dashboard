@@ -59,6 +59,7 @@ export default function ProviderDayPage() {
   const [data, setData] = useState<ProvDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<number | null>(null);
+  const [showLost, setShowLost] = useState(false);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -79,6 +80,12 @@ export default function ProviderDayPage() {
   const order = { not_marked: 0, unconfirmed: 1, lost: 2 } as const;
   const needs = (data?.needs || []).slice().sort((a, b) =>
     order[a.kind] - order[b.kind] || (a.time || '').localeCompare(b.time || '') || (a.expiresInDays ?? 999) - (b.expiresInDays ?? 999));
+  const current = needs.filter(n => n.kind !== 'lost');
+  const lost = needs.filter(n => n.kind === 'lost');
+  const soonest = lost.reduce<number | null>((m, n) => (n.expiresInDays == null ? m : m == null ? n.expiresInDays : Math.min(m, n.expiresInDays)), null);
+  const dayWord = data?.date
+    ? (data.isToday ? 'today' : 'on ' + new Date(data.date + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }))
+    : '';
 
   type Row = { at: number; kind: 'appt' | 'open' | 'lunch'; appt?: Appt; block?: Block };
   const timeline: Row[] = [];
@@ -91,6 +98,27 @@ export default function ProviderDayPage() {
     ? <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className={primaryBtn} aria-label={`Call ${p.name || 'patient'}`}><Phone className="w-4 h-4" aria-hidden="true" /> Call</a>
     : null;
   const openBtn = (p: Patient | null) => p ? <Link to={`/patients/${p.id}`} className={secondaryBtn}>Open</Link> : null;
+
+  const renderNeed = (n: Need, i: number) => {
+    const name = n.patient?.name || 'Patient';
+    const v = n.kind === 'not_marked'
+      ? { badge: n.time ? time12(n.time) : 'Today', badgeCls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', edge: 'border-l-slate-400', title: `${name}'s visit is not marked in Dentrix yet`, detail: 'The visit time has passed. Mark it completed or as a no-show in Dentrix.' }
+      : n.kind === 'unconfirmed'
+        ? { badge: `Arrives ${n.time ? time12(n.time) : ''}`, badgeCls: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200', edge: 'border-l-amber-500', title: `${name} has not confirmed`, detail: 'A quick call before the visit keeps the chair from going empty.' }
+        : { badge: n.expiresInDays != null ? (n.expiresInDays <= 0 ? 'Due today' : n.expiresInDays === 1 ? '1 day left' : `${n.expiresInDays} days left`) : 'Open', badgeCls: (n.expiresInDays ?? 99) <= 7 ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', edge: (n.expiresInDays ?? 99) <= 7 ? 'border-l-red-500' : 'border-l-slate-300 dark:border-l-slate-600', title: `${name} missed a visit with ${first} and has not rebooked`, detail: n.missed ? `Missed ${shortDate(n.missed)}.` : '' };
+    return (
+      <li key={i} className={'rounded-2xl border border-slate-100 dark:border-slate-700 border-l-4 bg-white dark:bg-slate-800 shadow-sm p-4 ' + v.edge}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <span className={'self-start sm:self-center shrink-0 rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide ' + v.badgeCls}>{v.badge}</span>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-slate-900 dark:text-white">{v.title}</div>
+            {v.detail && <div className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{v.detail}</div>}
+          </div>
+          <div className="flex gap-2 shrink-0">{n.kind !== 'not_marked' && callBtn(n.patient)}{openBtn(n.patient)}</div>
+        </div>
+      </li>
+    );
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
@@ -119,36 +147,32 @@ export default function ProviderDayPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 space-y-3">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                {needs.length} {needs.length === 1 ? 'thing needs' : 'things need'} a person
+                {current.length} {current.length === 1 ? 'thing needs' : 'things need'} a person {dayWord}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">For {first}'s patients, most urgent first.</p>
-              {needs.length === 0 ? (
+              {current.length === 0 ? (
                 <div className="rounded-2xl p-6 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-500 dark:text-slate-400">
-                  Nothing needs a person for {first} right now.
+                  Nothing needs a person for {first} {dayWord}.
                 </div>
               ) : (
-                <ul className="space-y-3">
-                  {needs.map((n, i) => {
-                    const name = n.patient?.name || 'Patient';
-                    const v = n.kind === 'not_marked'
-                      ? { badge: n.time ? time12(n.time) : 'Today', badgeCls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', edge: 'border-l-slate-400', title: `${name}'s visit is not marked in Dentrix yet`, detail: 'The visit time has passed. Mark it completed or as a no-show in Dentrix.' }
-                      : n.kind === 'unconfirmed'
-                        ? { badge: `Arrives ${n.time ? time12(n.time) : ''}`, badgeCls: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200', edge: 'border-l-amber-500', title: `${name} has not confirmed`, detail: 'A quick call before the visit keeps the chair from going empty.' }
-                        : { badge: n.expiresInDays != null ? (n.expiresInDays <= 1 ? (n.expiresInDays <= 0 ? 'Due today' : '1 day left') : `${n.expiresInDays} days left`) : 'Open', badgeCls: (n.expiresInDays ?? 99) <= 7 ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', edge: (n.expiresInDays ?? 99) <= 7 ? 'border-l-red-500' : 'border-l-slate-300 dark:border-l-slate-600', title: `${name} missed a visit with ${first} and has not rebooked`, detail: n.missed ? `Missed ${shortDate(n.missed)}.` : '' };
-                    return (
-                      <li key={i} className={'rounded-2xl border border-slate-100 dark:border-slate-700 border-l-4 bg-white dark:bg-slate-800 shadow-sm p-4 ' + v.edge}>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                          <span className={'self-start sm:self-center shrink-0 rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide ' + v.badgeCls}>{v.badge}</span>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-slate-900 dark:text-white">{v.title}</div>
-                            {v.detail && <div className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{v.detail}</div>}
-                          </div>
-                          <div className="flex gap-2 shrink-0">{n.kind !== 'not_marked' && callBtn(n.patient)}{openBtn(n.patient)}</div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <ul className="space-y-3">{current.map(renderNeed)}</ul>
+              )}
+              {lost.length > 0 && (
+                <div className="rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+                  <button
+                    type="button"
+                    aria-expanded={showLost}
+                    onClick={() => setShowLost(v => !v)}
+                    className="w-full flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-left rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                  >
+                    <span className="font-semibold text-slate-900 dark:text-white">Missed visits not rebooked ({lost.length})</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {showLost ? 'Hide' : 'Show'}
+                      {soonest != null ? ` · soonest leaves the window ${soonest <= 0 ? 'today' : soonest === 1 ? 'in 1 day' : `in ${soonest} days`}` : ''}
+                    </span>
+                  </button>
+                  {showLost && <ul className="space-y-3 px-3 pb-3">{lost.map(renderNeed)}</ul>}
+                </div>
               )}
             </div>
 
