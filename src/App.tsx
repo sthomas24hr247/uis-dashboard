@@ -8,6 +8,7 @@ import PatientDetailPage from './pages/PatientDetailPage';
 import TodayPage from './pages/TodayPage';
 import DayPage from './pages/DayPage';
 import WhosHerePage from './pages/WhosHerePage';
+import ProviderDayPage from './pages/ProviderDayPage';
 import ProvidersPage from './pages/ProvidersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import HomePage from './pages/HomePage';
@@ -90,6 +91,7 @@ function App() {
         <Route path="today" element={<TodayPage />} />
         <Route path="day" element={<DayPage />} />
         <Route path="whos-here" element={<WhosHerePage />} />
+        <Route path="whos-here/provider/:id" element={<ProviderDayPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:patientId" element={<PatientDetailPage />} />
         <Route path="providers" element={<ProvidersPage />} />
