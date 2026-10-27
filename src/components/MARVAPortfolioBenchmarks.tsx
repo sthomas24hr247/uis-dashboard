@@ -1,3 +1,4 @@
+import { API_BASE } from '@/lib/apiBase';
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, Building2, Users, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -100,7 +101,7 @@ export default function MARVAPortfolioBenchmarks() {
 
   useEffect(() => {
     const token = localStorage.getItem('uis_token') || '';
-    fetch('https://api.uishealth.com/api/marva/portfolio-benchmarks', {
+    fetch(`${API_BASE}/api/marva/portfolio-benchmarks`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.json())

@@ -1,3 +1,4 @@
+import { API_BASE } from '@/lib/apiBase';
 import { useState, useMemo } from "react";
 import { ClaimBadge } from "./Badge";
 import { StatCard } from "./StatCard";
@@ -246,7 +247,7 @@ export const PreventionEngine = ({ claims }: PreventionEngineProps) => {
     await Promise.all(
       denied.map(async (claim) => {
         try {
-          const res = await fetch("https://api.uishealth.com/api/claims/validate", {
+          const res = await fetch(`${API_BASE}/api/claims/validate`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

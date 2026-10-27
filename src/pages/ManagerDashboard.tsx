@@ -1,3 +1,4 @@
+import { API_BASE } from '@/lib/apiBase';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -16,7 +17,7 @@ import {
   Shield,
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.uishealth.com';
+const API_URL = API_BASE;
 
 interface QuickStat {
   label: string;

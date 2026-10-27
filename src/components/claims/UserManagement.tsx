@@ -1,10 +1,11 @@
+import { API_BASE } from '@/lib/apiBase';
 // src/components/claims/UserManagement.tsx
 // Admin user management — list, invite, edit role, deactivate users
 
 import { useState, useEffect } from 'react';
 import { Users, Plus, Trash2, Shield, RefreshCw, Mail, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 
-const API = 'https://api.uishealth.com';
+const API = API_BASE;
 
 interface User {
   id: string;

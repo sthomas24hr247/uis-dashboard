@@ -1,3 +1,4 @@
+import { API_BASE } from '@/lib/apiBase';
 // src/pages/ClaimsLoginPage.tsx
 // Standalone login for claims.uishealth.com
 
@@ -31,7 +32,7 @@ export default function ClaimsLoginPage() {
     setSignupError('');
     try {
       // Send to GHL via API or directly via email fallback
-      const r = await fetch('https://api.uishealth.com/api/early-access', {
+      const r = await fetch(`${API_BASE}/api/early-access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

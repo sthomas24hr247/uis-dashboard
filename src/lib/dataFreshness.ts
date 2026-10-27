@@ -27,7 +27,7 @@ export interface SourceHealth {
   note?: string;
 }
 
-const API_BASE: string = (import.meta as any).env?.VITE_API_URL || 'https://api.uishealth.com';
+import { API_BASE } from './apiBase';
 
 export async function fetchDataStatus(): Promise<DataStatus | null> {
   try {

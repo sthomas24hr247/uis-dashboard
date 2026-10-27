@@ -1,3 +1,4 @@
+import { API_BASE } from '@/lib/apiBase';
 import { useState, useEffect } from 'react';
 import { UserManagement } from '@/components/claims/UserManagement';
 import { useAuth } from '../context/AuthContext';
@@ -46,7 +47,7 @@ function MFASection() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
-  const apiBase = 'https://api.uishealth.com';
+  const apiBase = API_BASE;
 
   const startSetup = async () => {
     setLoading(true); setError('');

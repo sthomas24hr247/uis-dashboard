@@ -1,3 +1,4 @@
+import { API_BASE } from '@/lib/apiBase';
 import { useState, useEffect } from 'react';
 import ECPAssessment from '../components/ECPAssessment';
 import MARVAPortfolioBenchmarks from '../components/MARVAPortfolioBenchmarks';
@@ -587,7 +588,7 @@ export default function MARVAPage() {
   const [assessmentComplete, setAssessmentComplete] = useState(false);
   const [missingContact, setMissingContact] = useState<{ episode_count: number; total_dollars: number; affected_patients: number; pct_patients_no_channel: string } | null>(null);
 
-  const apiBase = 'https://api.uishealth.com';
+  const apiBase = API_BASE;
 
   useEffect(() => {
     apiFetch('/api/outcome-gap/missing-contact')

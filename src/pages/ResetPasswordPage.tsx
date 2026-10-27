@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-const API_BASE: string = (import.meta as any).env?.VITE_API_URL || 'https://api.uishealth.com';
+import { API_BASE } from '@/lib/apiBase';
 
 export default function ResetPasswordPage() {
   const [params] = useSearchParams();
