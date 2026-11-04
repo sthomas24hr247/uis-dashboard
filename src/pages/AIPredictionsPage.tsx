@@ -289,7 +289,7 @@ export default function AIPredictionsPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-teal-500" />
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Quick Ask Dentamind</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Quick Ask MARVA</h2>
               <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">Click any card to ask</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

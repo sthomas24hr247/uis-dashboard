@@ -96,7 +96,7 @@ export default function HomePage() {
       link: "/outcome-gap",
     },
     {
-      id: "dentamind", title: "Ask Dentamind AI",
+      id: "dentamind", title: "Ask MARVA",
       description: "Get instant answers about your practice data and AI predictions",
       icon: Sparkles, stats: "AI-powered insights",
       accent: "text-amber-400", bg: "bg-amber-500/10", border: "hover:border-amber-500/30",

@@ -155,7 +155,7 @@ export default function ManagerDashboard() {
       path: '/patients',
     },
     {
-      title: 'Ask Dentamind',
+      title: 'Ask MARVA',
       description: 'AI assistant for quick answers',
       icon: Sparkles,
       color: 'from-pink-500 to-pink-600',
@@ -303,7 +303,7 @@ export default function ManagerDashboard() {
             onClick={() => navigate('/ai-predictions')}
             className="text-xs font-medium bg-white/20 hover:bg-white/30 rounded-lg px-3 py-1.5 transition-colors"
           >
-            Ask Dentamind →
+            Ask MARVA →
           </button>
         </div>
 

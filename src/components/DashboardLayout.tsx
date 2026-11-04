@@ -397,7 +397,7 @@ export default function DashboardLayout() {
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white">
               <div className="flex items-center gap-2">
                 <Brain className="w-5 h-5" />
-                <span className="text-sm font-bold">Ask Dentamind</span>
+                <span className="text-sm font-bold">Ask MARVA</span>
               </div>
               <button onClick={() => setChatOpen(false)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
                 <X className="w-4 h-4" />
@@ -412,7 +412,7 @@ export default function DashboardLayout() {
           <button
             onClick={() => setChatOpen(true)}
             className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-700 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
-            title="Ask Dentamind"
+            title="Ask MARVA"
           >
             <MessageCircle className="w-6 h-6" />
           </button>

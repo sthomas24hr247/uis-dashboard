@@ -193,7 +193,7 @@ export default function ExecutiveCommandCenter() {
             <Users className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalPatients.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 mt-1">Across {offices.length} locations</p>
+          <p className="text-xs text-slate-400 mt-1">Across {offices.length} location{offices.length !== 1 ? "s" : ""}</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
@@ -456,15 +456,19 @@ export default function ExecutiveCommandCenter() {
       <div className="mt-8 p-5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-800/80 dark:to-slate-900/80 border border-slate-700">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-lg">✨</span>
-          <h3 className="font-bold text-white">Quick Ask Dentamind</h3>
+          <h3 className="font-bold text-white">Quick Ask MARVA</h3>
           <span className="text-xs text-slate-400">Click any card to ask</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[
+          {(offices.length > 1 ? [
             { title: "Revenue Risk This Week", desc: "Which offices are most likely to miss targets?" },
             { title: "Best Performing Office", desc: "What are they doing differently?" },
             { title: "One Fix for Tomorrow", desc: "Highest-impact action across all offices" },
-          ].map((card, i) => (
+          ] : [
+            { title: "Cancellation Risk This Week", desc: "Which patients might cancel this week?" },
+            { title: "Quality of Care", desc: "What is our quality of care score?" },
+            { title: "Treatment Falling Short", desc: "Where is treatment falling short?" },
+          ]).map((card, i) => (
             <button
               key={i}
               onClick={() => navigate("/ai-predictions")}

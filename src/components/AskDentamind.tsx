@@ -84,7 +84,7 @@ interface AskDentamindProps {
   practiceData?: PracticeData | null;
 }
 
-const BASE_SYSTEM_PROMPT = `You are Dentamind AI, the intelligent decision brain for dental practices. You are embedded in the UIS Health platform — a unified intelligence system that aggregates data from practice management systems.
+const BASE_SYSTEM_PROMPT = `You are MARVA, the intelligent decision brain for dental practices. You are embedded in the UIS Health platform — a unified intelligence system that aggregates data from practice management systems.
 
 You help dental practice owners, office managers, and DSO executives understand their practice performance, identify risks, and make data-driven decisions.
 
@@ -329,9 +329,9 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
   };
 
   const quickQuestions = [
-    'What are my biggest risks this week?',
-    'How can I reduce no-shows?',
-    'Which patients need outreach?',
+    'Which patients might cancel this week?',
+    'What is our quality of care score?',
+    'Where is treatment falling short?',
   ];
 
   const handleQuickQuestion = (q: string) => {
@@ -374,7 +374,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
             transition-all duration-300 hover:scale-105 group"
         >
           <MessageCircle className="w-5 h-5" />
-          <span className="font-semibold text-sm">Ask Dentamind</span>
+          <span className="font-semibold text-sm">Ask MARVA</span>
         </button>
       )}
 
@@ -393,7 +393,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-sm">Ask Dentamind</h3>
+                <h3 className="text-white font-bold text-sm">Ask MARVA</h3>
                 <p className="text-slate-400 text-xs">
                   {practiceData ? `● ${user?.practiceName || 'Connected to live practice data'}` : 'AI-powered dental intelligence'}
                 </p>
@@ -415,7 +415,7 @@ export default function AskDentamind({ initialQuestion, onQuestionHandled, pract
                   dark:from-teal-900/30 dark:to-emerald-900/30 flex items-center justify-center mb-4">
                   <Sparkles className="w-7 h-7 text-teal-500" />
                 </div>
-                <h4 className="font-bold text-slate-900 dark:text-white mb-1">Dentamind AI</h4>
+                <h4 className="font-bold text-slate-900 dark:text-white mb-1">MARVA</h4>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                   {practiceData
                     ? 'Connected to your live practice data. Ask me anything.'
