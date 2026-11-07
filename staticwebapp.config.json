@@ -2,5 +2,8 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*", "/*.svg", "/*.ico"]
+  },
+  "globalHeaders": {
+    "X-Robots-Tag": "noindex, nofollow"
   }
 }
