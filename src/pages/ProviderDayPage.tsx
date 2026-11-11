@@ -19,12 +19,12 @@ interface Candidate {
   patient: Patient | null; why: string; items?: number; work?: string[]; likelihood?: string | null;
   expiresInDays?: number | null; estimatedNet?: number;
 }
-interface CallList { kind?: string; basis: string; showsValue?: boolean; candidates: Candidate[] }
+interface CallList { kind?: string; audience?: string; focus?: string; basis: string; showsValue?: boolean; candidates: Candidate[] }
 interface ProvDay {
   date: string | null; isToday: boolean; asOf: string | null;
   provider: { id: string; name: string; role: string | null };
   hours: { open: string; close: string } | null; lunch: { start: string; end: string } | null;
-  worksThatDay: boolean | null; scheduleSource: string | null;
+  worksThatDay: boolean | null; onLeave?: boolean; swappedDay?: boolean; scheduleSource: string | null;
   appointments: Appt[]; openBlocks: Block[]; needs: Need[];
 }
 
@@ -69,6 +69,7 @@ export default function ProviderDayPage() {
   const [callFor, setCallFor] = useState<Block | null>(null);
   const [calls, setCalls] = useState<CallList | null>(null);
   const [callsLoading, setCallsLoading] = useState(false);
+  const [focus, setFocus] = useState<'likely' | 'large'>('likely');
 
   useEffect(() => {
     if (!token || !id) return;
@@ -108,11 +109,13 @@ export default function ProviderDayPage() {
     : null;
   const openBtn = (p: Patient | null) => p ? <Link to={`/patients/${p.id}`} className={secondaryBtn}>Open</Link> : null;
 
-  const openList = (b: Block) => {
+  const openList = (b: Block, f: 'likely' | 'large' = 'likely') => {
     if (!token || !id || !data?.date) return;
-    setCallFor(b); setCalls(null); setCallsLoading(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const sameSlot = callFor === b;
+    setCallFor(b); setFocus(f); setCallsLoading(true);
+    if (!sameSlot) { setCalls(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     const q = new URLSearchParams({ date: data.date, start: b.start, minutes: String(b.minutes) });
+    if (f === 'large') q.set('focus', 'large');
     fetch(`${API}/api/whos-here/provider/${encodeURIComponent(id)}/call-list?${q.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((d: CallList) => setCalls(d))
@@ -175,6 +178,20 @@ export default function ProviderDayPage() {
                         Who to call for {time12(callFor.start)} ({callFor.minutes} min open)
                       </h2>
                       {calls?.basis && <p className="text-xs text-amber-900/80 dark:text-amber-200/80 mt-0.5">{calls.basis}</p>}
+                      {calls?.kind === 'treatment' && (
+                        <div className="mt-2 inline-flex rounded-lg border border-amber-300 dark:border-amber-700/60 overflow-hidden" role="group" aria-label="Order of the list">
+                          <button type="button" aria-pressed={focus === 'likely'} disabled={callsLoading}
+                            onClick={() => callFor && focus !== 'likely' && openList(callFor, 'likely')}
+                            className={'px-2.5 py-1 text-xs font-semibold ' + (focus === 'likely' ? 'bg-amber-700 text-white' : 'bg-white dark:bg-slate-800 text-amber-900 dark:text-amber-200')}>
+                            Most likely first
+                          </button>
+                          <button type="button" aria-pressed={focus === 'large'} disabled={callsLoading}
+                            onClick={() => callFor && focus !== 'large' && openList(callFor, 'large')}
+                            className={'px-2.5 py-1 text-xs font-semibold border-l border-amber-300 dark:border-amber-700/60 ' + (focus === 'large' ? 'bg-amber-700 text-white' : 'bg-white dark:bg-slate-800 text-amber-900 dark:text-amber-200')}>
+                            Large treatment first
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <button type="button" onClick={() => { setCallFor(null); setCalls(null); }}
                       className="text-sm font-medium text-amber-900 dark:text-amber-200 hover:underline">Close</button>
@@ -242,10 +259,15 @@ export default function ProviderDayPage() {
 
             <aside className="rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-5 lg:sticky lg:top-24" aria-label={`${first}'s day`}>
               <h2 className="text-base font-semibold text-slate-900 dark:text-white mb-3">{first}'s day</h2>
-              {data.worksThatDay === false && (
+              {data.onLeave ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{first} is on leave, so open time is not shown.</p>
+              ) : data.worksThatDay === false && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">This is not one of {first}'s usual working days.</p>
               )}
-              {!data.hours && data.date && (
+              {data.swappedDay && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">The office is usually closed on this day, but {first} has visits booked, so it is treated as a working day.</p>
+              )}
+              {!data.hours && data.date && !data.onLeave && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Office hours are not set for this day, so open time is not shown.</p>
               )}
               {timeline.length === 0 ? (
@@ -298,6 +320,7 @@ export default function ProviderDayPage() {
                   Open time uses office hours {time12(data.hours.open)} to {time12(data.hours.close)}
                   {data.lunch ? `, lunch ${time12(data.lunch.start)} to ${time12(data.lunch.end)}` : ''}
                   {data.scheduleSource ? `. Source: ${data.scheduleSource}.` : '.'}
+                  {data.swappedDay ? ` Hours are taken from ${first}'s usual days.` : ''}
                 </p>
               )}
             </aside>
