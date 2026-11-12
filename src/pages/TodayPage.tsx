@@ -1,3 +1,4 @@
+import { normalizeStatus } from '../lib/appointmentStatus';
 import { useQuery, gql } from '@apollo/client';
 import {
   Clock,
@@ -52,13 +53,13 @@ export default function TodayPage() {
 
   // Group by status
   const upcoming = appointments.filter((a: any) => 
-    ['SCHEDULED', 'CONFIRMED'].includes(a.status)
+    ['SCHEDULED', 'CONFIRMED'].includes(normalizeStatus(a.status))
   );
   const inProgress = appointments.filter((a: any) => 
-    ['ARRIVED', 'SEATED', 'IN_PROGRESS', 'IN_CHAIR'].includes(a.status)
+    ['ARRIVED', 'SEATED', 'IN_PROGRESS'].includes(normalizeStatus(a.status))
   );
   const completed = appointments.filter((a: any) => 
-    ['COMPLETED', 'COMPLETE'].includes(a.status)
+    normalizeStatus(a.status) === 'COMPLETED'
   );
 
   if (loading && !data) {
@@ -160,7 +161,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 }
 
 function AppointmentRow({ appointment }: { appointment: any }) {
-  const config = statusConfig[appointment.status] || statusConfig.SCHEDULED;
+  const config = statusConfig[normalizeStatus(appointment.status)];
   const StatusIcon = config.icon;
 
   return (

@@ -1,3 +1,4 @@
+import { normalizeStatus, statusLabel } from '../lib/appointmentStatus';
 import { API_BASE } from '@/lib/apiBase';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -97,9 +98,9 @@ export default function ManagerDashboard() {
 
   // Quick stats from appointment data
   const totalToday = appointments.length;
-  const confirmed = appointments.filter(a => a.status === 'Confirmed' || a.status === 'Scheduled').length;
-  const checkedIn = appointments.filter(a => a.status === 'Checked In' || a.status === 'In Progress').length;
-  const completed = appointments.filter(a => a.status === 'Complete' || a.status === 'Completed').length;
+  const confirmed = appointments.filter(a => ['SCHEDULED', 'CONFIRMED'].includes(normalizeStatus(a.status))).length;
+  const checkedIn = appointments.filter(a => ['ARRIVED', 'SEATED', 'IN_PROGRESS'].includes(normalizeStatus(a.status))).length;
+  const completed = appointments.filter(a => normalizeStatus(a.status) === 'COMPLETED').length;
 
   const quickStats: QuickStat[] = [
     {
@@ -276,10 +277,10 @@ export default function ManagerDashboard() {
                 </div>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                    statusColor[appt.status] || 'bg-slate-100 text-slate-600'
+                    statusColor[statusLabel(normalizeStatus(appt.status))] || 'bg-slate-100 text-slate-600'
                   }`}
                 >
-                  {appt.status}
+                  {statusLabel(normalizeStatus(appt.status))}
                 </span>
               </div>
             ))}
