@@ -1,3 +1,4 @@
+import { normalizeStatus, statusLabel } from '../lib/appointmentStatus';
 import { useQuery, gql } from '@apollo/client';
 import {
   DollarSign,
@@ -268,8 +269,8 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[status] || statusConfig.SCHEDULED}`}>
-      {status}
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[normalizeStatus(status)]}`}>
+      {statusLabel(normalizeStatus(status))}
     </span>
   );
 }
